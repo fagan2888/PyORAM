@@ -3,75 +3,7 @@ import random
 import string
 
 from six.moves import range
-from cffi import FFI
-
-#
-# Generate some C functions to speed up ORAM critical parts
-#
-
-ffi = FFI()
-ffi.cdef(
-"""
-int CalculateBucketLevel(int, int);
-int LastCommonLevel(int k, int b1, int b2);
-""")
-
-ffi.set_source("_VirtualHeapHelper",
-"""
-#include <stdio.h>
-#include <stdlib.h>
-
-static int CalculateBucketLevel(int k, int b)
-{
-   int h, pow;
-   if (k == 2) {
-      // This is simply log2floor(b+1)
-      h = 0;
-      b += 1;
-      while (b >>= 1) {++h;}
-      return h;
-   }
-   b = (k - 1) * (b + 1) + 1;
-   h = 0;
-   pow = k;
-   while (pow < b) {++h; pow *= k;}
-   return h;
-}
-
-int LastCommonLevel(int k, int b1, int b2)
-{
-   int level1, level2;
-   level1 = CalculateBucketLevel(k, b1);
-   level2 = CalculateBucketLevel(k, b2);
-   if (level1 != level2) {
-      if (level1 > level2) {
-         while (level1 != level2) {
-            b1 = (b1 - 1)/k;
-            --level1;
-         }
-      }
-      else {
-         while (level2 != level1) {
-            b2 = (b2 - 1)/k;
-            --level2;
-         }
-      }
-   }
-   while (b1 != b2) {
-      b1 = (b1 - 1)/k;
-      b2 = (b2 - 1)/k;
-      --level1;
-   }
-   return level1;
-}
-
-""")
-_libdir = os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                       "VirtualHeap_clib")
-assert os.path.exists(_libdir)
-assert os.path.isdir(_libdir)
-ffi.compile(tmpdir=_libdir)
-from pyoram.VirtualHeap_clib._VirtualHeapHelper import lib as _clib
+import cffi
 
 class VirtualHeapNode(object):
     __slots__ = ("k", "bucket", "level")
@@ -137,7 +69,7 @@ class VirtualHeapNode(object):
 
 class VirtualHeap(object):
 
-    clib = _clib
+    clib = None
 
     numerals=''.join([c for c in string.printable \
                       if ((c not in string.whitespace) and \
