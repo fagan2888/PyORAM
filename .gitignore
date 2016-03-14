@@ -15,3 +15,7 @@
 /*.egg-info
 /*.egg
 /*.eggs
+
+# nose
+.coverage
+coverage.xml
