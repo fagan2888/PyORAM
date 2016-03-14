@@ -8,4 +8,4 @@ class Test(unittest.TestCase):
         pyoram.f()
 
 if __name__ == "__main__":
-    unittest.main()
+    unittest.main() # pragma: no cover
