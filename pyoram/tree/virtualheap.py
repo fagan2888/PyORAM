@@ -4,7 +4,7 @@ import string
 
 from six.moves import range
 
-from _virtualheap import lib as _clib
+from pyoram.tree._virtualheap import lib as _clib
 
 class VirtualHeapNode(object):
     __slots__ = ("k", "bucket", "level")
