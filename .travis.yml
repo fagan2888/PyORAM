@@ -1,13 +1,21 @@
 # travis CI config
 language: python
 python:
+  - 2.6
   - 2.7
   - 3.3
   - 3.4
   - 3.5
   - pypy
+  - pypy3
+cache: false
 install:
-  - pip install -e .
-script:
-  - cd tests
-  - python -E run_testsuite.py
+  - pip install -r requirements.txt
+  - pip install codecov coverage
+script: nosetests
+after_success:
+  - coverage combine
+  - codecov
+branches:
+  only:
+    - master
