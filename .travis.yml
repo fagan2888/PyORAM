@@ -1,0 +1,13 @@
+# travis CI config
+language: python
+python:
+  - 2.7
+  - 3.3
+  - 3.4
+  - 3.5
+  - pypy
+install:
+  - pip install -e .
+script:
+  - cd tests
+  - python -E run_testsuite.py
