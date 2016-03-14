@@ -16,25 +16,25 @@ class Test(unittest.TestCase):
     # coverage report includes
     def test_show_coverage(self):
         if not is_pypy:
-            if sys.version_info.major == 2:
-                if sys.version_info.minor == 6:
+            if sys.version_info[0] == 2:
+                if sys.version_info[1] == 6:
                     print(sys.version_info)
-                if sys.version_info.minor == 7:
+                elif sys.version_info.minor == 7:
                     print(sys.version_info)
-            if sys.version_info.major == 3:
+            elif sys.version_info.major == 3:
                 if sys.version_info.minor == 2:
                     print(sys.version_info)
-                if sys.version_info.minor == 3:
+                elif sys.version_info.minor == 3:
                     print(sys.version_info)
-                if sys.version_info.minor == 4:
+                elif sys.version_info.minor == 4:
                     print(sys.version_info)
-                if sys.version_info.minor == 5:
+                elif sys.version_info.minor == 5:
                     print(sys.version_info)
         if is_pypy:
             if sys.version_info.major == 2:
                 if sys.version_info.minor == 7:
                     print(sys.version_info)
-            if sys.version_info.major == 3:
+            elif sys.version_info.major == 3:
                 if sys.version_info.minor == 2:
                     print(sys.version_info)
 
