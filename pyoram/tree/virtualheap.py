@@ -3,7 +3,8 @@ import random
 import string
 
 from six.moves import range
-import cffi
+
+from _virtualheap import lib as _clib
 
 class VirtualHeapNode(object):
     __slots__ = ("k", "bucket", "level")
@@ -12,7 +13,7 @@ class VirtualHeapNode(object):
         assert bucket >= 0
         self.k = k
         self.bucket = bucket
-        self.level = VirtualHeap.clib.CalculateBucketLevel(self.k, self.bucket)
+        self.level = _clib.CalculateBucketLevel(self.k, self.bucket)
 
     def __hash__(self): return hash((self.k, self.bucket))
     def __eq__(self, other): return hash(self) == hash(other)
@@ -69,7 +70,7 @@ class VirtualHeapNode(object):
 
 class VirtualHeap(object):
 
-    clib = None
+    clib = _clib
 
     numerals=''.join([c for c in string.printable \
                       if ((c not in string.whitespace) and \

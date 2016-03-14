@@ -39,10 +39,12 @@ setup(
     ],
     keywords='oram privacy cryptography',
     packages=['pyoram'],
+    setup_requires=["cffi>=1.0.0"],
     install_requires=['pycrypto',
-                      'cffi',
+                      'cffi>=1.0.0',
                       'boto3',
                       'six'],
+    cffi_modules=["pyoram/tree/virtualheap_build.py:ffi"],
     # use MANIFEST.in
     include_package_data=True,
     #entry_points={
