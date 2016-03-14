@@ -1,7 +1,7 @@
 # PyORAM
 Python-based Oblivious RAM
 
-[![Build Status](https://travis-ci.org/ghackebeil/pyoram.svg?branch=master)](https://travis-ci.org/ghackebeil/pyoram)
+[![Build Status](https://travis-ci.org/ghackebeil/PyORAM.svg?branch=master)](https://travis-ci.org/ghackebeil/PyORAM)
 
 PyORAM is a collection of Oblivious RAM algorithms.
 This package focuses on enabling rapid prototyping of new
