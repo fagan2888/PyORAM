@@ -12,7 +12,7 @@ cache: false
 install:
   - pip install -r requirements.txt
   - pip install codecov coverage
-script: nosetests --with-coverage --with-xml
+script: nosetests --with-coverage --cover-xml
 after_success:
   - codecov
 branches:
