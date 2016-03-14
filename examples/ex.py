@@ -1,3 +1,3 @@
-from pyrom import f
+from pyoram import f
 
 f()
