@@ -17,3 +17,5 @@ clean:
 	find examples -name "*~" | xargs rm
 	find pyoram -name "*~" | xargs rm
 	find . -depth 1 -name "*~" | xargs rm
+
+	find pyoram -name "*.so" | xargs rm
