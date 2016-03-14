@@ -75,7 +75,8 @@ class VirtualHeap(object):
     numerals=''.join([c for c in string.printable \
                       if ((c not in string.whitespace) and \
                           (c != '+') and (c != '-') and \
-                          (c != '"') and (c != "'"))])
+                          (c != '"') and (c != "'") and \
+                          (c != '\\') and (c != '/'))])
     numeral_index=dict((c,i) for i,c in enumerate(numerals))
 
     @staticmethod
@@ -123,11 +124,13 @@ class VirtualHeap(object):
 
     @staticmethod
     def CalculateBucketCountInHeapWithHeight(k, h):
+        assert h >= 0
         return ((k**(h+1)) - 1) // (k - 1)
 
     @staticmethod
     def CalculateBucketCountInHeapWithLevels(k, levels):
-        return ((k**levels) - 1) // (k - 1)
+        assert levels >= 1
+        return VirtualHeap.CalculateBucketCountInHeapWithHeight(k, levels-1)
 
     @staticmethod
     def CalculateBucketCountInHeapAtLevel(k, level):
@@ -154,9 +157,6 @@ class VirtualHeap(object):
         return self._k
     def Levels(self): return self._levels
     def Height(self): return self.Levels() - 1
-    def LevelToHeight(self, l):
-        assert 0 <= l <= self.Height()
-        return self.Height() - l
     def NodeLabelToBucket(self, label):
         if len(label) > 0:
             return \
@@ -225,6 +225,7 @@ class VirtualHeap(object):
 
     def SlotCount(self): return self.BucketCount() * self.BucketSize()
     def SlotCountAtLevel(self, l): return self.BucketCountAtLevel(l) * self.BucketSize()
+    def LeafSlotCount(self): return self.LeafBucketCount() * self.BucketSize()
     def FirstSlotAtLevel(self, l): return self.BucketToSlot(self.FirstBucketAtLevel(l))
     def LastSlotAtLevel(self, l): return self.BucketToSlot(self.FirstBucketAtLevel(l+1)) - 1
     def SlotToBucket(self, s): return s//self.BucketSize()
