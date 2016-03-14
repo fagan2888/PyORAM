@@ -12,7 +12,7 @@ cache: false
 install:
   - pip install -e .
   - pip install codecov coverage
-script: nosetests --with-coverage
+script: nosetests pyoram examples --with-coverage
 after_success:
   - codecov
 branches:
