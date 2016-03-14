@@ -18,7 +18,7 @@ setup(
     version=pyoram.__version__,
     description='PyORAM: Python-based Oblivious RAM',
     long_description=_readme(),
-    url='https://github.com/ghackebeil/PyORAM'
+    url='https://github.com/ghackebeil/PyORAM',
     author='Gabriel A. Hackebeil',
     author_email='gabe.hackebeil@gmail.com',
     license='MIT',
