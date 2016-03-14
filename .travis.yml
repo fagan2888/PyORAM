@@ -10,9 +10,9 @@ python:
   - pypy3
 cache: false
 install:
-  - pip install -r requirements.txt
+  - pip install -e .
   - pip install codecov coverage
-script: nosetests --with-coverage --cover-xml
+script: nosetests --with-coverage
 after_success:
   - codecov
 branches:
