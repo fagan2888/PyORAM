@@ -15,14 +15,17 @@ class VirtualHeapNode(object):
         self.bucket = bucket
         self.level = _clib.CalculateBucketLevel(self.k, self.bucket)
 
-    def __hash__(self): return hash((self.k, self.bucket))
-    def __eq__(self, other): return hash(self) == hash(other)
+    def __hash__(self):
+        return hash((self.k, self.bucket))
+    def __eq__(self, other):
+        return hash(self) == hash(other)
     def LastCommonLevel(self, n):
         return _clib.LastCommonLevel(self.k, self.bucket, n.bucket)
     def ChildNode(self, c):
         assert type(c) is int
         return VirtualHeapNode(self.k, self.k * self.bucket + 1 + c)
-    def ParentNode(self): return VirtualHeapNode(self.k, (self.bucket - 1)//self.k)
+    def ParentNode(self):
+        return VirtualHeapNode(self.k, (self.bucket - 1)//self.k)
     def AncestorNodeAtLevel(self, level):
         if level > self.level:
             return None
@@ -80,7 +83,8 @@ class VirtualHeap(object):
     numeral_index=dict((c,i) for i,c in enumerate(numerals))
 
     @staticmethod
-    def MaxKLabeled(): return len(VirtualHeap.numerals)
+    def MaxKLabeled():
+        return len(VirtualHeap.numerals)
 
     @staticmethod
     def Base10IntegerToBaseKString(k, x):
@@ -155,8 +159,10 @@ class VirtualHeap(object):
     @property
     def k(self):
         return self._k
-    def Levels(self): return self._levels
-    def Height(self): return self.Levels() - 1
+    def Levels(self):
+        return self._levels
+    def Height(self):
+        return self.Levels() - 1
     def NodeLabelToBucket(self, label):
         if len(label) > 0:
             return \
@@ -169,7 +175,8 @@ class VirtualHeap(object):
     # Buckets (0-based integer, equivalent to slot for heap with bucket_size=1)
     #
 
-    def BucketSize(self): return self._bucket_size
+    def BucketSize(self):
+        return self._bucket_size
     def BucketCount(self):
         return self.CalculateBucketCountInHeapWithLevels(self.k, self.Levels())
     def BucketCountAtLevel(self, l):
@@ -185,8 +192,10 @@ class VirtualHeap(object):
         return self.FirstBucketAtLevel(self.Height())
     def LastLeafBucket(self):
         return self.LastBucketAtLevel(self.Height())
-    def BucketToNode(self, b): return VirtualHeapNode(self.k, b)
-    def BucketToSlot(self, b): return b * self.BucketSize()
+    def BucketToNode(self, b):
+        return VirtualHeapNode(self.k, b)
+    def BucketToSlot(self, b):
+        return b * self.BucketSize()
     def RandomBucket(self):
         return random.randint(self.FirstBucketAtLevel(0),
                               self.LastLeafBucket())
@@ -197,38 +206,60 @@ class VirtualHeap(object):
         assert 0 <= l <= self.Height()
         return random.randint(self.FirstBucketAtLevel(l),
                               self.FirstBucketAtLevel(l+1)-1)
-    def RandomLeafBucket(self): return self.RandomBucketAtLevel(self.Height())
+    def RandomLeafBucket(self):
+        return self.RandomBucketAtLevel(self.Height())
 
     #
     # Nodes (a class that helps with heap path calculations)
     #
 
-    def RootNode(self): return self.FirstNodeAtLevel(0)
-    def NodeHeight(self, n): return self.Height() - n.level
-    def NodeLevel(self, n): return n.level
-    def IsNil(self, n): return n.bucket >= self.BucketCount()
-    def NodeCount(self): return self.BucketCount()
-    def NodeCountAtLevel(self, l): return self.BucketCountAtLevel(l)
-    def LeafNodeCount(self): return self.LeafBucketCount()
-    def FirstNodeAtLevel(self, l): return self.BucketToNode(self.FirstBucketAtLevel(l))
-    def LastNodeAtLevel(self, l): return self.BucketToNode(self.LastBucketAtLevel(l))
-    def NodeToBucket(self, n): return n.bucket
-    def NodeToSlot(self, n): return self.BucketToSlot(n.bucket)
-    def RandomNode(self): return self.BucketToNode(self.RandomBucket())
-    def RandomNodeUpToLevel(self, l): return self.BucketToNode(self.RandomBucketUpToLevel(l))
-    def RandomNodeAtLevel(self, l): return self.BucketToNode(self.RandomBucketAtLevel(l))
-    def RandomLeafNode(self): return self.BucketToNode(self.RandomLeafBucket())
+    def RootNode(self):
+        return self.FirstNodeAtLevel(0)
+    def NodeHeight(self, n):
+        return self.Height() - n.level
+    def NodeLevel(self, n):
+        return n.level
+    def IsNil(self, n):
+        return n.bucket >= self.BucketCount()
+    def NodeCount(self):
+        return self.BucketCount()
+    def NodeCountAtLevel(self, l):
+        return self.BucketCountAtLevel(l)
+    def LeafNodeCount(self):
+        return self.LeafBucketCount()
+    def FirstNodeAtLevel(self, l):
+        return self.BucketToNode(self.FirstBucketAtLevel(l))
+    def LastNodeAtLevel(self, l):
+        return self.BucketToNode(self.LastBucketAtLevel(l))
+    def NodeToBucket(self, n):
+        return n.bucket
+    def NodeToSlot(self, n):
+        return self.BucketToSlot(n.bucket)
+    def RandomNode(self):
+        return self.BucketToNode(self.RandomBucket())
+    def RandomNodeUpToLevel(self, l):
+        return self.BucketToNode(self.RandomBucketUpToLevel(l))
+    def RandomNodeAtLevel(self, l):
+        return self.BucketToNode(self.RandomBucketAtLevel(l))
+    def RandomLeafNode(self):
+        return self.BucketToNode(self.RandomLeafBucket())
 
     #
     # Slot (0-based integer)
     #
 
-    def SlotCount(self): return self.BucketCount() * self.BucketSize()
-    def SlotCountAtLevel(self, l): return self.BucketCountAtLevel(l) * self.BucketSize()
-    def LeafSlotCount(self): return self.LeafBucketCount() * self.BucketSize()
-    def FirstSlotAtLevel(self, l): return self.BucketToSlot(self.FirstBucketAtLevel(l))
-    def LastSlotAtLevel(self, l): return self.BucketToSlot(self.FirstBucketAtLevel(l+1)) - 1
-    def SlotToBucket(self, s): return s//self.BucketSize()
+    def SlotCount(self):
+        return self.BucketCount() * self.BucketSize()
+    def SlotCountAtLevel(self, l):
+        return self.BucketCountAtLevel(l) * self.BucketSize()
+    def LeafSlotCount(self):
+        return self.LeafBucketCount() * self.BucketSize()
+    def FirstSlotAtLevel(self, l):
+        return self.BucketToSlot(self.FirstBucketAtLevel(l))
+    def LastSlotAtLevel(self, l):
+        return self.BucketToSlot(self.FirstBucketAtLevel(l+1)) - 1
+    def SlotToBucket(self, s):
+        return s//self.BucketSize()
 
     #
     # Visualization
@@ -238,8 +269,6 @@ class VirtualHeap(object):
         "Write the tree in the dot language format to f."
         assert (max_levels is None) or (max_levels >= 0)
         def visit_node(n, levels):
-            "Visit a node."
-
             lbl = "{"
             if data is None:
                 if self.k <= VirtualHeap.MaxKLabeled():
