@@ -40,6 +40,7 @@ setup(
     keywords='oram privacy cryptography',
     packages=['pyoram'],
     install_requires=['pycrypto',
+                      'cffi',
                       'boto3',
                       'six'],
     # use MANIFEST.in
