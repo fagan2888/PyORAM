@@ -1,3 +1,4 @@
-from pyoram import f
+import pyoram
 
-f()
+print(pyoram.util)
+print(pyoram.tree)
