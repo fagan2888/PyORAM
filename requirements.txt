@@ -1,4 +1,4 @@
-pycrypto
+#pycrypto
 cffi>=1.0.0
 boto3
 six

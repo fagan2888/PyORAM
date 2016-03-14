@@ -1,27 +1,47 @@
-# Always prefer setuptools over distutils
-from setuptools import setup, find_packages
-# To use a consistent encoding
+import os
+import sys
+import platform
+from setuptools import setup
 from codecs import open
-from os import path
 
-here = path.abspath(path.dirname(__file__))
+here = os.path.abspath(os.path.dirname(__file__))
+
+about = {}
+with open(os.path.join("pyoram", "__about__.py")) as f:
+    exec(f.read(), about)
 
 # Get the long description from the README file
 def _readme():
-    with open(path.join(here, 'README.md'), encoding='utf-8') as f:
+    with open(os.path.join(here, 'README.md'), encoding='utf-8') as f:
         return f.read()
 
-import pyoram
+setup_requirements = []
+requirements = ['boto3',
+                'six']
+#                'pycrypto']
+
+if platform.python_implementation() == "PyPy":
+    if sys.pypy_version_info < (2, 6):
+        raise RuntimeError(
+            "PyORAM is not compatible with PyPy < 2.6. Please "
+            "upgrade PyPy to use this library.")
+else:
+    if sys.version_info <= (2, 6):
+        raise RuntimeError(
+            "PyORAM is not compatible with Python < 2.7. Please "
+            "upgrade Python to use this library.")
+    requirements.append("cffi>=1.0.0")
+    setup_requirements.append("cffi>=1.0.0")
 
 setup(
-    name='pyoram',
-    version=pyoram.__version__,
-    description='PyORAM: Python-based Oblivious RAM',
+    name=about['__title__'],
+    version=about['__version__'],
+    description=about['__summary__'],
     long_description=_readme(),
-    url='https://github.com/ghackebeil/PyORAM',
-    author='Gabriel A. Hackebeil',
-    author_email='gabe.hackebeil@gmail.com',
-    license='MIT',
+    url=about['__uri__'],
+    author=about['__author__'],
+    author_email=about['__email__'],
+    license=about['__license__'],
     # https://pypi.python.org/pypi?%3Aaction=list_classifiers
     classifiers=[
         'Development Status :: 2 - Alpha',
@@ -39,11 +59,8 @@ setup(
     ],
     keywords='oram privacy cryptography',
     packages=['pyoram'],
-    setup_requires=["cffi>=1.0.0"],
-    install_requires=['pycrypto',
-                      'cffi>=1.0.0',
-                      'boto3',
-                      'six'],
+    setup_requires=setup_requirements,
+    install_requires=requirements,
     cffi_modules=["pyoram/tree/virtualheap_build.py:ffi"],
     # use MANIFEST.in
     include_package_data=True,
