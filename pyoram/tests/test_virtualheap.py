@@ -961,7 +961,6 @@ class TestSizedVirtualHeap(unittest.TestCase):
             self._assert_file_equals_baselines(
                 os.path.join(thisdir, fname),
                 os.path.join(baselinedir, fname))
-    
 
 class TestMisc(unittest.TestCase):
 
