@@ -1,4 +1,5 @@
 import os
+import subprocess
 import random
 import string
 
@@ -387,10 +388,16 @@ class SizedVirtualHeap(VirtualHeap):
             filename = filename+'.pdf'
         with open('%s.dot' % filename, 'w') as f:
             self.WriteAsDot(f, data=data, max_levels=max_levels)
-        if os.system('dot %s.dot -Tpdf -o %s' % (filename, filename)):
-            print("DOT -> PDF conversion failed. See DOT file: %s"
-                  % (filename+".dot"))
+        try:
+            subprocess.call(['dot',
+                             ('%s.dot'%filename),
+                             '-Tpdf',
+                             '-o',
+                             ('%s'%filename)])
+        except OSError:
+            sys.stderr.write(
+                "DOT -> PDF conversion failed. See DOT file: %s\n"
+                % (filename+".dot"))
             return False
-        else:
-            os.remove('%s.dot' % (filename))
-            return True
+        os.remove('%s.dot' % (filename))
+        return True

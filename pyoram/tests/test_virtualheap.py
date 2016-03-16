@@ -1,4 +1,5 @@
 import os
+import subprocess
 import unittest
 
 import pyoram
@@ -16,6 +17,11 @@ from pyoram.tree.virtualheap import \
 
 thisdir = os.path.dirname(os.path.abspath(__file__))
 baselinedir = os.path.join(thisdir, "baselines")
+
+try:
+    has_dot = not subprocess.call(["dot", "-V"])
+except:
+    has_dot = False
 
 try:
     xrange
@@ -978,28 +984,37 @@ class TestSizedVirtualHeap(unittest.TestCase):
             fname = label+".pdf"
             if os.path.exists(os.path.join(thisdir, fname)):
                 os.remove(os.path.join(thisdir, fname))
-            heap.SaveImageAsPDF(os.path.join(thisdir, label),
-                                max_levels=maxl)
-            self.assertEqual(
-                os.path.exists(os.path.join(thisdir, fname)), True)
-            try:
-                os.remove(os.path.join(thisdir, fname))
-            except OSError:
-                pass
+            rc = heap.SaveImageAsPDF(os.path.join(thisdir, label),
+                                     max_levels=maxl)
+
+            if not has_dot:
+                self.assertEqual(rc, False)
+            else:
+                self.assertEqual(rc, True)
+                self.assertEqual(
+                    os.path.exists(os.path.join(thisdir, fname)), True)
+                try:
+                    os.remove(os.path.join(thisdir, fname))
+                except OSError:
+                    pass
 
             data = list(range(heap.SlotCount()))
             fname = label+"_data.pdf"
             if os.path.exists(os.path.join(thisdir, fname)):
                 os.remove(os.path.join(thisdir, fname))
-            heap.SaveImageAsPDF(os.path.join(thisdir, fname),
-                                data=data,
-                                max_levels=maxl)
-            self.assertEqual(
-                os.path.exists(os.path.join(thisdir, fname)), True)
-            try:
-                os.remove(os.path.join(thisdir, fname))
-            except OSError:
-                pass
+            rc = heap.SaveImageAsPDF(os.path.join(thisdir, fname),
+                                     data=data,
+                                     max_levels=maxl)
+            if not has_dot:
+                self.assertEqual(rc, False)
+            else:
+                self.assertEqual(rc, True)
+                self.assertEqual(
+                    os.path.exists(os.path.join(thisdir, fname)), True)
+                try:
+                    os.remove(os.path.join(thisdir, fname))
+                except OSError:
+                    pass
 class TestMisc(unittest.TestCase):
 
     def test_MaxKLabeled(self):
