@@ -1,7 +1,9 @@
 import os
+import sys
 import subprocess
 import random
 import string
+import tempfile
 
 from six.moves import range
 
@@ -386,18 +388,20 @@ class SizedVirtualHeap(VirtualHeap):
         import os
         if not filename.endswith('.pdf'):
             filename = filename+'.pdf'
-        with open('%s.dot' % filename, 'w') as f:
+        tmpfd, tmpname = tempfile.mkstemp(suffix='dot')
+        with open(tmpname, 'w') as f:
             self.WriteAsDot(f, data=data, max_levels=max_levels)
+        os.close(tmpfd)
         try:
             subprocess.call(['dot',
-                             ('%s.dot'%filename),
+                             tmpname,
                              '-Tpdf',
                              '-o',
                              ('%s'%filename)])
         except OSError:
             sys.stderr.write(
                 "DOT -> PDF conversion failed. See DOT file: %s\n"
-                % (filename+".dot"))
+                % (tmpname))
             return False
-        os.remove('%s.dot' % (filename))
+        os.remove(tmpname)
         return True
