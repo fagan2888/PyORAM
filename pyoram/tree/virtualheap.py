@@ -80,7 +80,7 @@ def CalculateNecessaryHeapHeight(k, n):
     to store n buckets.
     """
     assert n >= 1
-    return CalculateBucketLevel(k, n-1) + 1
+    return CalculateBucketLevel(k, n-1)
 
 def CalculateBucketCountInHeapWithHeight(k, h):
     """
@@ -236,9 +236,6 @@ class VirtualHeap(object):
         return 0
     def LastBucketAtLevel(self, l):
         return CalculateBucketCountInHeapWithHeight(self.k, l) - 1
-    def BucketToSlot(self, b):
-        assert b >= 0
-        return b * self.BucketSize()
     def RandomBucketUpToLevel(self, l):
         return random.randint(self.FirstBucketAtLevel(0),
                               self.LastBucketAtLevel(l))
@@ -267,15 +264,22 @@ class VirtualHeap(object):
     # Slot (0-based integer)
     #
 
+    def BucketToSlot(self, b):
+        assert b >= 0
+        return b * self.BucketSize()
+    def SlotToBucket(self, s):
+        assert s >= 0
+        return s//self.BucketSize()
+    def FirstSlotInBucket(self, b):
+        return self.BucketToSlot(b)
+    def LastSlotInBucket(self, b):
+        return self.BucketToSlot(b) + self.BucketSize() - 1
     def SlotCountAtLevel(self, l):
         return self.BucketCountAtLevel(l) * self.BucketSize()
     def FirstSlotAtLevel(self, l):
         return self.BucketToSlot(self.FirstBucketAtLevel(l))
     def LastSlotAtLevel(self, l):
         return self.BucketToSlot(self.FirstBucketAtLevel(l+1)) - 1
-    def SlotToBucket(self, s):
-        assert s >= 0
-        return s//self.BucketSize()
 
 class SizedVirtualHeap(VirtualHeap):
 
@@ -321,6 +325,10 @@ class SizedVirtualHeap(VirtualHeap):
         return self.BucketCount()
     def LeafNodeCount(self):
         return self.LeafBucketCount()
+    def FirstLeafNode(self):
+        return self.Node(self.FirstBucketAtLevel(self.Height()))
+    def LastLeafNode(self):
+        return self.Node(self.LastBucketAtLevel(self.Height()))
     def RandomLeafNode(self):
         return self.Node(self.RandomLeafBucket())
     def RandomNode(self):
@@ -334,6 +342,10 @@ class SizedVirtualHeap(VirtualHeap):
         return self.BucketCount() * self.BucketSize()
     def LeafSlotCount(self):
         return self.LeafBucketCount() * self.BucketSize()
+    def FirstLeafSlot(self):
+        return self.FirstSlotInBucket(self.FirstBucketAtLevel(self.Height()))
+    def LastLeafSlot(self):
+        return self.LastSlotInBucket(self.LastBucketAtLevel(self.Height()))
 
     #
     # Visualization
@@ -357,10 +369,7 @@ class SizedVirtualHeap(VirtualHeap):
             else:
                 s = self.BucketToSlot(n.bucket)
                 for i in range(self.BucketSize()):
-                    if data is None:
-                        lbl += "{%s}" % (s + i)
-                    else:
-                        lbl += "{%s}" % (data[s+i])
+                    lbl += "{%s}" % (data[s+i])
                     if i + 1 != self.BucketSize():
                         lbl += "|"
             lbl += "}"

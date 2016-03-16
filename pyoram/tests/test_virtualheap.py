@@ -11,6 +11,7 @@ from pyoram.tree.virtualheap import \
      CalculateBucketCountInHeapAtLevel,
      CalculateBucketLevel,
      CalculateLastCommonLevel,
+     CalculateNecessaryHeapHeight,
      BaseKStringToBase10Integer,
      numerals,
      _clib)
@@ -932,6 +933,33 @@ class TestSizedVirtualHeap(unittest.TestCase):
                     self.assertEqual(vh.LeafSlotCount(),
                                      vh.SlotCountAtLevel(vh.Height()))
 
+
+    def test_FirstLeafObject(self):
+        vh = SizedVirtualHeap(2, 3, bucket_size=3)
+        self.assertEqual(vh.FirstLeafNode(), 7)
+        self.assertEqual(vh.FirstLeafSlot(), 7*3)
+
+    def test_LastLeafObject(self):
+        vh = SizedVirtualHeap(2, 3, bucket_size=3)
+        self.assertEqual(vh.LastLeafNode(), 14)
+        self.assertEqual(vh.LastLeafSlot(), 14*3 + 2)
+
+    def test_RandomNode(self):
+        for k in xrange(2,6):
+            height = 3
+            heap = SizedVirtualHeap(k, height)
+            for t in xrange(2 * heap.BucketCount()):
+                node = heap.RandomNode()
+                self.assertEqual(0 <= node.level <= height, True)
+
+    def test_RandomLeafNode(self):
+        for k in xrange(2,6):
+            height = 3
+            heap = SizedVirtualHeap(k, height)
+            for t in xrange(2 * heap.BucketCount()):
+                node = heap.RandomLeafNode()
+                self.assertEqual(node.level, height)
+
     def _assert_file_equals_baselines(self, fname, bname):
         with open(fname)as f:
             flines = f.readlines()
@@ -946,7 +974,8 @@ class TestSizedVirtualHeap(unittest.TestCase):
                               (2, 3, 2, None),
                               (3, 3, 1, None),
                               (3, 3, 2, None),
-                              (3, 10, 2, 4)]:
+                              (3, 10, 2, 4),
+                              (200, 0, 1, None)]:
             if maxl is None:
                 label = "k%d_h%d_b%d" % (k, h, b)
             else:
@@ -1015,6 +1044,7 @@ class TestSizedVirtualHeap(unittest.TestCase):
                     os.remove(os.path.join(thisdir, fname))
                 except OSError:
                     pass
+
 class TestMisc(unittest.TestCase):
 
     def test_MaxKLabeled(self):
@@ -1096,6 +1126,33 @@ class TestMisc(unittest.TestCase):
                 for b2 in [0, 100, 10000, 14648774, 14648775]:
                     self.assertEqual(_clib.CalculateLastCommonLevel(k, b1, b2),
                                      CalculateLastCommonLevel(k, b1, b2))
+
+    def test_CalculateNecessaryHeapHeight(self):
+        self.assertEqual(CalculateNecessaryHeapHeight(2, 1), 0)
+        self.assertEqual(CalculateNecessaryHeapHeight(2, 2), 1)
+        self.assertEqual(CalculateNecessaryHeapHeight(2, 3), 1)
+        self.assertEqual(CalculateNecessaryHeapHeight(2, 4), 2)
+        self.assertEqual(CalculateNecessaryHeapHeight(2, 5), 2)
+        self.assertEqual(CalculateNecessaryHeapHeight(2, 6), 2)
+        self.assertEqual(CalculateNecessaryHeapHeight(2, 7), 2)
+        self.assertEqual(CalculateNecessaryHeapHeight(2, 8), 3)
+
+        self.assertEqual(CalculateNecessaryHeapHeight(3, 1), 0)
+        self.assertEqual(CalculateNecessaryHeapHeight(3, 2), 1)
+        self.assertEqual(CalculateNecessaryHeapHeight(3, 3), 1)
+        self.assertEqual(CalculateNecessaryHeapHeight(3, 4), 1)
+        self.assertEqual(CalculateNecessaryHeapHeight(3, 5), 2)
+        self.assertEqual(CalculateNecessaryHeapHeight(3, 6), 2)
+        self.assertEqual(CalculateNecessaryHeapHeight(3, 7), 2)
+        self.assertEqual(CalculateNecessaryHeapHeight(3, 8), 2)
+        self.assertEqual(CalculateNecessaryHeapHeight(3, 9), 2)
+        self.assertEqual(CalculateNecessaryHeapHeight(3, 10), 2)
+        self.assertEqual(CalculateNecessaryHeapHeight(3, 11), 2)
+        self.assertEqual(CalculateNecessaryHeapHeight(3, 12), 2)
+        self.assertEqual(CalculateNecessaryHeapHeight(3, 13), 2)
+        self.assertEqual(CalculateNecessaryHeapHeight(3, 14), 3)
+        self.assertEqual(CalculateNecessaryHeapHeight(3, 15), 3)
+        self.assertEqual(CalculateNecessaryHeapHeight(3, 16), 3)
 
 if __name__ == "__main__":
     unittest.main()                                    # pragma: no cover
