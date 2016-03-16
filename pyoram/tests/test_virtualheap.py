@@ -7,8 +7,11 @@ from pyoram.tree.virtualheap import \
      MaxKLabeled,
      CalculateBucketCountInHeapWithHeight,
      CalculateBucketCountInHeapAtLevel,
+     CalculateBucketLevel,
+     CalculateLastCommonLevel,
      BaseKStringToBase10Integer,
-     numerals)
+     numerals,
+     _clib)
 
 try:
     xrange
@@ -863,6 +866,16 @@ class TestVirtualHeap(unittest.TestCase):
         self.assertEqual(VirtualHeap(2, bucket_size=4).SlotToBucket(3), 0)
         self.assertEqual(VirtualHeap(2, bucket_size=4).SlotToBucket(4), 1)
 
+    def test_RootNode(self):
+        for k in range(2, 6):
+            for bucket_size in range(1, 5):
+                heap = VirtualHeap(k, bucket_size=bucket_size)
+                root = heap.RootNode()
+                self.assertEqual(root, 0)
+                self.assertEqual(root.bucket, 0)
+                self.assertEqual(root.level, 0)
+                self.assertEqual(root.ParentNode(), None)
+
 class TestSizedVirtualHeap(unittest.TestCase):
 
     def test_init(self):
@@ -913,6 +926,83 @@ class TestMisc(unittest.TestCase):
 
     def test_MaxKLabeled(self):
         MaxKLabeled()
+
+    def test_CalculateBucketLevel(self):
+        self.assertEqual(CalculateBucketLevel(2, 0), 0)
+        self.assertEqual(CalculateBucketLevel(2, 1), 1)
+        self.assertEqual(CalculateBucketLevel(2, 2), 1)
+        self.assertEqual(CalculateBucketLevel(2, 3), 2)
+        self.assertEqual(CalculateBucketLevel(2, 4), 2)
+        self.assertEqual(CalculateBucketLevel(2, 5), 2)
+        self.assertEqual(CalculateBucketLevel(2, 6), 2)
+        self.assertEqual(CalculateBucketLevel(2, 7), 3)
+
+        self.assertEqual(CalculateBucketLevel(3, 0), 0)
+        self.assertEqual(CalculateBucketLevel(3, 1), 1)
+        self.assertEqual(CalculateBucketLevel(3, 2), 1)
+        self.assertEqual(CalculateBucketLevel(3, 3), 1)
+        self.assertEqual(CalculateBucketLevel(3, 4), 2)
+        self.assertEqual(CalculateBucketLevel(3, 5), 2)
+        self.assertEqual(CalculateBucketLevel(3, 6), 2)
+        self.assertEqual(CalculateBucketLevel(3, 7), 2)
+        self.assertEqual(CalculateBucketLevel(3, 8), 2)
+        self.assertEqual(CalculateBucketLevel(3, 9), 2)
+        self.assertEqual(CalculateBucketLevel(3, 10), 2)
+        self.assertEqual(CalculateBucketLevel(3, 11), 2)
+        self.assertEqual(CalculateBucketLevel(3, 12), 2)
+        self.assertEqual(CalculateBucketLevel(3, 13), 3)
+
+        self.assertEqual(CalculateBucketLevel(4, 0), 0)
+        self.assertEqual(CalculateBucketLevel(4, 1), 1)
+        self.assertEqual(CalculateBucketLevel(4, 2), 1)
+        self.assertEqual(CalculateBucketLevel(4, 3), 1)
+        self.assertEqual(CalculateBucketLevel(4, 4), 1)
+
+        self.assertEqual(CalculateBucketLevel(4, 5), 2)
+        self.assertEqual(CalculateBucketLevel(4, 6), 2)
+        self.assertEqual(CalculateBucketLevel(4, 7), 2)
+        self.assertEqual(CalculateBucketLevel(4, 8), 2)
+
+        self.assertEqual(CalculateBucketLevel(4, 9), 2)
+        self.assertEqual(CalculateBucketLevel(4, 10), 2)
+        self.assertEqual(CalculateBucketLevel(4, 11), 2)
+        self.assertEqual(CalculateBucketLevel(4, 12), 2)
+
+        self.assertEqual(CalculateBucketLevel(4, 13), 2)
+        self.assertEqual(CalculateBucketLevel(4, 14), 2)
+        self.assertEqual(CalculateBucketLevel(4, 15), 2)
+        self.assertEqual(CalculateBucketLevel(4, 16), 2)
+
+        self.assertEqual(CalculateBucketLevel(4, 17), 2)
+        self.assertEqual(CalculateBucketLevel(4, 18), 2)
+        self.assertEqual(CalculateBucketLevel(4, 19), 2)
+        self.assertEqual(CalculateBucketLevel(4, 20), 2)
+
+        self.assertEqual(CalculateBucketLevel(4, 21), 3)
+
+    def test_clib_CalculateBucketLevel(self):
+        for k in _test_bases:
+            for b in xrange(CalculateBucketCountInHeapWithHeight(k, 3)+1):
+                self.assertEqual(_clib.CalculateBucketLevel(k, b),
+                                 CalculateBucketLevel(k, b))
+        for k, b in [(89, 14648774),
+                     (89, 14648775),
+                     (90, 14648774),
+                     (90, 14648775)]:
+            self.assertEqual(_clib.CalculateBucketLevel(k, b),
+                             CalculateBucketLevel(k, b))
+
+    def test_clib_CalculateLastCommonLevel(self):
+        for k in range(2, 8):
+            for b1 in xrange(CalculateBucketCountInHeapWithHeight(k, 3)+1):
+                for b2 in xrange(CalculateBucketCountInHeapWithHeight(k, 3)+1):
+                    self.assertEqual(_clib.CalculateLastCommonLevel(k, b1, b2),
+                                     CalculateLastCommonLevel(k, b1, b2))
+        for k in [89,90]:
+            for b1 in [0, 100, 10000, 14648774, 14648775]:
+                for b2 in [0, 100, 10000, 14648774, 14648775]:
+                    self.assertEqual(_clib.CalculateLastCommonLevel(k, b1, b2),
+                                     CalculateLastCommonLevel(k, b1, b2))
 
 if __name__ == "__main__":
     unittest.main()                                    # pragma: no cover

@@ -5,6 +5,7 @@ import string
 from six.moves import range
 
 from pyoram.tree._virtualheap import lib as _clib
+from pyoram.util import log2floor
 
 numerals = ''.join([c for c in string.printable \
                   if ((c not in string.whitespace) and \
@@ -36,13 +37,13 @@ def BaseKStringToBase10Integer(k, x):
     return sum(numeral_index[c]*(k**i)
                for i, c in enumerate(reversed(x)))
 
+# _clib defines a faster version of this function
 def CalculateBucketLevel(k, b):
     """
     Calculate the level in which a 0-based bucket
     lives inside of a k-ary heap.
     """
     assert k >= 2
-    assert b >= 1
     if k == 2:
         return log2floor(b+1)
     v = (k - 1) * (b + 1) + 1
@@ -50,6 +51,26 @@ def CalculateBucketLevel(k, b):
     while k**(h+1) < v:
         h += 1
     return h
+
+# _clib defines a faster version of this function
+def CalculateLastCommonLevel(k, b1, b2):
+    """
+    Calculate the highest level after which the
+    paths from the root to these buckets diverge.
+    """
+    l1 = CalculateBucketLevel(k, b1)
+    l2 = CalculateBucketLevel(k, b2)
+    while l1 > l2:
+        b1 = (b1-1)//k
+        l1 -= 1
+    while l2 > l1:
+        b2 = (b2-1)//k
+        l2 -= 1
+    while b1 != b2:
+        b1 = (b1-1)//k
+        b2 = (b2-1)//k
+        l1 -= 1
+    return l1
 
 def CalculateNecessaryHeapHeight(k, n):
     """
@@ -106,7 +127,9 @@ def create_node_type(k):
         def __ge__(self, other):
             return self.bucket >= other
         def LastCommonLevel(self, n):
-            return _clib.LastCommonLevel(self.k, self.bucket, n.bucket)
+            return _clib.CalculateLastCommonLevel(self.k,
+                                                  self.bucket,
+                                                  n.bucket)
         def ChildNode(self, c):
             assert type(c) is int
             assert 0 <= c < self.k
@@ -214,9 +237,6 @@ class VirtualHeap(object):
     def BucketToSlot(self, b):
         assert b >= 0
         return b * self.BucketSize()
-    def RandomBucket(self):
-        return random.randint(self.FirstBucketAtLevel(0),
-                              self.LastLeafBucket())
     def RandomBucketUpToLevel(self, l):
         return random.randint(self.FirstBucketAtLevel(0),
                               self.LastBucketAtLevel(l))
@@ -283,6 +303,9 @@ class SizedVirtualHeap(VirtualHeap):
         return self.FirstBucketAtLevel(self.Height())
     def LastLeafBucket(self):
         return self.LastBucketAtLevel(self.Height())
+    def RandomBucket(self):
+        return random.randint(self.FirstBucketAtLevel(0),
+                              self.LastLeafBucket())
     def RandomLeafBucket(self):
         return self.RandomBucketAtLevel(self.Height())
 
