@@ -8,7 +8,7 @@ from pyoram.tree._virtualheap import lib as _clib
 
 class VirtualHeapNode(object):
     __slots__ = ("k", "bucket", "level")
-    def __init__(self, k, bucket, label=None):
+    def __init__(self, k, bucket):
         assert k > 1
         assert bucket >= 0
         self.k = k
@@ -23,9 +23,12 @@ class VirtualHeapNode(object):
         return _clib.LastCommonLevel(self.k, self.bucket, n.bucket)
     def ChildNode(self, c):
         assert type(c) is int
+        assert 0 <= c < self.k
         return VirtualHeapNode(self.k, self.k * self.bucket + 1 + c)
     def ParentNode(self):
-        return VirtualHeapNode(self.k, (self.bucket - 1)//self.k)
+        if self.bucket != 0:
+            return VirtualHeapNode(self.k, (self.bucket - 1)//self.k)
+        return None
     def AncestorNodeAtLevel(self, level):
         if level > self.level:
             return None
@@ -46,18 +49,29 @@ class VirtualHeapNode(object):
     # Expensive Functions
     #
     def __repr__(self):
+        try:
+            label = self.Label()
+        except ValueError:
+            # presumably, k is too large
+            label = "<unknown>"
         return ("VirtualHeapNode(k=%s, bucket=%s, level=%s, label=%r)"
-                % (self.k, self.bucket, self.level, self.Label()))
+                % (self.k, self.bucket, self.level, label))
     def __str__(self):
-        return ("(%s,%s)"
-                % (self.level,
-                   self.bucket - 
-                   VirtualHeap.CalculateBucketCountInHeapWithLevels(self.k,
-                                                                    self.level)))
+        """Returns a tuple (<level>, <bucket offset within level>)."""
+        if self.bucket != 0:
+            return ("(%s, %s)"
+                    % (self.level,
+                       self.bucket -
+                       VirtualHeap.\
+                       CalculateBucketCountInHeapWithLevels(self.k,
+                                                            self.level)))
+        assert self.level == 0
+        return "(0, 0)"
+
     def Label(self):
         assert 0 <= self.bucket
         if self.level == 0:
-            return 'R'
+            return ''
         b_offset = self.bucket - \
                    VirtualHeap.CalculateBucketCountInHeapWithLevels(self.k, self.level)
         basek = VirtualHeap.Base10IntegerToBaseKString(self.k, b_offset)
@@ -66,7 +80,7 @@ class VirtualHeapNode(object):
     def IsNodeOnPath(self, n):
         if n.level <= self.level:
             n_label = n.Label()
-            if n_label == "R":
+            if n_label == "":
                 return True
             return self.Label().startswith(n_label)
         return False
