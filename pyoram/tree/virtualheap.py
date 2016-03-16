@@ -14,7 +14,6 @@ numerals = ''.join([c for c in string.printable \
                       (c != '\\') and (c != '/'))])
 numeral_index = dict((c,i) for i,c in enumerate(numerals))
 
-
 def MaxKLabeled():
     """
     The maximum heap base for which base k labels
@@ -353,7 +352,7 @@ class SizedVirtualHeap(VirtualHeap):
                 else:
                     lbl = str(n)
             else:
-                s = self.NodeToSlot(n)
+                s = self.BucketToSlot(n.bucket)
                 for i in range(self.BucketSize()):
                     if data is None:
                         lbl += "{%s}" % (s + i)

@@ -1,3 +1,4 @@
+import os
 import unittest
 
 import pyoram
@@ -12,6 +13,9 @@ from pyoram.tree.virtualheap import \
      BaseKStringToBase10Integer,
      numerals,
      _clib)
+
+thisdir = os.path.dirname(os.path.abspath(__file__))
+baselinedir = os.path.join(thisdir, "baselines")
 
 try:
     xrange
@@ -921,6 +925,43 @@ class TestSizedVirtualHeap(unittest.TestCase):
                                      vh.NodeCountAtLevel(vh.Height()))
                     self.assertEqual(vh.LeafSlotCount(),
                                      vh.SlotCountAtLevel(vh.Height()))
+
+    def _assert_file_equals_baselines(self, fname, bname):
+        with open(fname)as f:
+            flines = f.readlines()
+        with open(bname) as f:
+            blines = f.readlines()
+        self.assertListEqual(flines, blines)
+        os.remove(fname)
+
+    def test_WriteAsDot(self):
+
+        for k, h, b, maxl in [(2, 3, 1, None),
+                              (2, 3, 2, None),
+                              (3, 3, 1, None),
+                              (3, 3, 2, None),
+                              (3, 10, 2, 4)]:
+            if maxl is None:
+                label = "k%d_h%d_b%d" % (k, h, b)
+            else:
+                label = "k%d_h%d_b%d" % (k, maxl-1, b)
+            heap = SizedVirtualHeap(k, h, bucket_size=b)
+
+            fname = label+".dot"
+            with open(os.path.join(thisdir, fname), "w") as f:
+                heap.WriteAsDot(f, max_levels=maxl)
+            self._assert_file_equals_baselines(
+                os.path.join(thisdir, fname),
+                os.path.join(baselinedir, fname))
+
+            data = list(range(heap.SlotCount()))
+            fname = label+"_data.dot"
+            with open(os.path.join(thisdir, fname), "w") as f:
+                heap.WriteAsDot(f, data=data, max_levels=maxl)
+            self._assert_file_equals_baselines(
+                os.path.join(thisdir, fname),
+                os.path.join(baselinedir, fname))
+    
 
 class TestMisc(unittest.TestCase):
 
