@@ -326,9 +326,9 @@ class SizedVirtualHeap(VirtualHeap):
     def LeafNodeCount(self):
         return self.LeafBucketCount()
     def FirstLeafNode(self):
-        return self.Node(self.FirstBucketAtLevel(self.Height()))
+        return self.Node(self.FirstLeafBucket())
     def LastLeafNode(self):
-        return self.Node(self.LastBucketAtLevel(self.Height()))
+        return self.Node(self.LastLeafBucket())
     def RandomLeafNode(self):
         return self.Node(self.RandomLeafBucket())
     def RandomNode(self):
@@ -343,9 +343,9 @@ class SizedVirtualHeap(VirtualHeap):
     def LeafSlotCount(self):
         return self.LeafBucketCount() * self.BucketSize()
     def FirstLeafSlot(self):
-        return self.FirstSlotInBucket(self.FirstBucketAtLevel(self.Height()))
+        return self.FirstSlotInBucket(self.FirstLeafBucket())
     def LastLeafSlot(self):
-        return self.LastSlotInBucket(self.LastBucketAtLevel(self.Height()))
+        return self.LastSlotInBucket(self.LastLeafBucket())
 
     #
     # Visualization
