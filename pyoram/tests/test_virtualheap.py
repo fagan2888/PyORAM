@@ -6,24 +6,30 @@ from pyoram.tree.virtualheap import \
      SizedVirtualHeap,
      MaxKLabeled,
      CalculateBucketCountInHeapWithHeight,
+     CalculateBucketCountInHeapAtLevel,
      BaseKStringToBase10Integer,
      numerals)
 
-_test_bases = list(range(2, 15)) + [MaxKLabeled()+1]
-_test_labeled_bases = list(range(2, 15)) + [MaxKLabeled()]
+try:
+    xrange
+except:
+    xrange = range
+
+_test_bases = list(xrange(2, 15)) + [MaxKLabeled()+1]
+_test_labeled_bases = list(xrange(2, 15)) + [MaxKLabeled()]
 
 def _do_preorder(x):
     if x.level > 2:
         return
     yield x.bucket
-    for c in range(x.k):
+    for c in xrange(x.k):
         for b in _do_preorder(x.ChildNode(c)):
             yield b
 
 def _do_postorder(x):
     if x.level > 2:
         return
-    for c in range(x.k):
+    for c in xrange(x.k):
         for b in _do_postorder(x.ChildNode(c)):
             yield b
     yield x.bucket
@@ -47,7 +53,7 @@ class TestVirtualHeapNode(unittest.TestCase):
             self.assertEqual(node.k, k)
             self.assertEqual(node.bucket, 0)
             self.assertEqual(node.level, 0)
-            for b in range(1, k+1):
+            for b in xrange(1, k+1):
                 node = vh.Node(b)
                 self.assertEqual(node.k, k)
                 self.assertEqual(node.bucket, b)
@@ -94,7 +100,7 @@ class TestVirtualHeapNode(unittest.TestCase):
             node_set = set()
             node_list = list()
             Node = VirtualHeap(k).Node
-            for height in range(k+2):
+            for height in xrange(k+2):
                 node = Node(height)
                 node_set.add(node)
                 all_node_set.add(node)
@@ -551,7 +557,7 @@ class TestVirtualHeapNode(unittest.TestCase):
 
         for k in _test_labeled_bases:
             Node = VirtualHeap(k).Node
-            for b in range(CalculateBucketCountInHeapWithHeight(k, 2)+1):
+            for b in xrange(CalculateBucketCountInHeapWithHeight(k, 2)+1):
                 label = Node(b).Label()
                 level = Node(b).level
                 if label == "":
@@ -660,8 +666,8 @@ class TestVirtualHeap(unittest.TestCase):
         self.assertEqual(vh.NodeLabelToBucket("222"),
                          CalculateBucketCountInHeapWithHeight(3, 3)-1)
 
-        for k in range(2, MaxKLabeled()+1):
-            for h in range(5):
+        for k in xrange(2, MaxKLabeled()+1):
+            for h in xrange(5):
                 vh = VirtualHeap(k)
                 largest_symbol = numerals[k-1]
                 self.assertEqual(vh.k, k)
@@ -671,15 +677,191 @@ class TestVirtualHeap(unittest.TestCase):
 
     def test_ObjectCountAtLevel(self):
         for k in _test_bases:
-            for height in range(k+2):
-                for bucket_size in range(1, 5):
+            for height in xrange(k+2):
+                for bucket_size in xrange(1, 5):
                     vh = VirtualHeap(k, bucket_size=bucket_size)
-                    for l in range(height+1):
+                    for l in xrange(height+1):
                         cnt = k**l
                         self.assertEqual(vh.BucketCountAtLevel(l), cnt)
                         self.assertEqual(vh.NodeCountAtLevel(l), cnt)
                         self.assertEqual(vh.SlotCountAtLevel(l),
                                          cnt * bucket_size)
+
+    def test_BucketToSlot(self):
+        for k in xrange(2, 6):
+            for bucket_size in xrange(1, 5):
+                heap = VirtualHeap(k, bucket_size=bucket_size)
+                for b in xrange(20):
+                    self.assertEqual(heap.BucketToSlot(b),
+                                     bucket_size * b)
+
+    def test_NodeCountAtLevel(self):
+        self.assertEqual(VirtualHeap(2).NodeCountAtLevel(0), 1)
+        self.assertEqual(VirtualHeap(2).NodeCountAtLevel(1), 2)
+        self.assertEqual(VirtualHeap(2).NodeCountAtLevel(2), 4)
+        self.assertEqual(VirtualHeap(2).NodeCountAtLevel(3), 8)
+        self.assertEqual(VirtualHeap(2).NodeCountAtLevel(4), 16)
+
+        self.assertEqual(VirtualHeap(3).NodeCountAtLevel(0), 1)
+        self.assertEqual(VirtualHeap(3).NodeCountAtLevel(1), 3)
+        self.assertEqual(VirtualHeap(3).NodeCountAtLevel(2), 9)
+        self.assertEqual(VirtualHeap(3).NodeCountAtLevel(3), 27)
+        self.assertEqual(VirtualHeap(3).NodeCountAtLevel(4), 81)
+
+        self.assertEqual(VirtualHeap(4).NodeCountAtLevel(0), 1)
+        self.assertEqual(VirtualHeap(4).NodeCountAtLevel(1), 4)
+        self.assertEqual(VirtualHeap(4).NodeCountAtLevel(2), 16)
+        self.assertEqual(VirtualHeap(4).NodeCountAtLevel(3), 64)
+        self.assertEqual(VirtualHeap(4).NodeCountAtLevel(4), 256)
+
+    def test_FirstNodeAtLevel(self):
+        self.assertEqual(VirtualHeap(2).FirstNodeAtLevel(0), 0)
+        self.assertEqual(VirtualHeap(2).FirstNodeAtLevel(1), 1)
+        self.assertEqual(VirtualHeap(2).FirstNodeAtLevel(2), 3)
+        self.assertEqual(VirtualHeap(2).FirstNodeAtLevel(3), 7)
+        self.assertEqual(VirtualHeap(2).FirstNodeAtLevel(4), 15)
+
+        self.assertEqual(VirtualHeap(3).FirstNodeAtLevel(0), 0)
+        self.assertEqual(VirtualHeap(3).FirstNodeAtLevel(1), 1)
+        self.assertEqual(VirtualHeap(3).FirstNodeAtLevel(2), 4)
+        self.assertEqual(VirtualHeap(3).FirstNodeAtLevel(3), 13)
+        self.assertEqual(VirtualHeap(3).FirstNodeAtLevel(4), 40)
+
+        self.assertEqual(VirtualHeap(4).FirstNodeAtLevel(0), 0)
+        self.assertEqual(VirtualHeap(4).FirstNodeAtLevel(1), 1)
+        self.assertEqual(VirtualHeap(4).FirstNodeAtLevel(2), 5)
+        self.assertEqual(VirtualHeap(4).FirstNodeAtLevel(3), 21)
+        self.assertEqual(VirtualHeap(4).FirstNodeAtLevel(4), 85)
+
+    def test_LastNodeAtLevel(self):
+        self.assertEqual(VirtualHeap(2).LastNodeAtLevel(0), 0)
+        self.assertEqual(VirtualHeap(2).LastNodeAtLevel(1), 2)
+        self.assertEqual(VirtualHeap(2).LastNodeAtLevel(2), 6)
+        self.assertEqual(VirtualHeap(2).LastNodeAtLevel(3), 14)
+        self.assertEqual(VirtualHeap(2).LastNodeAtLevel(4), 30)
+
+        self.assertEqual(VirtualHeap(3).LastNodeAtLevel(0), 0)
+        self.assertEqual(VirtualHeap(3).LastNodeAtLevel(1), 3)
+        self.assertEqual(VirtualHeap(3).LastNodeAtLevel(2), 12)
+        self.assertEqual(VirtualHeap(3).LastNodeAtLevel(3), 39)
+        self.assertEqual(VirtualHeap(3).LastNodeAtLevel(4), 120)
+
+        self.assertEqual(VirtualHeap(4).LastNodeAtLevel(0), 0)
+        self.assertEqual(VirtualHeap(4).LastNodeAtLevel(1), 4)
+        self.assertEqual(VirtualHeap(4).LastNodeAtLevel(2), 20)
+        self.assertEqual(VirtualHeap(4).LastNodeAtLevel(3), 84)
+        self.assertEqual(VirtualHeap(4).LastNodeAtLevel(4), 340)
+
+    def test_RandomNodeUpToLevel(self):
+        for k in xrange(2,6):
+            heap = VirtualHeap(k)
+            for l in xrange(4):
+                for t in xrange(2 * CalculateBucketCountInHeapWithHeight(k, l)):
+                    node = heap.RandomNodeUpToLevel(l)
+                    self.assertEqual(node.level <= l, True)
+
+    def test_RandomNodeAtLevel(self):
+        for k in xrange(2,6):
+            heap = VirtualHeap(k)
+            for l in xrange(4):
+                for t in xrange(2 * CalculateBucketCountInHeapAtLevel(k, l)):
+                    node = heap.RandomNodeAtLevel(l)
+                    self.assertEqual(node.level == l, True)
+
+    def test_FirstSlotAtLevel(self):
+        for bucket_size in xrange(1, 5):
+            self.assertEqual(VirtualHeap(2, bucket_size=bucket_size).\
+                             FirstSlotAtLevel(0), 0 * bucket_size)
+            self.assertEqual(VirtualHeap(2, bucket_size=bucket_size).\
+                             FirstSlotAtLevel(1), 1 * bucket_size)
+            self.assertEqual(VirtualHeap(2, bucket_size=bucket_size).\
+                             FirstSlotAtLevel(2), 3 * bucket_size)
+            self.assertEqual(VirtualHeap(2, bucket_size=bucket_size).\
+                             FirstSlotAtLevel(3), 7 * bucket_size)
+            self.assertEqual(VirtualHeap(2, bucket_size=bucket_size).\
+                             FirstSlotAtLevel(4), 15 * bucket_size)
+
+            self.assertEqual(VirtualHeap(3, bucket_size=bucket_size).\
+                             FirstSlotAtLevel(0), 0 * bucket_size)
+            self.assertEqual(VirtualHeap(3, bucket_size=bucket_size).\
+                             FirstSlotAtLevel(1), 1 * bucket_size)
+            self.assertEqual(VirtualHeap(3, bucket_size=bucket_size).\
+                             FirstSlotAtLevel(2), 4 * bucket_size)
+            self.assertEqual(VirtualHeap(3, bucket_size=bucket_size).\
+                             FirstSlotAtLevel(3), 13 * bucket_size)
+            self.assertEqual(VirtualHeap(3, bucket_size=bucket_size).\
+                             FirstSlotAtLevel(4), 40 * bucket_size)
+
+            self.assertEqual(VirtualHeap(4, bucket_size=bucket_size).\
+                             FirstSlotAtLevel(0), 0 * bucket_size)
+            self.assertEqual(VirtualHeap(4, bucket_size=bucket_size).\
+                             FirstSlotAtLevel(1), 1 * bucket_size)
+            self.assertEqual(VirtualHeap(4, bucket_size=bucket_size).\
+                             FirstSlotAtLevel(2), 5 * bucket_size)
+            self.assertEqual(VirtualHeap(4, bucket_size=bucket_size).\
+                             FirstSlotAtLevel(3), 21 * bucket_size)
+            self.assertEqual(VirtualHeap(4, bucket_size=bucket_size).\
+                             FirstSlotAtLevel(4), 85 * bucket_size)
+
+    def test_LastSlotAtLevel(self):
+        for bucket_size in xrange(1, 5):
+            self.assertEqual(VirtualHeap(2, bucket_size=bucket_size).\
+                             LastSlotAtLevel(0), 0 * bucket_size + (bucket_size-1))
+            self.assertEqual(VirtualHeap(2, bucket_size=bucket_size).\
+                             LastSlotAtLevel(1), 2 * bucket_size + (bucket_size-1))
+            self.assertEqual(VirtualHeap(2, bucket_size=bucket_size).\
+                             LastSlotAtLevel(2), 6 * bucket_size + (bucket_size-1))
+            self.assertEqual(VirtualHeap(2, bucket_size=bucket_size).\
+                             LastSlotAtLevel(3), 14 * bucket_size + (bucket_size-1))
+            self.assertEqual(VirtualHeap(2, bucket_size=bucket_size).\
+                             LastSlotAtLevel(4), 30 * bucket_size + (bucket_size-1))
+
+            self.assertEqual(VirtualHeap(3, bucket_size=bucket_size).\
+                             LastSlotAtLevel(0), 0 * bucket_size + (bucket_size-1))
+            self.assertEqual(VirtualHeap(3, bucket_size=bucket_size).\
+                             LastSlotAtLevel(1), 3 * bucket_size + (bucket_size-1))
+            self.assertEqual(VirtualHeap(3, bucket_size=bucket_size).\
+                             LastSlotAtLevel(2), 12 * bucket_size + (bucket_size-1))
+            self.assertEqual(VirtualHeap(3, bucket_size=bucket_size).\
+                             LastSlotAtLevel(3), 39 * bucket_size + (bucket_size-1))
+            self.assertEqual(VirtualHeap(3, bucket_size=bucket_size).\
+                             LastSlotAtLevel(4), 120 * bucket_size + (bucket_size-1))
+
+            self.assertEqual(VirtualHeap(4, bucket_size=bucket_size).\
+                             LastSlotAtLevel(0), 0 * bucket_size + (bucket_size-1))
+            self.assertEqual(VirtualHeap(4, bucket_size=bucket_size).\
+                             LastSlotAtLevel(1), 4 * bucket_size + (bucket_size-1))
+            self.assertEqual(VirtualHeap(4, bucket_size=bucket_size).\
+                             LastSlotAtLevel(2), 20 * bucket_size + (bucket_size-1))
+            self.assertEqual(VirtualHeap(4, bucket_size=bucket_size).\
+                             LastSlotAtLevel(3), 84 * bucket_size + (bucket_size-1))
+            self.assertEqual(VirtualHeap(4, bucket_size=bucket_size).\
+                             LastSlotAtLevel(4), 340 * bucket_size + (bucket_size-1))
+
+    def test_SlotToBucket(self):
+        self.assertEqual(VirtualHeap(2, bucket_size=1).SlotToBucket(0), 0)
+        self.assertEqual(VirtualHeap(2, bucket_size=1).SlotToBucket(1), 1)
+        self.assertEqual(VirtualHeap(2, bucket_size=1).SlotToBucket(2), 2)
+        self.assertEqual(VirtualHeap(2, bucket_size=1).SlotToBucket(3), 3)
+        self.assertEqual(VirtualHeap(2, bucket_size=1).SlotToBucket(4), 4)
+
+        self.assertEqual(VirtualHeap(2, bucket_size=2).SlotToBucket(0), 0)
+        self.assertEqual(VirtualHeap(2, bucket_size=2).SlotToBucket(1), 0)
+        self.assertEqual(VirtualHeap(2, bucket_size=2).SlotToBucket(2), 1)
+        self.assertEqual(VirtualHeap(2, bucket_size=2).SlotToBucket(3), 1)
+        self.assertEqual(VirtualHeap(2, bucket_size=2).SlotToBucket(4), 2)
+
+        self.assertEqual(VirtualHeap(2, bucket_size=3).SlotToBucket(0), 0)
+        self.assertEqual(VirtualHeap(2, bucket_size=3).SlotToBucket(1), 0)
+        self.assertEqual(VirtualHeap(2, bucket_size=3).SlotToBucket(2), 0)
+        self.assertEqual(VirtualHeap(2, bucket_size=3).SlotToBucket(3), 1)
+        self.assertEqual(VirtualHeap(2, bucket_size=3).SlotToBucket(4), 1)
+
+        self.assertEqual(VirtualHeap(2, bucket_size=4).SlotToBucket(0), 0)
+        self.assertEqual(VirtualHeap(2, bucket_size=4).SlotToBucket(1), 0)
+        self.assertEqual(VirtualHeap(2, bucket_size=4).SlotToBucket(2), 0)
+        self.assertEqual(VirtualHeap(2, bucket_size=4).SlotToBucket(3), 0)
+        self.assertEqual(VirtualHeap(2, bucket_size=4).SlotToBucket(4), 1)
 
 class TestSizedVirtualHeap(unittest.TestCase):
 
@@ -707,8 +889,8 @@ class TestSizedVirtualHeap(unittest.TestCase):
 
     def test_ObjectCount(self):
         for k in _test_bases:
-            for height in range(k+2):
-                for bucket_size in range(1, 5):
+            for height in xrange(k+2):
+                for bucket_size in xrange(1, 5):
                     vh = SizedVirtualHeap(k, height, bucket_size=bucket_size)
                     cnt = (((k**(height+1))-1)//(k-1))
                     self.assertEqual(vh.BucketCount(), cnt)
@@ -717,8 +899,8 @@ class TestSizedVirtualHeap(unittest.TestCase):
 
     def test_LeafObjectCount(self):
         for k in _test_bases:
-            for height in range(k+2):
-                for bucket_size in range(1, 5):
+            for height in xrange(k+2):
+                for bucket_size in xrange(1, 5):
                     vh = SizedVirtualHeap(k, height, bucket_size=bucket_size)
                     self.assertEqual(vh.LeafBucketCount(),
                                      vh.BucketCountAtLevel(vh.Height()))

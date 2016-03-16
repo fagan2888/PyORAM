@@ -206,7 +206,9 @@ class VirtualHeap(object):
     def BucketCountAtLevel(self, l):
         return CalculateBucketCountInHeapAtLevel(self.k, l)
     def FirstBucketAtLevel(self, l):
-        return CalculateBucketCountInHeapWithHeight(self.k, l-1)
+        if l > 0:
+            return CalculateBucketCountInHeapWithHeight(self.k, l-1)
+        return 0
     def LastBucketAtLevel(self, l):
         return CalculateBucketCountInHeapWithHeight(self.k, l) - 1
     def BucketToSlot(self, b):
