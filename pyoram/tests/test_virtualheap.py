@@ -962,6 +962,44 @@ class TestSizedVirtualHeap(unittest.TestCase):
                 os.path.join(thisdir, fname),
                 os.path.join(baselinedir, fname))
 
+    def test_SaveImageAsPDF(self):
+
+        for k, h, b, maxl in [(2, 3, 1, None),
+                              (2, 3, 2, None),
+                              (3, 3, 1, None),
+                              (3, 3, 2, None),
+                              (3, 10, 2, 4)]:
+            if maxl is None:
+                label = "k%d_h%d_b%d" % (k, h, b)
+            else:
+                label = "k%d_h%d_b%d" % (k, maxl-1, b)
+            heap = SizedVirtualHeap(k, h, bucket_size=b)
+
+            fname = label+".pdf"
+            if os.path.exists(os.path.join(thisdir, fname)):
+                os.remove(os.path.join(thisdir, fname))
+            heap.SaveImageAsPDF(os.path.join(thisdir, label),
+                                max_levels=maxl)
+            self.assertEqual(
+                os.path.exists(os.path.join(thisdir, fname)), True)
+            try:
+                os.remove(os.path.join(thisdir, fname))
+            except OSError:
+                pass
+
+            data = list(range(heap.SlotCount()))
+            fname = label+"_data.pdf"
+            if os.path.exists(os.path.join(thisdir, fname)):
+                os.remove(os.path.join(thisdir, fname))
+            heap.SaveImageAsPDF(os.path.join(thisdir, fname),
+                                data=data,
+                                max_levels=maxl)
+            self.assertEqual(
+                os.path.exists(os.path.join(thisdir, fname)), True)
+            try:
+                os.remove(os.path.join(thisdir, fname))
+            except OSError:
+                pass
 class TestMisc(unittest.TestCase):
 
     def test_MaxKLabeled(self):
