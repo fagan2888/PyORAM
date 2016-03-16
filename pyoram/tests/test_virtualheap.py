@@ -65,17 +65,59 @@ class TestVirtualHeapNode(unittest.TestCase):
         self.assertEqual(VirtualHeapNode(3, 12).level, 2)
         self.assertEqual(VirtualHeapNode(3, 13).level, 3)
 
-    def test_hash_eq(self):
-        node_set = set()
-        node_list = list()
+    def test_hash(self):
+        x1 = VirtualHeapNode(3, 5)
+        x2 = VirtualHeapNode(2, 5)
+        self.assertNotEqual(id(x1), id(x2))
+        self.assertEqual(x1, x2)
+        self.assertEqual(x1, x1)
+        self.assertEqual(x2, x2)
+
+        all_node_set = set()
+        all_node_list = list()
         for k in _test_bases:
+            node_set = set()
+            node_list = list()
             for height in range(k+2):
                 node = VirtualHeapNode(k, height)
                 node_set.add(node)
+                all_node_set.add(node)
                 node_list.append(node)
-        self.assertEqual(sorted(node_set),
-                         sorted(node_list))
-        
+                all_node_list.append(node)
+            self.assertEqual(sorted(node_set),
+                             sorted(node_list))
+        self.assertNotEqual(sorted(all_node_set),
+                            sorted(all_node_list))
+    def test_lt(self):
+        self.assertEqual(VirtualHeapNode(3, 5) < 4, False)
+        self.assertEqual(VirtualHeapNode(3, 5) < 5, False)
+        self.assertEqual(VirtualHeapNode(3, 5) < 6, True)
+
+    def test_le(self):
+        self.assertEqual(VirtualHeapNode(3, 5) <= 4, False)
+        self.assertEqual(VirtualHeapNode(3, 5) <= 5, True)
+        self.assertEqual(VirtualHeapNode(3, 5) <= 6, True)
+
+    def test_eq(self):
+        self.assertEqual(VirtualHeapNode(3, 5) == 4, False)
+        self.assertEqual(VirtualHeapNode(3, 5) == 5, True)
+        self.assertEqual(VirtualHeapNode(3, 5) == 6, False)
+
+    def test_ne(self):
+        self.assertEqual(VirtualHeapNode(3, 5) != 4, True)
+        self.assertEqual(VirtualHeapNode(3, 5) != 5, False)
+        self.assertEqual(VirtualHeapNode(3, 5) != 6, True)
+
+    def test_gt(self):
+        self.assertEqual(VirtualHeapNode(3, 5) > 4, True)
+        self.assertEqual(VirtualHeapNode(3, 5) > 5, False)
+        self.assertEqual(VirtualHeapNode(3, 5) > 6, False)
+
+    def test_ge(self):
+        self.assertEqual(VirtualHeapNode(3, 5) >= 4, True)
+        self.assertEqual(VirtualHeapNode(3, 5) >= 5, True)
+        self.assertEqual(VirtualHeapNode(3, 5) >= 6, False)
+
     def test_LastCommonLevel_k2(self):
         n0 = VirtualHeapNode(2, 0)
         n1 = VirtualHeapNode(2, 1)
@@ -93,7 +135,7 @@ class TestVirtualHeapNode(unittest.TestCase):
         self.assertEqual(n0.LastCommonLevel(n5), 0)
         self.assertEqual(n0.LastCommonLevel(n6), 0)
         self.assertEqual(n0.LastCommonLevel(n7), 0)
-        
+
         self.assertEqual(n1.LastCommonLevel(n0), 0)
         self.assertEqual(n1.LastCommonLevel(n1), 1)
         self.assertEqual(n1.LastCommonLevel(n2), 0)
@@ -174,7 +216,7 @@ class TestVirtualHeapNode(unittest.TestCase):
         self.assertEqual(n0.LastCommonLevel(n5), 0)
         self.assertEqual(n0.LastCommonLevel(n6), 0)
         self.assertEqual(n0.LastCommonLevel(n7), 0)
-        
+
         self.assertEqual(n1.LastCommonLevel(n0), 0)
         self.assertEqual(n1.LastCommonLevel(n1), 1)
         self.assertEqual(n1.LastCommonLevel(n2), 0)

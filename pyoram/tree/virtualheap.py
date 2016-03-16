@@ -16,9 +16,19 @@ class VirtualHeapNode(object):
         self.level = _clib.CalculateBucketLevel(self.k, self.bucket)
 
     def __hash__(self):
-        return hash((self.k, self.bucket))
+        return self.bucket.__hash__()
+    def __lt__(self, other):
+        return self.bucket < other
+    def __le__(self, other):
+        return self.bucket <= other
     def __eq__(self, other):
-        return hash(self) == hash(other)
+        return self.bucket == other
+    def __ne__(self, other):
+        return self.bucket != other
+    def __gt__(self, other):
+        return self.bucket > other
+    def __ge__(self, other):
+        return self.bucket >= other
     def LastCommonLevel(self, n):
         return _clib.LastCommonLevel(self.k, self.bucket, n.bucket)
     def ChildNode(self, c):
