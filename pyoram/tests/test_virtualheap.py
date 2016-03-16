@@ -674,4 +674,4 @@ class TestVirtualHeap(unittest.TestCase):
                                      vh.SlotCountAtLevel(vh.Height()))
 
 if __name__ == "__main__":
-    unittest.main() # pragma: no cover
+    unittest.main()                                    # pragma: no cover

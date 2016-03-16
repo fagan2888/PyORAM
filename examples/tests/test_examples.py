@@ -26,7 +26,7 @@ def _execute_example(example_name):
     assert os.path.exists(filename)
     rc = os.system(sys.executable+' '+filename)
     if rc:
-        raise AssertionError(
+        raise AssertionError(                          # pragma: no cover
             "Bad return code for example '%s': %s"
             % (example_name, rc))
 
@@ -37,5 +37,5 @@ def test_generator():
         yield _execute_example, example_name
 
 if __name__ == "__main__":
-    for tfunc, tname in test_generator():
-        tfunc(tname)
+    for tfunc, tname in test_generator():              # pragma: no cover
+        tfunc(tname)                                   # pragma: no cover

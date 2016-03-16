@@ -38,4 +38,4 @@ class Test(unittest.TestCase):
         pyoram.__version__
 
 if __name__ == "__main__":
-    unittest.main() # pragma: no cover
+    unittest.main()                                    # pragma: no cover
