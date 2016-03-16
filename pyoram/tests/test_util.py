@@ -26,5 +26,32 @@ class Test(unittest.TestCase):
         self.assertEqual(pyoram.util.log2ceil(8), 3)
         self.assertEqual(pyoram.util.log2ceil(9), 4)
 
+    def test_intdivceil(self):
+
+        with self.assertRaises(ZeroDivisionError):
+            pyoram.util.intdivceil(0, 0)
+        with self.assertRaises(ZeroDivisionError):
+            pyoram.util.intdivceil(1, 0)
+
+        self.assertEqual(pyoram.util.intdivceil(1, 1), 1)
+        self.assertEqual(pyoram.util.intdivceil(2, 3), 1)
+        self.assertEqual(2 // 3, 0)
+        self.assertEqual(pyoram.util.intdivceil(
+            123123123123123123123123123123123123123123123123L,
+            123123123123123123123123123123123123123123123123L), 1)
+        self.assertEqual(pyoram.util.intdivceil(
+            2 * 123123123123123123123123123123123123123123123123L,
+            123123123123123123123123123123123123123123123123L), 2)
+        self.assertEqual(pyoram.util.intdivceil(
+            2 * 123123123123123123123123123123123123123123123123L + 1,
+            123123123123123123123123123123123123123123123123L), 3)
+        self.assertEqual(pyoram.util.intdivceil(
+            2 * 123123123123123123123123123123123123123123123123L - 1,
+            123123123123123123123123123123123123123123123123L), 2)
+        self.assertEqual(
+            (2 * 123123123123123123123123123123123123123123123123L - 1) // \
+            123123123123123123123123123123123123123123123123L,
+            1)
+
 if __name__ == "__main__":
     unittest.main() # pragma: no cover

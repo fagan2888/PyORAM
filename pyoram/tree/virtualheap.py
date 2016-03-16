@@ -112,7 +112,9 @@ class VirtualHeap(object):
 
     @staticmethod
     def Base10IntegerToBaseKString(k, x):
-        assert 2 <= k <= VirtualHeap.MaxKLabeled()
+        if not (2 <= k <= VirtualHeap.MaxKLabeled()):
+            raise ValueError("k must be in range [2, %d]: %s"
+                             % (VirtualHeap.MaxKLabeled(), k))
         return ((x == 0) and VirtualHeap.numerals[0]) or \
             (VirtualHeap.Base10IntegerToBaseKString(k, x // k).\
              lstrip(VirtualHeap.numerals[0]) + VirtualHeap.numerals[x % k])
@@ -122,13 +124,6 @@ class VirtualHeap(object):
         assert 1 < k <= VirtualHeap.MaxKLabeled()
         return sum(VirtualHeap.numeral_index[c]*(k**i)
                    for i, c in enumerate(reversed(x)))
-
-    @staticmethod
-    def IntDivCeil(x, y):
-        result = x // y
-        if (x % y):
-            result += 1
-        return result
 
     # Note a C version of this function is in clib
     @staticmethod

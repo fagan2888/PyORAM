@@ -439,6 +439,35 @@ class TestVirtualHeapNode(unittest.TestCase):
         self.assertEqual(
             repr(VirtualHeapNode(5, 25)),
             "VirtualHeapNode(k=5, bucket=25, level=2, label='34')")
+        self.assertEqual(
+            repr(VirtualHeapNode(VirtualHeap.MaxKLabeled(), 0)),
+            ("VirtualHeapNode(k=%d, bucket=0, level=0, label='')"
+             % (VirtualHeap.MaxKLabeled())))
+        self.assertEqual(VirtualHeap.MaxKLabeled() >= 2, True)
+        self.assertEqual(
+            repr(VirtualHeapNode(VirtualHeap.MaxKLabeled(), 1)),
+            ("VirtualHeapNode(k=%d, bucket=1, level=1, label='0')"
+             % (VirtualHeap.MaxKLabeled())))
+        self.assertEqual(
+            repr(VirtualHeapNode(VirtualHeap.MaxKLabeled()+1, 0)),
+            ("VirtualHeapNode(k=%d, bucket=0, level=0, label='')"
+             % (VirtualHeap.MaxKLabeled()+1)))
+        self.assertEqual(
+            repr(VirtualHeapNode(VirtualHeap.MaxKLabeled()+1, 1)),
+            ("VirtualHeapNode(k=%d, bucket=1, level=1, label='<unknown>')"
+             % (VirtualHeap.MaxKLabeled()+1)))
+        self.assertEqual(
+            repr(VirtualHeapNode(VirtualHeap.MaxKLabeled()+1,
+                                 VirtualHeap.MaxKLabeled()+1)),
+            ("VirtualHeapNode(k=%d, bucket=%d, level=1, label='<unknown>')"
+             % (VirtualHeap.MaxKLabeled()+1,
+                VirtualHeap.MaxKLabeled()+1)))
+        self.assertEqual(
+            repr(VirtualHeapNode(VirtualHeap.MaxKLabeled()+1,
+                                 VirtualHeap.MaxKLabeled()+2)),
+            ("VirtualHeapNode(k=%d, bucket=%d, level=2, label='<unknown>')"
+             % (VirtualHeap.MaxKLabeled()+1,
+                VirtualHeap.MaxKLabeled()+2)))
 
     def test_str(self):
         self.assertEqual(
