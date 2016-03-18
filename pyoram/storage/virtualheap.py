@@ -1,3 +1,6 @@
+__all__ = ("VirtualHeap",
+           "SizedVirtualHeap")
+
 import os
 import sys
 import subprocess
@@ -7,7 +10,7 @@ import tempfile
 
 from six.moves import range
 
-from pyoram.tree._virtualheap import lib as _clib
+from pyoram.storage._virtualheap import lib as _clib
 from pyoram.util import log2floor
 
 numerals = ''.join([c for c in string.printable \

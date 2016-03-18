@@ -16,7 +16,7 @@ int CalculateLastCommonLevel(unsigned int k,
                              unsigned long b2);
 """)
 
-ffi.set_source("pyoram.tree._virtualheap",
+ffi.set_source("pyoram.storage._virtualheap",
 """
 #include <stdio.h>
 #include <stdlib.h>

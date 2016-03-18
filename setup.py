@@ -61,7 +61,7 @@ setup(
     packages=['pyoram'],
     setup_requires=setup_requirements,
     install_requires=requirements,
-    cffi_modules=["pyoram/tree/virtualheap_build.py:ffi"],
+    cffi_modules=["pyoram/storage/virtualheap_build.py:ffi"],
     # use MANIFEST.in
     include_package_data=True,
     #entry_points={
