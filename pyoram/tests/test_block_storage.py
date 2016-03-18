@@ -148,7 +148,7 @@ class _TestBlockStorage(object):
             self.assertEqual(list(bytearray(data[-1])),
                              list(self._blocks[0]))
 
-    def test_write_block(self):
+    def test_write_blocks(self):
         data = [bytearray([self._blockcount])*self._blocksize
                 for i in xrange(self._blockcount)]
         with self._type(self._testfname) as f:
