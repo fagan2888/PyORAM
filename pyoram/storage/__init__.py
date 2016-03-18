@@ -1,5 +1,5 @@
-import virtualheap
-import block_storage
-import heap_storage
-import encrypted_block_storage
-import encrypted_heap_storage
+import pyoram.storage.virtualheap
+import pyoram.storage.block_storage
+import pyoram.storage.heap_storage
+import pyoram.storage.encrypted_block_storage
+import pyoram.storage.encrypted_heap_storage

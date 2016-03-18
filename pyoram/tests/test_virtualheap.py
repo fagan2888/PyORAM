@@ -16,6 +16,8 @@ from pyoram.storage.virtualheap import \
      numerals,
      _clib)
 
+from six.moves import xrange
+
 thisdir = os.path.dirname(os.path.abspath(__file__))
 baselinedir = os.path.join(thisdir, "baselines")
 
@@ -23,11 +25,6 @@ try:
     has_dot = not subprocess.call(["dot", "-V"])
 except:
     has_dot = False
-
-try:
-    xrange
-except:
-    xrange = range
 
 _test_bases = list(xrange(2, 15)) + [MaxKLabeled()+1]
 _test_labeled_bases = list(xrange(2, 15)) + [MaxKLabeled()]

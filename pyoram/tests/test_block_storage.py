@@ -5,6 +5,8 @@ from pyoram.storage.block_storage import (BlockStorageFile,
                                           BlockStorageMMapFile,
                                           BlockStorageS3)
 
+from six.moves import xrange
+
 thisdir = os.path.dirname(os.path.abspath(__file__))
 
 class _TestBlockStorage(object):
