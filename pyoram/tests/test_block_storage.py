@@ -36,8 +36,8 @@ class _TestBlockStorage(object):
     def tearDownClass(cls):
         try:
             os.remove(cls._testfname)
-        except OSError:
-            pass
+        except OSError:                                # pragma: no cover
+            pass                                       # pragma: no cover
         pass
 
     def test_setup_fails(self):
@@ -62,7 +62,7 @@ class _TestBlockStorage(object):
         fname += ".bin"
         fname = os.path.join(thisdir, fname)
         if os.path.exists(fname):
-            os.remove(fname)
+            os.remove(fname)                           # pragma: no cover
         bsize = 10
         bcount = 11
         self._type.setup(fname, bsize, bcount)
@@ -77,7 +77,7 @@ class _TestBlockStorage(object):
                          True)
         with self.assertRaises(IOError):
             with self._type(self._testfname+"SDFSDFSDFSFSDFS") as f:
-                pass
+                pass                                   # pragma: no cover
 
     def test_init_exists(self):
         self.assertEqual(os.path.exists(self._testfname), True)
@@ -184,11 +184,3 @@ class TestBlockStorageMMapFile(_TestBlockStorage,
 if __name__ == "__main__":
     unittest.main()                                    # pragma: no cover
 
-    #BlockStorageS3.setup('oram.bin',
-    #                     10, 10,
-    #                     'jgn2xm7s268qxlcuabtq')
-    #with BlockStorageS3('oram.bin',
-    #                    'jgn2xm7s268qxlcuabtq') as f:
-    #    print(f.blocksize)
-    #    print(f.blockcount)
-    #    print(f.filename)
