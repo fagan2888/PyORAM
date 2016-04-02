@@ -17,8 +17,8 @@ def _readme():
 
 setup_requirements = []
 requirements = ['boto3',
-                'six']
-#                'pycrypto']
+                'six',
+                'cryptography']
 
 if platform.python_implementation() == "PyPy":
     if sys.pypy_version_info < (2, 6):
