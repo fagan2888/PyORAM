@@ -13,7 +13,7 @@ _mode = cryptography.hazmat.primitives.ciphers.modes.CTR
 
 class AESCTR(object):
 
-    key_sizes = [k//8 for k in _aes.key_sizes]
+    key_sizes = [k//8 for k in sorted(_aes.key_sizes)]
     block_size = _aes.block_size//8
 
     @staticmethod
