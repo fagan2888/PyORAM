@@ -27,9 +27,9 @@ class BlockStorageInterface(object):
     @classmethod
     def setup(cls, *args, **kwds):
         raise NotImplementedError                      # pragma: no cover
-    def blockcount(self, *args, **kwds):
+    def block_count(self, *args, **kwds):
         raise NotImplementedError                      # pragma: no cover
-    def blocksize(self, *args, **kwds):
+    def block_size(self, *args, **kwds):
         raise NotImplementedError                      # pragma: no cover
     def filename(self, *args, **kwds):
         raise NotImplementedError                      # pragma: no cover
@@ -57,7 +57,7 @@ class BlockStorageFile(BlockStorageInterface):
         self._filename = filename
         self._f = open(self.filename, "r+b")
         self._f.seek(0)
-        self._blocksize, self._blockcount = \
+        self._block_size, self._block_count = \
             struct.unpack(
                 self._index_storage_string,
                 self._f.read(self._index_offset))
@@ -69,38 +69,48 @@ class BlockStorageFile(BlockStorageInterface):
     @classmethod
     def setup(cls,
               filename,
-              blocksize,
-              blockcount,
+              block_size,
+              block_count,
+              initialize=None,
               ignore_existing=False):
         if (not ignore_existing) and \
            os.path.exists(filename):
             raise ValueError(
                 "Storage location already exists: %s"
                 % (filename))
-        if (blocksize <= 0) or (blocksize != int(blocksize)):
+        if (block_size <= 0) or (block_size != int(block_size)):
             raise ValueError(
-                "Blocksize must be a positive integer: %s"
-                % (blocksize))
-        if (blockcount <= 0) or (blockcount != int(blockcount)):
+                "Block size must be a positive integer: %s"
+                % (block_size))
+        if (block_count <= 0) or (block_count != int(block_count)):
             raise ValueError(
-                "Blockcount must be a positive integer: %s"
-                % (blockcount))
-        zeros = bytes(bytearray(blocksize))
+                "Block count must be a positive integer: %s"
+                % (block_count))
+        if initialize is None:
+            zeros = bytes(bytearray(block_size))
+            initialize = lambda i: zeros
         with open(filename, "wb") as f:
             # create_index
             f.write(struct.pack(cls._index_storage_string,
-                                blocksize,
-                                blockcount))
-            for i in xrange(blockcount):
-                f.write(zeros)
+                                block_size,
+                                block_count))
+            for i in xrange(block_count):
+                block = initialize(i)
+                assert len(block) == block_size
+                f.write(block)
             f.flush()
 
     @property
-    def blockcount(self): return self._blockcount
+    def block_count(self):
+        return self._block_count
+
     @property
-    def blocksize(self): return self._blocksize
+    def block_size(self):
+        return self._block_size
+
     @property
-    def filename(self): return self._filename
+    def filename(self):
+        return self._filename
 
     def close(self):
         if self._f is not None:
@@ -110,21 +120,23 @@ class BlockStorageFile(BlockStorageInterface):
     def read_blocks(self, indices):
         blocks = []
         for i in indices:
-            self._f.seek(self._index_offset + i * self.blocksize)
-            blocks.append(self._f.read(self.blocksize))
+            self._f.seek(self._index_offset + i * self.block_size)
+            blocks.append(self._f.read(self.block_size))
         return blocks
+
     def read_block(self, i):
-        self._f.seek(self._index_offset + i * self.blocksize)
-        return self._f.read(self.blocksize)
+        self._f.seek(self._index_offset + i * self.block_size)
+        return self._f.read(self.block_size)
 
     def write_blocks(self, indices, blocks):
         for i, block in zip(indices, blocks):
-            self._f.seek(self._index_offset + i * self.blocksize)
-            assert len(block) == self.blocksize
+            self._f.seek(self._index_offset + i * self.block_size)
+            assert len(block) == self.block_size
             self._f.write(block)
+
     def write_block(self, i, block):
-        self._f.seek(self._index_offset + i * self.blocksize)
-        assert len(block) == self.blocksize
+        self._f.seek(self._index_offset + i * self.block_size)
+        assert len(block) == self.block_size
         self._f.write(block)
 
 class BlockStorageMMapFile(BlockStorageFile):
@@ -147,20 +159,22 @@ class BlockStorageMMapFile(BlockStorageFile):
     def read_blocks(self, indices):
         blocks = []
         for i in indices:
-            self._mm.seek(self._index_offset + i * self.blocksize)
-            blocks.append(self._mm.read(self.blocksize))
+            self._mm.seek(self._index_offset + i * self.block_size)
+            blocks.append(self._mm.read(self.block_size))
         return blocks
+
     def read_block(self, i):
-        return self._mm[self._index_offset + i*self.blocksize : \
-                        self._index_offset + (i+1)*self.blocksize]
+        return self._mm[self._index_offset + i*self.block_size : \
+                        self._index_offset + (i+1)*self.block_size]
 
     def write_blocks(self, indices, blocks):
         for i, block in zip(indices, blocks):
-            self._mm[self._index_offset + i*self.blocksize : \
-                     self._index_offset + (i+1)*self.blocksize] = block
+            self._mm[self._index_offset + i*self.block_size : \
+                     self._index_offset + (i+1)*self.block_size] = block
+
     def write_block(self, i, block):
-        self._mm[self._index_offset + i*self.blocksize : \
-                 self._index_offset + (i+1)*self.blocksize] = block
+        self._mm[self._index_offset + i*self.block_size : \
+                 self._index_offset + (i+1)*self.block_size] = block
 
 class BlockStorageS3(BlockStorageInterface):
 
@@ -198,7 +212,7 @@ class BlockStorageS3(BlockStorageInterface):
                              Bucket=self._bucket.name,
                              Key=self._basename % key)['Body'].read()
         self._async_write = None
-        self._blocksize, self._blockcount = \
+        self._block_size, self._block_count = \
             struct.unpack(
                 self._index_storage_string,
                 self._s3.meta.client.get_object(
@@ -217,21 +231,22 @@ class BlockStorageS3(BlockStorageInterface):
     @classmethod
     def setup(cls,
               filename,
-              blocksize,
-              blockcount,
+              block_size,
+              block_count,
               bucket_name,
               access_key_id=None,
               secret_access_key=None,
               region=None,
+              initialize=None,
               ignore_existing=False):
-        if (blocksize <= 0) or (blocksize != int(blocksize)):
+        if (block_size <= 0) or (block_size != int(block_size)):
             raise ValueError(
-                "Blocksize must be a positive integer: %s"
-                % (blocksize))
-        if (blockcount <= 0) or (blockcount != int(blockcount)):
+                "Block size must be a positive integer: %s"
+                % (block_size))
+        if (block_count <= 0) or (block_count != int(block_count)):
             raise ValueError(
-                "Blockcount must be a positive integer: %s"
-                % (blockcount))
+                "Block count must be a positive integer: %s"
+                % (block_count))
 
         s3 = boto3.session.Session(
             aws_access_key_id=access_key_id,
@@ -255,20 +270,26 @@ class BlockStorageS3(BlockStorageInterface):
 
         bucket.put_object(Key=filename+cls._index_name,
                           Body=struct.pack(cls._index_storage_string,
-                                           blocksize,
-                                           blockcount))
-        zeros = bytes(bytearray(blocksize))
+                                           block_size,
+                                           block_count))
+        if initialize is None:
+            zeros = bytes(bytearray(block_size))
+            initialize = lambda i: zeros
         basename = filename+"/b%d"
-        for i in xrange(blockcount):
+        for i in xrange(block_count):
+            block = initialize(i)
+            assert len(block) == block_size
             bucket.put_object(Key=basename % i,
-                              Body=zeros)
+                              Body=block)
 
     @property
-    def blockcount(self):
-        return self._blockcount
+    def block_count(self):
+        return self._block_count
+
     @property
-    def blocksize(self):
-        return self._blocksize
+    def block_size(self):
+        return self._block_size
+
     @property
     def filename(self):
         return self._filename
@@ -279,6 +300,7 @@ class BlockStorageS3(BlockStorageInterface):
     def read_blocks(self, indices):
         self._check_async()
         return self._pool.map(self._download, indices)
+
     def read_block(self, i):
         self._check_async()
         return self._download(i)
@@ -288,6 +310,7 @@ class BlockStorageS3(BlockStorageInterface):
         self._async_write = \
             self._pool.map_async(self._upload,
                                  zip(indices, blocks))
+
     def write_block(self, i, block):
         self._check_async()
         self._upload((i, block))

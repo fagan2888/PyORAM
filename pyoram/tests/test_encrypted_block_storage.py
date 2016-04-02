@@ -1,30 +1,34 @@
 import os
 import unittest
 
-from pyoram.storage.block_storage import (BlockStorageFile,
-                                          BlockStorageMMapFile,
-                                          BlockStorageS3)
+from pyoram.storage.encrypted_block_storage import \
+    EncryptedBlockStorage
+from pyoram.crypto.aesctr import AESCTR
 
 from six.moves import xrange
 
 thisdir = os.path.dirname(os.path.abspath(__file__))
 
-class _TestBlockStorage(object):
+class _TestEncryptedBlockStorage(object):
 
-    _type = None
+    _type_name = None
 
     @classmethod
     def setUpClass(cls):
-        assert cls._type is not None
+        assert cls._type_name is not None
         cls._block_size = 25
         cls._block_count = 5
         cls._testfname = cls.__name__ + "_testfile.bin"
         cls._blocks = []
-        cls._type.setup(cls._testfname,
-                        cls._block_size,
-                        cls._block_count,
-                        initialize=lambda i: bytes(bytearray([i])*cls._block_size),
-                        ignore_existing=True)
+        cls._key = AESCTR.KeyGen(AESCTR.key_sizes[-1])
+        EncryptedBlockStorage.setup(
+            cls._key,
+            cls._testfname,
+            cls._block_size,
+            cls._block_count,
+            storage_type=cls._type_name,
+            initialize=lambda i: bytes(bytearray([i])*cls._block_size),
+            ignore_existing=True)
         for i in range(cls._block_count):
             data = bytearray([i])*cls._block_size
             cls._blocks.append(data)
@@ -39,20 +43,34 @@ class _TestBlockStorage(object):
 
     def test_setup_fails(self):
         with self.assertRaises(ValueError):
-            self._type.setup(
+            EncryptedBlockStorage.setup(
+                self._key,
                 os.path.join(thisdir, "baselines", "exists.empty"),
                 10,
-                10)
+                10,
+                storage_type=self._type_name)
         with self.assertRaises(ValueError):
-            self._type.setup(
+            EncryptedBlockStorage.setup(
+                self._key,
                 os.path.join(thisdir, "baselines", "exists.empty"),
                 10,
                 10,
+                storage_type=self._type_name,
                 ignore_existing=False)
         with self.assertRaises(ValueError):
-            self._type.setup("tmp", 0, 1)
+            EncryptedBlockStorage.setup(
+                self._key,
+                "tmp",
+                0,
+                1,
+                storage_type=self._type_name)
         with self.assertRaises(ValueError):
-            self._type.setup("tmp", 1, 0)
+            EncryptedBlockStorage.setup(
+                self._key,
+                "tmp",
+                1,
+                0,
+                storage_type=self._type_name)
 
     def test_setup(self):
         fname = ".".join(self.id().split(".")[1:])
@@ -62,8 +80,13 @@ class _TestBlockStorage(object):
             os.remove(fname)                           # pragma: no cover
         bsize = 10
         bcount = 11
-        self._type.setup(fname, bsize, bcount)
-        with self._type(fname) as f:
+        EncryptedBlockStorage.setup(self._key,
+                                    fname,
+                                    bsize,
+                                    bcount)
+        with EncryptedBlockStorage(self._key,
+                                   fname,
+                                   storage_type=self._type_name) as f:
             self.assertEqual(f.block_size, bsize)
             self.assertEqual(f.block_count, bcount)
             self.assertEqual(f.filename, fname)
@@ -73,14 +96,18 @@ class _TestBlockStorage(object):
         self.assertEqual(not os.path.exists(self._testfname+"SDFSDFSDFSFSDFS"),
                          True)
         with self.assertRaises(IOError):
-            with self._type(self._testfname+"SDFSDFSDFSFSDFS") as f:
+            with EncryptedBlockStorage(self._key,
+                                       self._testfname+"SDFSDFSDFSFSDFS",
+                                       storage_type=self._type_name) as f:
                 pass                                   # pragma: no cover
 
     def test_init_exists(self):
         self.assertEqual(os.path.exists(self._testfname), True)
         with open(self._testfname) as f:
             databefore = f.read()
-        with self._type(self._testfname) as f:
+        with EncryptedBlockStorage(self._key,
+                                   self._testfname,
+                                   storage_type=self._type_name) as f:
             self.assertEqual(f.block_size, self._block_size)
             self.assertEqual(f.block_count, self._block_count)
             self.assertEqual(f.filename, self._testfname)
@@ -91,7 +118,9 @@ class _TestBlockStorage(object):
         self.assertEqual(databefore, dataafter)
 
     def test_read_block(self):
-        with self._type(self._testfname) as f:
+        with EncryptedBlockStorage(self._key,
+                                   self._testfname,
+                                   storage_type=self._type_name) as f:
             for i, data in enumerate(self._blocks):
                 self.assertEqual(list(bytearray(f.read_block(i))),
                                  list(self._blocks[i]))
@@ -104,7 +133,9 @@ class _TestBlockStorage(object):
             for i, data in reversed(list(enumerate(self._blocks))):
                 self.assertEqual(list(bytearray(f.read_block(i))),
                                  list(self._blocks[i]))
-        with self._type(self._testfname) as f:
+        with EncryptedBlockStorage(self._key,
+                                   self._testfname,
+                                   storage_type=self._type_name) as f:
             self.assertEqual(list(bytearray(f.read_block(0))),
                              list(self._blocks[0]))
             self.assertEqual(list(bytearray(f.read_block(self._block_count-1))),
@@ -113,7 +144,9 @@ class _TestBlockStorage(object):
     def test_write_block(self):
         data = bytearray([self._block_count])*self._block_size
         self.assertEqual(len(data) > 0, True)
-        with self._type(self._testfname) as f:
+        with EncryptedBlockStorage(self._key,
+                                   self._testfname,
+                                   storage_type=self._type_name) as f:
             for i in xrange(self._block_count):
                 self.assertNotEqual(list(bytearray(f.read_block(i))),
                                     list(data))
@@ -126,7 +159,9 @@ class _TestBlockStorage(object):
                 f.write_block(i, bytes(block))
 
     def test_read_blocks(self):
-        with self._type(self._testfname) as f:
+        with EncryptedBlockStorage(self._key,
+                                   self._testfname,
+                                   storage_type=self._type_name) as f:
             data = f.read_blocks(list(xrange(self._block_count)))
             self.assertEqual(len(data), self._block_count)
             for i, block in enumerate(data):
@@ -148,7 +183,9 @@ class _TestBlockStorage(object):
     def test_write_blocks(self):
         data = [bytearray([self._block_count])*self._block_size
                 for i in xrange(self._block_count)]
-        with self._type(self._testfname) as f:
+        with EncryptedBlockStorage(self._key,
+                                   self._testfname,
+                                   storage_type=self._type_name) as f:
             orig = f.read_blocks(list(xrange(self._block_count)))
             self.assertEqual(len(orig), self._block_count)
             for i, block in enumerate(orig):
@@ -169,15 +206,13 @@ class _TestBlockStorage(object):
                 self.assertEqual(list(bytearray(block)),
                                  list(self._blocks[i]))
 
-class TestBlockStorageFile(_TestBlockStorage,
-                           unittest.TestCase):
-    _type = BlockStorageFile
+class TestEncryptedBlockStorageFile(_TestEncryptedBlockStorage,
+                                    unittest.TestCase):
+    _type_name = 'file'
 
-class TestBlockStorageMMapFile(_TestBlockStorage,
-                               unittest.TestCase):
-    _type = BlockStorageMMapFile
-
+class TestEncryptedBlockStorageMMapFile(_TestEncryptedBlockStorage,
+                                        unittest.TestCase):
+    _type_name = 'mmap'
 
 if __name__ == "__main__":
     unittest.main()                                    # pragma: no cover
-

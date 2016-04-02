@@ -2,31 +2,40 @@ from pyoram.storage.block_storage import (BlockStorageInterface,
                                           BlockStorageFile,
                                           BlockStorageMMapFile,
                                           BlockStorageS3)
-from pyoram.crypto.aesctr import AESCTRMode
+from pyoram.crypto.aesctr import AESCTR
 
 class EncryptedBlockStorage(BlockStorageInterface):
-    def __init__(self, *args, **kwds):
-        storage_type = kwds.pop('storage_type')
-        self._encryption_key = kwds.pop('key')
-        blocksize += AESCTRMode._ivsize
-        kwds['blocksize'] = blocksize
+
+    @staticmethod
+    def BlockStorageTypeFactory(storage_type):
         if storage_type == 'file':
-            self._storage = BlockStorageFile(*args, **kwds)
+            return BlockStorageFile
         elif storage_type == 'mmap':
-            self._storage = BlockStorageMMapFile(*args, **kwds)
+            return BlockStorageMMapFile
         elif storage_type == 's3':
-            self._storage = BlockStorageS3(*args, **kwds)
+            return BlockStorageS3
+        else:
+            raise ValueError("%s: Unsupported storage type: %s"
+                             % (self.__class__.__name__, storage_type))
+
+    def __init__(self,
+                 key,
+                 *args,
+                 **kwds):
+
+        self._encryption_key = key
+        storage_type = kwds.pop('storage_type', 'file')
+        self._storage = \
+            self.BlockStorageTypeFactory(storage_type)(*args, **kwds)
 
     #
     # Add some new methods
     #
-    @property
-    def iv_blocksize(self):
-        return AESCTR_Enc._ivsize
 
     @property
-    def ciphertext_blocksize(self):
-        return self._storage.blocksize + self._iv_blocksize
+    def ciphertext_block_size(self):
+        return self._storage.block_size
+
     @property
     def encryption_key(self):
         return self._encryption_key
@@ -35,28 +44,69 @@ class EncryptedBlockStorage(BlockStorageInterface):
     # Define BlockStorageInterface Methods
     #
 
-    @property
-    def blockcount(self): return self._storage.block_count
-    @property
-    def blocksize(self): return self._storage.block_size
-    @property
-    def filename(self): return self._storage.filename
+    @classmethod
+    def setup(cls,
+              key,
+              filename,
+              block_size,
+              block_count,
+              *args,
+              **kwds):
+        if (block_size <= 0) or (block_size != int(block_size)):
+            raise ValueError(
+                "Block size must be a positive integer: %s"
+                % (block_size))
 
-    def close(self): self._storage.close()
+        storage_type = EncryptedBlockStorage.\
+                       BlockStorageTypeFactory(
+                           kwds.pop('storage_type', 'file'))
+        initialize = kwds.pop('initialize', None)
+        encrypted_block_size = block_size + AESCTR.block_size
+
+        if initialize is None:
+            zeros = bytes(bytearray(block_size))
+            initialize = lambda i: zeros
+        def encrypted_initialize(i):
+            return AESCTR.Enc(key, initialize(i))
+        kwds['initialize'] = encrypted_initialize
+
+        storage_type.setup(filename,
+                           encrypted_block_size,
+                           block_count,
+                           *args,
+                           **kwds)
+
+    @property
+    def block_count(self):
+        return self._storage.block_count
+
+    @property
+    def block_size(self):
+        return self._storage.block_size - AESCTR.block_size
+
+    @property
+    def filename(self):
+        return self._storage.filename
+
+    def close(self):
+        self._storage.close()
 
     def read_block(self, i):
-        return AESCTR_Dec(self._encryption_key,
+        return AESCTR.Dec(self._encryption_key,
                           self._storage.read_block(i))
+
     def read_blocks(self, indices):
-        blocks = []
-        for i, b in zip(indices, self._storage.read_blocks(indices)):
-            blocks.append(AESCTR_Dec(self._encryption_key, b))
-        return blocks
+        return [AESCTR.Dec(self._encryption_key, b)
+                for b in self._storage.read_blocks(indices)]
 
     def write_block(self, i, block):
-        self._storage.write_block(i, AESCTR_Enc(self._encryption_key, block))
+        self._storage.write_block(
+            i,
+            AESCTR.Enc(self._encryption_key, block))
+
     def write_blocks(self, indices, blocks):
         enc_blocks = []
         for i, b in zip(indices, blocks):
-            enc_blocks.append(AESCTR_Enc(self._encryption_key, b))
+            enc_blocks.append(
+                AESCTR.Enc(self._encryption_key, b))
         self._storage.write_blocks(indices, enc_blocks)
