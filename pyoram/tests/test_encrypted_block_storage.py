@@ -3,11 +3,33 @@ import unittest
 
 from pyoram.storage.encrypted_block_storage import \
     EncryptedBlockStorage
+from pyoram.storage.block_storage import \
+    (BlockStorageFile,
+     BlockStorageMMapFile,
+     BlockStorageS3)
 from pyoram.crypto.aesctr import AESCTR
 
 from six.moves import xrange
 
 thisdir = os.path.dirname(os.path.abspath(__file__))
+
+class TestBlockStorageTypeFactory(unittest.TestCase):
+
+    def test_file(self):
+        self.assertIs(EncryptedBlockStorage.BlockStorageTypeFactory('file'),
+                      BlockStorageFile)
+
+    def test_mmap(self):
+        self.assertIs(EncryptedBlockStorage.BlockStorageTypeFactory('mmap'),
+                      BlockStorageMMapFile)
+
+    def test_mmap(self):
+        self.assertIs(EncryptedBlockStorage.BlockStorageTypeFactory('s3'),
+                      BlockStorageS3)
+
+    def test_invalid(self):
+        with self.assertRaises(ValueError):
+            EncryptedBlockStorage.BlockStorageTypeFactory(None)
 
 class _TestEncryptedBlockStorage(object):
 
@@ -110,6 +132,7 @@ class _TestEncryptedBlockStorage(object):
                                    storage_type=self._type_name) as f:
             encrypted_size = f.ciphertext_block_size * \
                              self._block_count
+            self.assertEqual(f.encryption_key, self._key)
             self.assertEqual(f.block_size, self._block_size)
             self.assertEqual(f.block_count, self._block_count)
             self.assertEqual(f.filename, self._testfname)

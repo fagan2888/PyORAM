@@ -15,18 +15,20 @@ class EncryptedBlockStorage(BlockStorageInterface):
         elif storage_type == 's3':
             return BlockStorageS3
         else:
-            raise ValueError("%s: Unsupported storage type: %s"
-                             % (self.__class__.__name__, storage_type))
+            raise ValueError(
+                "%s: Unsupported storage type: %s"
+                % (EncryptedBlockStorage.__name__,
+                   storage_type))
 
     def __init__(self,
                  key,
                  *args,
                  **kwds):
-
-        self._encryption_key = key
         storage_type = kwds.pop('storage_type', 'file')
+        self._encryption_key = key
         self._storage = \
-            self.BlockStorageTypeFactory(storage_type)(*args, **kwds)
+            self.BlockStorageTypeFactory(storage_type)\
+            (*args, **kwds)
 
     #
     # Add some new methods

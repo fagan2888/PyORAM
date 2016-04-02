@@ -1,9 +1,10 @@
 import os
 import unittest
 
-from pyoram.storage.block_storage import (BlockStorageFile,
-                                          BlockStorageMMapFile,
-                                          BlockStorageS3)
+from pyoram.storage.block_storage import \
+    (BlockStorageFile,
+     BlockStorageMMapFile,
+     BlockStorageS3)
 
 from six.moves import xrange
 
