@@ -103,17 +103,21 @@ class _TestEncryptedBlockStorage(object):
 
     def test_init_exists(self):
         self.assertEqual(os.path.exists(self._testfname), True)
-        with open(self._testfname) as f:
+        with open(self._testfname, 'rb') as f:
             databefore = f.read()
         with EncryptedBlockStorage(self._key,
                                    self._testfname,
                                    storage_type=self._type_name) as f:
+            encrypted_size = f.ciphertext_block_size * \
+                             self._block_count
             self.assertEqual(f.block_size, self._block_size)
             self.assertEqual(f.block_count, self._block_count)
             self.assertEqual(f.filename, self._testfname)
-
+            self.assertNotEqual(self._block_size,
+                                f.ciphertext_block_size)
+        self.assertEqual(len(databefore) >= encrypted_size, True)
         self.assertEqual(os.path.exists(self._testfname), True)
-        with open(self._testfname) as f:
+        with open(self._testfname, 'rb') as f:
             dataafter = f.read()
         self.assertEqual(databefore, dataafter)
 
