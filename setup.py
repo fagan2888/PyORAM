@@ -12,7 +12,7 @@ with open(os.path.join("pyoram", "__about__.py")) as f:
 
 # Get the long description from the README file
 def _readme():
-    with open(os.path.join(here, 'README.md'), encoding='utf-8') as f:
+    with open(os.path.join(here, 'README.rst'), encoding='utf-8') as f:
         return f.read()
 
 setup_requirements = []
