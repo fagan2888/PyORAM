@@ -2,13 +2,32 @@ import os
 import unittest
 
 from pyoram.storage.block_storage import \
-    (BlockStorageFile,
+    (BlockStorageTypeFactory,
+     BlockStorageFile,
      BlockStorageMMapFile,
      BlockStorageS3)
 
 from six.moves import xrange
 
 thisdir = os.path.dirname(os.path.abspath(__file__))
+
+class TestBlockStorageTypeFactory(unittest.TestCase):
+
+    def test_file(self):
+        self.assertIs(BlockStorageTypeFactory('file'),
+                      BlockStorageFile)
+
+    def test_mmap(self):
+        self.assertIs(BlockStorageTypeFactory('mmap'),
+                      BlockStorageMMapFile)
+
+    def test_s3(self):
+        self.assertIs(BlockStorageTypeFactory('s3'),
+                      BlockStorageS3)
+
+    def test_invalid(self):
+        with self.assertRaises(ValueError):
+            BlockStorageTypeFactory(None)
 
 class _TestBlockStorage(object):
 
@@ -39,6 +58,8 @@ class _TestBlockStorage(object):
         pass
 
     def test_setup_fails(self):
+        dummy_name = "sdfsdfsldkfjwerwerfsdfsdfsd"
+        self.assertEquals(os.path.exists(dummy_name), False)
         with self.assertRaises(ValueError):
             self._type.setup(
                 storage_name=os.path.join(thisdir, "baselines", "exists.empty"),
@@ -51,22 +72,28 @@ class _TestBlockStorage(object):
                 block_count=10,
                 ignore_existing=False)
         with self.assertRaises(ValueError):
-            self._type.setup(storage_name="tmp",
+            self._type.setup(storage_name=dummy_name,
                              block_size=0,
                              block_count=1)
         with self.assertRaises(ValueError):
-            self._type.setup(storage_name="tmp",
+            self._type.setup(storage_name=dummy_name,
                              block_size=1,
                              block_count=0)
         with self.assertRaises(ValueError):
             self._type.setup(block_size=1,
                              block_count=1)
         with self.assertRaises(ValueError):
-            self._type.setup(storage_name="tmp",
+            self._type.setup(storage_name=dummy_name,
                              block_count=1)
         with self.assertRaises(ValueError):
-            self._type.setup(storage_name="tmp",
+            self._type.setup(storage_name=dummy_name,
                              block_size=1)
+        with self.assertRaises(TypeError):
+            self._type.setup(storage_name=dummy_name,
+                             block_size=1,
+                             block_count=1,
+                             user_header_data=2)
+        self.assertEquals(os.path.exists(dummy_name), False)
 
     def test_setup(self):
         fname = ".".join(self.id().split(".")[1:])
@@ -100,7 +127,7 @@ class _TestBlockStorage(object):
             self.assertEqual(f.block_size, self._block_size)
             self.assertEqual(f.block_count, self._block_count)
             self.assertEqual(f.storage_name, self._testfname)
-
+            self.assertEqual(f.user_header_data, bytes())
         self.assertEqual(os.path.exists(self._testfname), True)
         with open(self._testfname) as f:
             dataafter = f.read()

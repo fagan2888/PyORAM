@@ -3,34 +3,11 @@ import unittest
 
 from pyoram.storage.encrypted_block_storage import \
     EncryptedBlockStorage
-from pyoram.storage.block_storage import \
-    (BlockStorageTypeFactory,
-     BlockStorageFile,
-     BlockStorageMMapFile,
-     BlockStorageS3)
 from pyoram.crypto.aesctr import AESCTR
 
 from six.moves import xrange
 
 thisdir = os.path.dirname(os.path.abspath(__file__))
-
-class TestBlockStorageTypeFactory(unittest.TestCase):
-
-    def test_file(self):
-        self.assertIs(BlockStorageTypeFactory('file'),
-                      BlockStorageFile)
-
-    def test_mmap(self):
-        self.assertIs(BlockStorageTypeFactory('mmap'),
-                      BlockStorageMMapFile)
-
-    def test_mmap(self):
-        self.assertIs(BlockStorageTypeFactory('s3'),
-                      BlockStorageS3)
-
-    def test_invalid(self):
-        with self.assertRaises(ValueError):
-            BlockStorageTypeFactory(None)
 
 class _TestEncryptedBlockStorage(object):
 
@@ -111,6 +88,14 @@ class _TestEncryptedBlockStorage(object):
                 storage_name="tmp",
                 block_size=1,
                 storage_type=self._type_name)
+        with self.assertRaises(TypeError):
+            EncryptedBlockStorage.setup(
+                key_size=AESCTR.key_sizes[-1],
+                storage_name="tmp",
+                block_size=1,
+                block_count=1,
+                storage_type=self._type_name,
+                user_header_data=2)
 
     def test_setup(self):
         fname = ".".join(self.id().split(".")[1:])
@@ -155,6 +140,7 @@ class _TestEncryptedBlockStorage(object):
             self.assertEqual(f.block_size, self._block_size)
             self.assertEqual(f.block_count, self._block_count)
             self.assertEqual(f.storage_name, self._testfname)
+            self.assertEqual(f.user_header_data, bytes())
             self.assertNotEqual(self._block_size,
                                 f.ciphertext_block_size)
         self.assertEqual(len(databefore) >= encrypted_size, True)

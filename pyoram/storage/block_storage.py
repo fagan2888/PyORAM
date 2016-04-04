@@ -18,8 +18,6 @@ def BlockStorageTypeFactory(storage_type_name):
         return BlockStorageFile
     elif storage_type_name == 'mmap':
         return BlockStorageMMapFile
-    elif storage_type_name == 'ram':
-        return BlockStorageRam
     elif storage_type_name == 's3':
         return BlockStorageS3
     else:
@@ -119,6 +117,12 @@ class BlockStorageFile(BlockStorageInterface):
             raise ValueError(
                 "Block count must be a positive integer: %s"
                 % (block_count))
+        if (user_header_data is not None) and \
+           (type(user_header_data) is not bytes):
+            raise TypeError(
+                "'user_header_data' must be of type bytes. "
+                "Invalid type: %s" % (type(user_header_data)))
+
         if initialize is None:
             zeros = bytes(bytearray(block_size))
             initialize = lambda i: zeros
@@ -130,10 +134,6 @@ class BlockStorageFile(BlockStorageInterface):
                                     block_count,
                                     0))
             else:
-                if type(user_header_data) is not bytes:
-                    raise TypeError(
-                        "'user_header_data' must be of type bytes. "
-                        "Invalid type: %s" % (type(user_header_data)))
                 f.write(struct.pack(cls._index_storage_string,
                                     block_size,
                                     block_count,
@@ -310,6 +310,11 @@ class BlockStorageS3(BlockStorageInterface):
             raise ValueError(
                 "Block count must be a positive integer: %s"
                 % (block_count))
+        if (user_header_data is not None) and \
+           (type(user_header_data) is not bytes):
+            raise TypeError(
+                "'user_header_data' must be of type bytes. "
+                "Invalid type: %s" % (type(user_header_data)))
 
         s3 = boto3.session.Session(
             aws_access_key_id=access_key_id,
@@ -338,10 +343,6 @@ class BlockStorageS3(BlockStorageInterface):
                                                block_count,
                                                0))
         else:
-            if type(user_header_data) is not bytes:
-                raise TypeError(
-                    "'user_header_data' must be of type bytes. "
-                    "Invalid type: %s" % (type(user_header_data)))
             bucket.put_object(Key=storage_name+cls._index_name,
                               Body=struct.pack(cls._index_storage_string,
                                                block_size,
