@@ -632,11 +632,11 @@ class TestVirtualHeap(unittest.TestCase):
         vh = VirtualHeap(2, blocks_per_bucket=4)
         self.assertEqual(vh.k, 2)
         self.assertEqual(vh.Node.k, 2)
-        self.assertEqual(vh.blocks_per_bucket(), 4)
+        self.assertEqual(vh.blocks_per_bucket, 4)
         vh = VirtualHeap(5, blocks_per_bucket=7)
         self.assertEqual(vh.k, 5)
         self.assertEqual(vh.Node.k, 5)
-        self.assertEqual(vh.blocks_per_bucket(), 7)
+        self.assertEqual(vh.blocks_per_bucket, 7)
 
     def test_node_label_to_bucket(self):
         vh = VirtualHeap(2)
@@ -890,23 +890,23 @@ class TestSizedVirtualHeap(unittest.TestCase):
         vh = SizedVirtualHeap(2, 8, blocks_per_bucket=4)
         self.assertEqual(vh.k, 2)
         self.assertEqual(vh.Node.k, 2)
-        self.assertEqual(vh.blocks_per_bucket(), 4)
+        self.assertEqual(vh.blocks_per_bucket, 4)
         vh = SizedVirtualHeap(5, 9, blocks_per_bucket=7)
         self.assertEqual(vh.k, 5)
         self.assertEqual(vh.Node.k, 5)
-        self.assertEqual(vh.blocks_per_bucket(), 7)
+        self.assertEqual(vh.blocks_per_bucket, 7)
 
     def test_levels(self):
         vh = SizedVirtualHeap(2, 3, blocks_per_bucket=4)
-        self.assertEqual(vh.levels(), 4)
+        self.assertEqual(vh.levels, 4)
         vh = SizedVirtualHeap(5, 6, blocks_per_bucket=7)
-        self.assertEqual(vh.levels(), 7)
+        self.assertEqual(vh.levels, 7)
 
     def test_height(self):
         vh = SizedVirtualHeap(2, 3, blocks_per_bucket=4)
-        self.assertEqual(vh.height(), 3)
+        self.assertEqual(vh.height, 3)
         vh = SizedVirtualHeap(5, 6, blocks_per_bucket=7)
-        self.assertEqual(vh.height(), 6)
+        self.assertEqual(vh.height, 6)
 
     def test_ObjectCount(self):
         for k in _test_bases:
@@ -928,11 +928,11 @@ class TestSizedVirtualHeap(unittest.TestCase):
                                           height,
                                           blocks_per_bucket=blocks_per_bucket)
                     self.assertEqual(vh.leaf_bucket_count(),
-                                     vh.bucket_count_at_level(vh.height()))
+                                     vh.bucket_count_at_level(vh.height))
                     self.assertEqual(vh.leaf_node_count(),
-                                     vh.node_count_at_level(vh.height()))
+                                     vh.node_count_at_level(vh.height))
                     self.assertEqual(vh.leaf_block_count(),
-                                     vh.block_count_at_level(vh.height()))
+                                     vh.block_count_at_level(vh.height))
 
 
     def test_FirstLeafObject(self):

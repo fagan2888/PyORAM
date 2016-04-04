@@ -84,14 +84,28 @@ class EncryptedHeapStorage(HeapStorageInterface):
         block_size = kwds.get('block_size')
         if (block_size is None):
             raise ValueError("'block_size' is required")
-
+        if "block_count" in kwds:
+            raise ValueError("'block_count' is not a valid keyword")
+        if height < 0:
+            raise ValueError(
+                "height must be 0 or greater. Invalid value: %s"
+                % (height))
+        if blocks_per_bucket < 1:
+            raise ValueError(
+                "blocks_per_bucket must be 1 or greater. Invalid value: %s"
+                % (blocks_per_bucket))
         base = kwds.pop('base', 2)
+        if base < 2:
+            raise ValueError(
+                "base must be 2 or greater. Invalid value: %s"
+                % (base))
+
         vheap = SizedVirtualHeap(base,
                                  height,
                                  blocks_per_bucket=blocks_per_bucket)
 
         kwds['block_count'] = vheap.bucket_count()
-        kwds['block_size'] = vheap.blocks_per_bucket() * block_size
+        kwds['block_size'] = vheap.blocks_per_bucket * block_size
         user_header_data = kwds.get('user_header_data', bytes())
         if type(user_header_data) is not bytes:
             raise TypeError(

@@ -112,6 +112,8 @@ class _TestEncryptedBlockStorage(object):
         with EncryptedBlockStorage(encryption_key=key,
                                    storage_name=fname,
                                    storage_type=self._type_name) as f:
+            self.assertEqual(f.user_header_data, bytes())
+            self.assertEqual(f.encryption_key, key)
             self.assertEqual(f.block_size, bsize)
             self.assertEqual(f.block_count, bcount)
             self.assertEqual(f.storage_name, fname)

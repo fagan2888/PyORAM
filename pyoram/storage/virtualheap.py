@@ -228,8 +228,10 @@ class VirtualHeap(object):
     # with blocks_per_bucket=1)
     #
 
+    @property
     def blocks_per_bucket(self):
         return self._blocks_per_bucket
+
     def bucket_count_at_level(self, l):
         return calculate_bucket_count_in_heap_at_level(self.k, l)
     def first_bucket_at_level(self, l):
@@ -268,16 +270,16 @@ class VirtualHeap(object):
 
     def bucket_to_block(self, b):
         assert b >= 0
-        return b * self.blocks_per_bucket()
+        return b * self.blocks_per_bucket
     def block_to_bucket(self, s):
         assert s >= 0
-        return s//self.blocks_per_bucket()
+        return s//self.blocks_per_bucket
     def first_block_in_bucket(self, b):
         return self.bucket_to_block(b)
     def last_block_in_bucket(self, b):
-        return self.bucket_to_block(b) + self.blocks_per_bucket() - 1
+        return self.bucket_to_block(b) + self.blocks_per_bucket - 1
     def block_count_at_level(self, l):
-        return self.bucket_count_at_level(l) * self.blocks_per_bucket()
+        return self.bucket_count_at_level(l) * self.blocks_per_bucket
     def first_block_at_level(self, l):
         return self.bucket_to_block(self.first_bucket_at_level(l))
     def last_block_at_level(self, l):
@@ -294,8 +296,10 @@ class SizedVirtualHeap(VirtualHeap):
     # Size properties
     #
 
+    @property
     def levels(self):
         return self._height + 1
+    @property
     def height(self):
         return self._height
 
@@ -306,19 +310,19 @@ class SizedVirtualHeap(VirtualHeap):
 
     def bucket_count(self):
         return calculate_bucket_count_in_heap_with_height(self.k,
-                                                          self.height())
+                                                          self.height)
     def leaf_bucket_count(self):
         return calculate_leaf_bucket_count_in_heap_with_height(self.k,
-                                                               self.height())
+                                                               self.height)
     def first_leaf_bucket(self):
-        return self.first_bucket_at_level(self.height())
+        return self.first_bucket_at_level(self.height)
     def last_leaf_bucket(self):
-        return self.last_bucket_at_level(self.height())
+        return self.last_bucket_at_level(self.height)
     def random_bucket(self):
         return random.randint(self.first_bucket_at_level(0),
                               self.last_leaf_bucket())
     def random_leaf_bucket(self):
-        return self.random_bucket_at_level(self.height())
+        return self.random_bucket_at_level(self.height)
 
     #
     # Nodes (a class that helps with heap path calculations)
@@ -344,9 +348,9 @@ class SizedVirtualHeap(VirtualHeap):
     #
 
     def block_count(self):
-        return self.bucket_count() * self.blocks_per_bucket()
+        return self.bucket_count() * self.blocks_per_bucket
     def leaf_block_count(self):
-        return self.leaf_bucket_count() * self.blocks_per_bucket()
+        return self.leaf_bucket_count() * self.blocks_per_bucket
     def first_leaf_block(self):
         return self.first_block_in_bucket(self.first_leaf_bucket())
     def last_leaf_block(self):
@@ -373,9 +377,9 @@ class SizedVirtualHeap(VirtualHeap):
                     lbl = str(n)
             else:
                 s = self.bucket_to_block(n.bucket)
-                for i in range(self.blocks_per_bucket()):
+                for i in range(self.blocks_per_bucket):
                     lbl += "{%s}" % (data[s+i])
-                    if i + 1 != self.blocks_per_bucket():
+                    if i + 1 != self.blocks_per_bucket:
                         lbl += "|"
             lbl += "}"
             f.write("  %s [penwidth=%s,label=\"%s\"];\n"
