@@ -75,10 +75,8 @@ class EncryptedBlockStorage(BlockStorageInterface):
 
     @property
     def user_header_data(self):
-        user_header_data = self._storage.user_header_data
-        if user_header_data is b'':
-            return user_header_data
-        return AESCTR.Dec(self._encryption_key, user_header_data)
+        return AESCTR.Dec(self._encryption_key,
+                          self._storage.user_header_data)
 
     @property
     def block_count(self):
