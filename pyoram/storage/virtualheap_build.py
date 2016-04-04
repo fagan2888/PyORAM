@@ -9,11 +9,11 @@ import cffi
 ffi = cffi.FFI()
 ffi.cdef(
 """
-int CalculateBucketLevel(unsigned int k,
-                         unsigned long b);
-int CalculateLastCommonLevel(unsigned int k,
-                             unsigned long b1,
-                             unsigned long b2);
+int calculate_bucket_level(unsigned int k,
+                           unsigned long b);
+int calculate_last_common_level(unsigned int k,
+                                unsigned long b1,
+                                unsigned long b2);
 """)
 
 ffi.set_source("pyoram.storage._virtualheap",
@@ -21,8 +21,8 @@ ffi.set_source("pyoram.storage._virtualheap",
 #include <stdio.h>
 #include <stdlib.h>
 
-int CalculateBucketLevel(unsigned int k,
-                         unsigned long b)
+int calculate_bucket_level(unsigned int k,
+                           unsigned long b)
 {
    unsigned int h;
    unsigned long pow;
@@ -40,13 +40,13 @@ int CalculateBucketLevel(unsigned int k,
    return h;
 }
 
-int CalculateLastCommonLevel(unsigned int k,
-                             unsigned long b1,
-                             unsigned long b2)
+int calculate_last_common_level(unsigned int k,
+                                unsigned long b1,
+                                unsigned long b2)
 {
    int level1, level2;
-   level1 = CalculateBucketLevel(k, b1);
-   level2 = CalculateBucketLevel(k, b2);
+   level1 = calculate_bucket_level(k, b1);
+   level2 = calculate_bucket_level(k, b2);
    if (level1 != level2) {
       if (level1 > level2) {
          while (level1 != level2) {

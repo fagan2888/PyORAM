@@ -1,4 +1,4 @@
-// Created by SizedVirtualHeap.WriteAsDot(...)
+// Created by SizedVirtualHeap.write_as_dot(...)
 digraph heaptree {
 node [shape=record]
   0 [penwidth=1,label="(0, 0)}"];
