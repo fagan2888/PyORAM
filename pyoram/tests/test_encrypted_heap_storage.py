@@ -75,6 +75,8 @@ class TestEncryptedHeapStorage(unittest.TestCase):
                 block_size=10,
                 storage_type=self._type_name,
                 ignore_existing=False)
+
+        # bad block_size
         with self.assertRaises(ValueError):
             EncryptedHeapStorage.setup(
                 key_size=AESCTR.key_sizes[-1],
@@ -83,22 +85,7 @@ class TestEncryptedHeapStorage(unittest.TestCase):
                 storage_name="tmp",
                 block_size=0,
                 storage_type=self._type_name)
-        with self.assertRaises(ValueError):
-            EncryptedHeapStorage.setup(
-                key_size=AESCTR.key_sizes[-1],
-                height=1,
-                blocks_per_bucket=1,
-                storage_name="tmp",
-                block_size=1,
-                block_count=1,
-                storage_type=self._type_name)
-        with self.assertRaises(ValueError):
-            EncryptedHeapStorage.setup(
-                height=1,
-                blocks_per_bucket=1,
-                storage_name="tmp",
-                block_size=1,
-                storage_type=self._type_name)
+        # bad height
         with self.assertRaises(ValueError):
             EncryptedHeapStorage.setup(
                 height=-1,
@@ -106,20 +93,7 @@ class TestEncryptedHeapStorage(unittest.TestCase):
                 storage_name="tmp",
                 block_size=1,
                 storage_type=self._type_name)
-        with self.assertRaises(ValueError):
-            EncryptedHeapStorage.setup(
-                height=1,
-                blocks_per_bucket=0,
-                storage_name="tmp",
-                block_size=1,
-                storage_type=self._type_name)
-        with self.assertRaises(ValueError):
-            EncryptedHeapStorage.setup(
-                key_size=AESCTR.key_sizes[-1],
-                height=1,
-                blocks_per_bucket=1,
-                storage_name="tmp",
-                storage_type=self._type_name)
+        # bad blocks_per_bucket
         with self.assertRaises(ValueError):
             EncryptedHeapStorage.setup(
                 key_size=AESCTR.key_sizes[-1],
@@ -128,14 +102,7 @@ class TestEncryptedHeapStorage(unittest.TestCase):
                 storage_name="tmp",
                 block_size=1,
                 storage_type=self._type_name)
-        with self.assertRaises(ValueError):
-            EncryptedHeapStorage.setup(
-                key_size=AESCTR.key_sizes[-1],
-                height=1,
-                blocks_per_bucket=0,
-                storage_name="tmp",
-                block_size=1,
-                storage_type=self._type_name)
+        # bad base
         with self.assertRaises(ValueError):
             EncryptedHeapStorage.setup(
                 key_size=AESCTR.key_sizes[-1],
@@ -145,6 +112,7 @@ class TestEncryptedHeapStorage(unittest.TestCase):
                 storage_name="tmp",
                 block_size=1,
                 storage_type=self._type_name)
+        # bad user_header_data
         with self.assertRaises(TypeError):
             EncryptedHeapStorage.setup(
                 key_size=AESCTR.key_sizes[-1],
@@ -154,6 +122,48 @@ class TestEncryptedHeapStorage(unittest.TestCase):
                 block_size=1,
                 storage_type=self._type_name,
                 user_header_data=2)
+        # uses block_count
+        with self.assertRaises(ValueError):
+            EncryptedHeapStorage.setup(
+                key_size=AESCTR.key_sizes[-1],
+                height=1,
+                blocks_per_bucket=1,
+                storage_name="tmp",
+                block_size=1,
+                block_count=1,
+                storage_type=self._type_name)
+        # missing key_size
+        with self.assertRaises(ValueError):
+            EncryptedHeapStorage.setup(
+                height=1,
+                blocks_per_bucket=1,
+                storage_name="tmp",
+                block_size=1,
+                storage_type=self._type_name)
+        # missing block_size
+        with self.assertRaises(ValueError):
+            EncryptedHeapStorage.setup(
+                key_size=AESCTR.key_sizes[-1],
+                height=1,
+                blocks_per_bucket=1,
+                storage_name="tmp",
+                storage_type=self._type_name)
+        # missing height
+        with self.assertRaises(ValueError):
+            EncryptedHeapStorage.setup(
+                key_size=AESCTR.key_sizes[-1],
+                blocks_per_bucket=1,
+                storage_name="tmp",
+                block_size=1,
+                storage_type=self._type_name)
+        # missing blocks_per_bucket
+        with self.assertRaises(ValueError):
+            EncryptedHeapStorage.setup(
+                key_size=AESCTR.key_sizes[-1],
+                height=1,
+                storage_name="tmp",
+                block_size=1,
+                storage_type=self._type_name)
 
     def test_setup(self):
         fname = ".".join(self.id().split(".")[1:])

@@ -38,7 +38,7 @@ class HeapStorageInterface(object):
         raise NotImplementedError                      # pragma: no cover
     @property
     def virtual_heap(self, *args, **kwds):
-        pass
+        raise NotImplementedError                      # pragma: no cover
     def close(self, *args, **kwds):
         raise NotImplementedError                      # pragma: no cover
     def read_path(self, *args, **kwds):

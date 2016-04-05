@@ -65,34 +65,49 @@ class _TestBlockStorage(object):
                 storage_name=os.path.join(thisdir, "baselines", "exists.empty"),
                 block_size=10,
                 block_count=10)
+        self.assertEquals(os.path.exists(dummy_name), False)
         with self.assertRaises(ValueError):
             self._type.setup(
                 storage_name=os.path.join(thisdir, "baselines", "exists.empty"),
                 block_size=10,
                 block_count=10,
                 ignore_existing=False)
+        self.assertEquals(os.path.exists(dummy_name), False)
         with self.assertRaises(ValueError):
             self._type.setup(storage_name=dummy_name,
                              block_size=0,
                              block_count=1)
+        self.assertEquals(os.path.exists(dummy_name), False)
         with self.assertRaises(ValueError):
             self._type.setup(storage_name=dummy_name,
                              block_size=1,
                              block_count=0)
+        self.assertEquals(os.path.exists(dummy_name), False)
         with self.assertRaises(ValueError):
             self._type.setup(block_size=1,
                              block_count=1)
+        self.assertEquals(os.path.exists(dummy_name), False)
         with self.assertRaises(ValueError):
             self._type.setup(storage_name=dummy_name,
                              block_count=1)
+        self.assertEquals(os.path.exists(dummy_name), False)
         with self.assertRaises(ValueError):
             self._type.setup(storage_name=dummy_name,
                              block_size=1)
+        self.assertEquals(os.path.exists(dummy_name), False)
         with self.assertRaises(TypeError):
             self._type.setup(storage_name=dummy_name,
                              block_size=1,
                              block_count=1,
                              user_header_data=2)
+        self.assertEquals(os.path.exists(dummy_name), False)
+        with self.assertRaises(ValueError):
+            def _init(i):
+                raise ValueError
+            self._type.setup(storage_name=dummy_name,
+                             block_size=1,
+                             block_count=1,
+                             initialize=_init)
         self.assertEquals(os.path.exists(dummy_name), False)
 
     def test_setup(self):
