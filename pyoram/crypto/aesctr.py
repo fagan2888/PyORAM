@@ -25,10 +25,11 @@ class AESCTR(object):
     def Enc(key, plaintext):
         iv = os.urandom(AESCTR.block_size)
         cipher = _cipher(_aes(key), _mode(iv), backend=_backend).encryptor()
-        return iv + cipher.update(plaintext) + cipher.finalize()
+        return iv + cipher.update(bytes(plaintext)) + cipher.finalize()
 
     @staticmethod
     def Dec(key, ciphertext):
         iv = ciphertext[:AESCTR.block_size]
         cipher = _cipher(_aes(key), _mode(iv), backend=_backend).decryptor()
-        return cipher.update(ciphertext[AESCTR.block_size:]) + cipher.finalize()
+        return cipher.update(bytes(ciphertext[AESCTR.block_size:])) + \
+               cipher.finalize()

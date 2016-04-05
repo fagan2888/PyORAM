@@ -19,7 +19,15 @@ class Test(unittest.TestCase):
             # make sure every key is unique
             self.assertEqual(len(key_list), len(key_set))
 
-    def test_Enc_Dec(self):
+    def test_Enc_Dec_bytes(self):
+        self._test_Enc_Dec(
+            lambda i, size: bytes(bytearray([i]) * size))
+
+    def test_Enc_Dec_bytearray(self):
+        self._test_Enc_Dec(
+            lambda i, size: bytearray([i]) * size)
+
+    def _test_Enc_Dec(self, get_plaintext):
         blocksize_factor = [0.5, 1, 1.5, 2, 2.5]
         plaintext_blocks = []
         for i, f in enumerate(blocksize_factor):
@@ -27,7 +35,7 @@ class Test(unittest.TestCase):
             size = int(round(size))
             if int(f) != f:
                 assert (size % AESCTR.block_size) != 0
-            plaintext_blocks.append(bytes(bytearray([i]) * size))
+            plaintext_blocks.append(get_plaintext(i, size))
 
         assert len(AESCTR.key_sizes) > 0
         ciphertext_blocks = {}
