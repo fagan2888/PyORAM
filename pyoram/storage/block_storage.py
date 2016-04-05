@@ -126,24 +126,28 @@ class BlockStorageFile(BlockStorageInterface):
         if initialize is None:
             zeros = bytes(bytearray(block_size))
             initialize = lambda i: zeros
-        with open(storage_name, "wb") as f:
-            # create_index
-            if user_header_data is None:
-                f.write(struct.pack(cls._index_storage_string,
-                                    block_size,
-                                    block_count,
-                                    0))
-            else:
-                f.write(struct.pack(cls._index_storage_string,
-                                    block_size,
-                                    block_count,
-                                    len(user_header_data)))
-                f.write(user_header_data)
-            for i in xrange(block_count):
-                block = initialize(i)
-                assert len(block) == block_size
-                f.write(block)
-            f.flush()
+        try:
+            with open(storage_name, "wb") as f:
+                # create_index
+                if user_header_data is None:
+                    f.write(struct.pack(cls._index_storage_string,
+                                        block_size,
+                                        block_count,
+                                        0))
+                else:
+                    f.write(struct.pack(cls._index_storage_string,
+                                        block_size,
+                                        block_count,
+                                        len(user_header_data)))
+                    f.write(user_header_data)
+                for i in xrange(block_count):
+                    block = initialize(i)
+                    assert len(block) == block_size
+                    f.write(block)
+                f.flush()
+        except:
+            os.remove(storage_name)
+            raise
 
     @property
     def user_header_data(self):
