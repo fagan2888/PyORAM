@@ -48,15 +48,20 @@ class HeapStorageInterface(object):
 
 class EncryptedHeapStorage(HeapStorageInterface):
 
-    _index_storage_string = "!QQ"
+    _index_storage_string = "!QQQ"
     _index_offset = struct.calcsize(_index_storage_string)
 
     def __init__(self, *args, **kwds):
         self._storage = EncryptedBlockStorage(*args, **kwds)
-        self._vheap = SizedVirtualHeap(
-            *struct.unpack(
+        base, height, blocks_per_bucket = \
+            struct.unpack(
                 self._index_storage_string,
-                self._storage.user_header_data[:self._index_offset]))
+                self._storage.\
+                user_header_data[:self._index_offset])
+        self._vheap = SizedVirtualHeap(
+            base,
+            height,
+            blocks_per_bucket=blocks_per_bucket)
 
     #
     # Add some new methods
@@ -103,9 +108,10 @@ class EncryptedHeapStorage(HeapStorageInterface):
                 "base must be 2 or greater. Invalid value: %s"
                 % (base))
 
-        vheap = SizedVirtualHeap(base,
-                                 height,
-                                 blocks_per_bucket=blocks_per_bucket)
+        vheap = SizedVirtualHeap(
+            base,
+            height,
+            blocks_per_bucket=blocks_per_bucket)
 
         kwds['block_count'] = vheap.bucket_count()
         kwds['block_size'] = vheap.blocks_per_bucket * block_size
@@ -117,7 +123,8 @@ class EncryptedHeapStorage(HeapStorageInterface):
         kwds['user_header_data'] = \
             struct.pack(cls._index_storage_string,
                         base,
-                        height) + user_header_data
+                        height,
+                        blocks_per_bucket) + user_header_data
         return EncryptedBlockStorage.setup(*args, **kwds)
 
     @property
