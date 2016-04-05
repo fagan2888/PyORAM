@@ -36,6 +36,9 @@ class HeapStorageInterface(object):
     @property
     def storage_name(self, *args, **kwds):
         raise NotImplementedError                      # pragma: no cover
+    @property
+    def virtual_heap(self, *args, **kwds):
+        pass
     def close(self, *args, **kwds):
         raise NotImplementedError                      # pragma: no cover
     def read_path(self, *args, **kwds):
@@ -134,8 +137,12 @@ class EncryptedHeapStorage(HeapStorageInterface):
         return self._vheap.blocks_per_bucket
 
     @property
-    def storage_name(self, *args, **kwds):
+    def storage_name(self):
         return self._storage.storage_name
+
+    @property
+    def virtual_heap(self):
+        return self._vheap
 
     def close(self, *args, **kwds):
         self._storage.close()
