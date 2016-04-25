@@ -22,7 +22,8 @@ thisdir = os.path.dirname(os.path.abspath(__file__))
 baselinedir = os.path.join(thisdir, "baselines")
 
 try:
-    has_dot = not subprocess.call(["dot", "-V"])
+    has_dot = not subprocess.call(['dot','-?'],
+                                  stdout=subprocess.PIPE)
 except:
     has_dot = False
 
