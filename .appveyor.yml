@@ -14,6 +14,6 @@ install:
   - "%PYTHON%\\python.exe -m pip install nose codecov coverage"
 build: off
 test_script:
-  - "%PYTHON%\\python.exe -m nose pyoram examples --with-coverage"
+  - "%PYTHON%\\python.exe -m nose -v pyoram --with-coverage"
 on_success:
   - "%PYTHON%\\Scripts\\codecov.exe"
