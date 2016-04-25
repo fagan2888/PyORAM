@@ -1103,7 +1103,7 @@ class TestMisc(unittest.TestCase):
 
     def test_clib_calculate_bucket_level(self):
         for k in _test_bases:
-            for b in xrange(calculate_bucket_count_in_heap_with_height(k, 3)+1):
+            for b in xrange(calculate_bucket_count_in_heap_with_height(k, 2)+2):
                 self.assertEqual(_clib.calculate_bucket_level(k, b),
                                  calculate_bucket_level(k, b))
         for k, b in [(89, 14648774),
@@ -1115,8 +1115,8 @@ class TestMisc(unittest.TestCase):
 
     def test_clib_calculate_last_common_level(self):
         for k in range(2, 8):
-            for b1 in xrange(calculate_bucket_count_in_heap_with_height(k, 3)+1):
-                for b2 in xrange(calculate_bucket_count_in_heap_with_height(k, 3)+1):
+            for b1 in xrange(calculate_bucket_count_in_heap_with_height(k, 2)+2):
+                for b2 in xrange(calculate_bucket_count_in_heap_with_height(k, 2)+2):
                     self.assertEqual(_clib.calculate_last_common_level(k, b1, b2),
                                      calculate_last_common_level(k, b1, b2))
         for k in [89,90]:
