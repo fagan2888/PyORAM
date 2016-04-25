@@ -134,7 +134,7 @@ class _TestBlockStorage(object):
             os.remove(fname)                           # pragma: no cover
         bsize = 10
         bcount = 11
-        user_header_data = bytes(bytearray(['a',1,2]))
+        user_header_data = bytes(bytearray([0,1,2]))
         fsetup = self._type.setup(fname,
                                   block_size=bsize,
                                   block_count=bcount,

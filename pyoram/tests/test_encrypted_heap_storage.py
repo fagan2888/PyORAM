@@ -184,7 +184,7 @@ class TestEncryptedHeapStorage(unittest.TestCase):
         bsize = 10
         heap_height = 2
         blocks_per_bucket = 1
-        user_header_data = bytes(bytearray(['a',1,2]))
+        user_header_data = bytes(bytearray([0,1,2]))
         fsetup = EncryptedHeapStorage.setup(
             fname,
             block_size=bsize,
