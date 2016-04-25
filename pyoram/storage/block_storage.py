@@ -22,8 +22,8 @@ def BlockStorageTypeFactory(storage_type_name):
         return BlockStorageS3
     else:
         raise ValueError(
-            "BlockStorageTypeFactory: Unsupported storage type: %s"
-            % (storage_type_name))
+            "BlockStorageTypeFactory: Unsupported storage "
+            "type: %s" % (storage_type_name))
 
 class BlockStorageInterface(object):
 
@@ -64,7 +64,7 @@ class BlockStorageInterface(object):
 
 class BlockStorageFile(BlockStorageInterface):
 
-    _index_storage_string = "!QQQ"
+    _index_storage_string = "!LLL"
     _index_offset = struct.calcsize(_index_storage_string)
 
     def __init__(self, storage_name):
@@ -92,18 +92,12 @@ class BlockStorageFile(BlockStorageInterface):
 
     @classmethod
     def setup(cls,
-              storage_name=None,
-              block_size=None,
-              block_count=None,
+              storage_name,
+              block_size,
+              block_count,
               initialize=None,
               user_header_data=None,
               ignore_existing=False):
-        if (storage_name is None):
-            raise ValueError("'storage_name' is required")
-        if (block_size is None):
-            raise ValueError("'block_size' is required")
-        if (block_count is None):
-            raise ValueError("'block_count' is required")
         if (not ignore_existing) and \
            os.path.exists(storage_name):
             raise ValueError(
@@ -142,12 +136,14 @@ class BlockStorageFile(BlockStorageInterface):
                     f.write(user_header_data)
                 for i in xrange(block_count):
                     block = initialize(i)
-                    assert len(block) == block_size
+                    assert len(block) == block_size, \
+                        ("%s != %s" % (len(block), block_size))
                     f.write(block)
                 f.flush()
         except:
             os.remove(storage_name)
             raise
+        return BlockStorageFile(storage_name)
 
     @property
     def user_header_data(self):
@@ -184,7 +180,8 @@ class BlockStorageFile(BlockStorageInterface):
     def write_blocks(self, indices, blocks):
         for i, block in zip(indices, blocks):
             self._f.seek(self._header_offset + i * self.block_size)
-            assert len(block) == self.block_size
+            assert len(block) == self.block_size, \
+                ("%s != %s" % (len(block), self.block_size))
             self._f.write(block)
 
     def write_block(self, i, block):
@@ -202,6 +199,19 @@ class BlockStorageMMapFile(BlockStorageFile):
     #
     # Define BlockStorageInterface Methods
     # (override what is defined on BlockStorageFile)
+
+    @classmethod
+    def setup(cls,
+              storage_name,
+              block_size,
+              block_count,
+              **kwds):
+        f = BlockStorageFile.setup(storage_name,
+                                   block_size,
+                                   block_count,
+                                   **kwds)
+        f.close()
+        return BlockStorageMMapFile(storage_name)
 
     def close(self):
         if self._mm is not None:
@@ -232,17 +242,18 @@ class BlockStorageMMapFile(BlockStorageFile):
 class BlockStorageS3(BlockStorageInterface):
 
     _index_name = "/PyORAMBlockStorageS3_index.txt"
-    _index_storage_string = "!QQQ"
+    _index_storage_string = "!LLL"
     _index_offset = struct.calcsize(_index_storage_string)
 
     def __init__(self,
                  storage_name,
-                 bucket_name,
+                 bucket_name=None,
                  access_key_id=None,
                  secret_access_key=None,
                  region=None,
                  threadpool_size=4):
-
+        if bucket_name is None:
+            raise ValueError("'bucket_name' is required")
         self._storage_name = storage_name
         self._bucket_name = bucket_name
         self._access_key_id = access_key_id
@@ -288,23 +299,18 @@ class BlockStorageS3(BlockStorageInterface):
 
     @classmethod
     def setup(cls,
-              storage_name=None,
-              block_size=None,
-              block_count=None,
+              storage_name,
+              block_size,
+              block_count,
               bucket_name=None,
               access_key_id=None,
               secret_access_key=None,
               region=None,
               user_header_data=None,
               initialize=None,
+              threadpool_size=4,
               ignore_existing=False):
-        if (storage_name is None):
-            raise ValueError("'storage_name' is required")
-        if (block_size is None):
-            raise ValueError("'block_size' is required")
-        if (block_count is None):
-            raise ValueError("'block_count' is required")
-        if (bucket_name is None):
+        if bucket_name is None:
             raise ValueError("'bucket_name' is required")
         if (block_size <= 0) or (block_size != int(block_size)):
             raise ValueError(
@@ -363,6 +369,16 @@ class BlockStorageS3(BlockStorageInterface):
             assert len(block) == block_size
             bucket.put_object(Key=basename % i,
                               Body=block)
+        return BlockStorageS3(storage_name,
+                              bucket_name=bucket_name,
+                              access_key_id=access_key_id,
+                              secret_access_key=secret_access_key,
+                              region=region,
+                              threadpool_size=threadpool_size)
+
+    @property
+    def user_header_data(self):
+        return self._user_header_data
 
     @property
     def block_count(self):

@@ -40,11 +40,12 @@ class _TestBlockStorage(object):
         cls._block_count = 5
         cls._testfname = cls.__name__ + "_testfile.bin"
         cls._blocks = []
-        cls._type.setup(storage_name=cls._testfname,
-                        block_size=cls._block_size,
-                        block_count=cls._block_count,
-                        initialize=lambda i: bytes(bytearray([i])*cls._block_size),
-                        ignore_existing=True)
+        f = cls._type.setup(cls._testfname,
+                            block_size=cls._block_size,
+                            block_count=cls._block_count,
+                            initialize=lambda i: bytes(bytearray([i])*cls._block_size),
+                            ignore_existing=True)
+        f.close()
         for i in range(cls._block_count):
             data = bytearray([i])*cls._block_size
             cls._blocks.append(data)
@@ -62,41 +63,33 @@ class _TestBlockStorage(object):
         self.assertEquals(os.path.exists(dummy_name), False)
         with self.assertRaises(ValueError):
             self._type.setup(
-                storage_name=os.path.join(thisdir, "baselines", "exists.empty"),
+                os.path.join(thisdir,
+                             "baselines",
+                             "exists.empty"),
                 block_size=10,
                 block_count=10)
         self.assertEquals(os.path.exists(dummy_name), False)
         with self.assertRaises(ValueError):
             self._type.setup(
-                storage_name=os.path.join(thisdir, "baselines", "exists.empty"),
+                os.path.join(thisdir,
+                             "baselines",
+                             "exists.empty"),
                 block_size=10,
                 block_count=10,
                 ignore_existing=False)
         self.assertEquals(os.path.exists(dummy_name), False)
         with self.assertRaises(ValueError):
-            self._type.setup(storage_name=dummy_name,
+            self._type.setup(dummy_name,
                              block_size=0,
                              block_count=1)
         self.assertEquals(os.path.exists(dummy_name), False)
         with self.assertRaises(ValueError):
-            self._type.setup(storage_name=dummy_name,
+            self._type.setup(dummy_name,
                              block_size=1,
                              block_count=0)
         self.assertEquals(os.path.exists(dummy_name), False)
-        with self.assertRaises(ValueError):
-            self._type.setup(block_size=1,
-                             block_count=1)
-        self.assertEquals(os.path.exists(dummy_name), False)
-        with self.assertRaises(ValueError):
-            self._type.setup(storage_name=dummy_name,
-                             block_count=1)
-        self.assertEquals(os.path.exists(dummy_name), False)
-        with self.assertRaises(ValueError):
-            self._type.setup(storage_name=dummy_name,
-                             block_size=1)
-        self.assertEquals(os.path.exists(dummy_name), False)
         with self.assertRaises(TypeError):
-            self._type.setup(storage_name=dummy_name,
+            self._type.setup(dummy_name,
                              block_size=1,
                              block_count=1,
                              user_header_data=2)
@@ -104,7 +97,7 @@ class _TestBlockStorage(object):
         with self.assertRaises(ValueError):
             def _init(i):
                 raise ValueError
-            self._type.setup(storage_name=dummy_name,
+            self._type.setup(dummy_name,
                              block_size=1,
                              block_count=1,
                              initialize=_init)
@@ -118,27 +111,58 @@ class _TestBlockStorage(object):
             os.remove(fname)                           # pragma: no cover
         bsize = 10
         bcount = 11
-        self._type.setup(storage_name=fname,
-                         block_size=bsize,
-                         block_count=bcount)
-        with self._type(storage_name=fname) as f:
+        fsetup = self._type.setup(fname,
+                                  block_size=bsize,
+                                  block_count=bcount)
+        fsetup.close()
+        with self._type(fname) as f:
+            self.assertEqual(f.user_header_data, bytes())
+            self.assertEqual(fsetup.user_header_data, bytes())
             self.assertEqual(f.block_size, bsize)
+            self.assertEqual(fsetup.block_size, bsize)
             self.assertEqual(f.block_count, bcount)
+            self.assertEqual(fsetup.block_count, bcount)
             self.assertEqual(f.storage_name, fname)
+            self.assertEqual(fsetup.storage_name, fname)
+        os.remove(fname)
+
+    def test_setup_withdata(self):
+        fname = ".".join(self.id().split(".")[1:])
+        fname += ".bin"
+        fname = os.path.join(thisdir, fname)
+        if os.path.exists(fname):
+            os.remove(fname)                           # pragma: no cover
+        bsize = 10
+        bcount = 11
+        user_header_data = bytes(bytearray(['a',1,2]))
+        fsetup = self._type.setup(fname,
+                                  block_size=bsize,
+                                  block_count=bcount,
+                                  user_header_data=user_header_data)
+        fsetup.close()
+        with self._type(fname) as f:
+            self.assertEqual(f.user_header_data, user_header_data)
+            self.assertEqual(fsetup.user_header_data, user_header_data)
+            self.assertEqual(f.block_size, bsize)
+            self.assertEqual(fsetup.block_size, bsize)
+            self.assertEqual(f.block_count, bcount)
+            self.assertEqual(fsetup.block_count, bcount)
+            self.assertEqual(f.storage_name, fname)
+            self.assertEqual(fsetup.storage_name, fname)
         os.remove(fname)
 
     def test_init_noexists(self):
         self.assertEqual(not os.path.exists(self._testfname+"SDFSDFSDFSFSDFS"),
                          True)
         with self.assertRaises(IOError):
-            with self._type(storage_name=self._testfname+"SDFSDFSDFSFSDFS") as f:
+            with self._type(self._testfname+"SDFSDFSDFSFSDFS") as f:
                 pass                                   # pragma: no cover
 
     def test_init_exists(self):
         self.assertEqual(os.path.exists(self._testfname), True)
         with open(self._testfname) as f:
             databefore = f.read()
-        with self._type(storage_name=self._testfname) as f:
+        with self._type(self._testfname) as f:
             self.assertEqual(f.block_size, self._block_size)
             self.assertEqual(f.block_count, self._block_count)
             self.assertEqual(f.storage_name, self._testfname)
@@ -149,7 +173,7 @@ class _TestBlockStorage(object):
         self.assertEqual(databefore, dataafter)
 
     def test_read_block(self):
-        with self._type(storage_name=self._testfname) as f:
+        with self._type(self._testfname) as f:
             for i, data in enumerate(self._blocks):
                 self.assertEqual(list(bytearray(f.read_block(i))),
                                  list(self._blocks[i]))
@@ -162,7 +186,7 @@ class _TestBlockStorage(object):
             for i, data in reversed(list(enumerate(self._blocks))):
                 self.assertEqual(list(bytearray(f.read_block(i))),
                                  list(self._blocks[i]))
-        with self._type(storage_name=self._testfname) as f:
+        with self._type(self._testfname) as f:
             self.assertEqual(list(bytearray(f.read_block(0))),
                              list(self._blocks[0]))
             self.assertEqual(list(bytearray(f.read_block(self._block_count-1))),
@@ -171,7 +195,7 @@ class _TestBlockStorage(object):
     def test_write_block(self):
         data = bytearray([self._block_count])*self._block_size
         self.assertEqual(len(data) > 0, True)
-        with self._type(storage_name=self._testfname) as f:
+        with self._type(self._testfname) as f:
             for i in xrange(self._block_count):
                 self.assertNotEqual(list(bytearray(f.read_block(i))),
                                     list(data))
@@ -184,7 +208,7 @@ class _TestBlockStorage(object):
                 f.write_block(i, bytes(block))
 
     def test_read_blocks(self):
-        with self._type(storage_name=self._testfname) as f:
+        with self._type(self._testfname) as f:
             data = f.read_blocks(list(xrange(self._block_count)))
             self.assertEqual(len(data), self._block_count)
             for i, block in enumerate(data):
@@ -206,7 +230,7 @@ class _TestBlockStorage(object):
     def test_write_blocks(self):
         data = [bytearray([self._block_count])*self._block_size
                 for i in xrange(self._block_count)]
-        with self._type(storage_name=self._testfname) as f:
+        with self._type(self._testfname) as f:
             orig = f.read_blocks(list(xrange(self._block_count)))
             self.assertEqual(len(orig), self._block_count)
             for i, block in enumerate(orig):

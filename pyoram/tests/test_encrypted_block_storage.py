@@ -20,14 +20,16 @@ class _TestEncryptedBlockStorage(object):
         cls._block_count = 5
         cls._testfname = cls.__name__ + "_testfile.bin"
         cls._blocks = []
-        cls._key = EncryptedBlockStorage.setup(
+        f = EncryptedBlockStorage.setup(
+            cls._testfname,
+            cls._block_size,
+            cls._block_count,
             key_size=AESCTR.key_sizes[-1],
-            storage_name=cls._testfname,
-            block_size=cls._block_size,
-            block_count=cls._block_count,
             storage_type=cls._type_name,
             initialize=lambda i: bytes(bytearray([i])*cls._block_size),
             ignore_existing=True)
+        f.close()
+        cls._key = f.key
         for i in range(cls._block_count):
             data = bytearray([i])*cls._block_size
             cls._blocks.append(data)
@@ -41,59 +43,47 @@ class _TestEncryptedBlockStorage(object):
         pass
 
     def test_setup_fails(self):
+        dummy_name = "sdfsdfsldkfjwerwerfsdfsdfsd"
+        self.assertEquals(os.path.exists(dummy_name), False)
         with self.assertRaises(ValueError):
             EncryptedBlockStorage.setup(
-                key_size=AESCTR.key_sizes[-1],
-                storage_name=os.path.join(thisdir, "baselines", "exists.empty"),
+                os.path.join(thisdir,
+                             "baselines",
+                             "exists.empty"),
                 block_size=10,
                 block_count=10,
+                key_size=AESCTR.key_sizes[-1],
                 storage_type=self._type_name)
         with self.assertRaises(ValueError):
             EncryptedBlockStorage.setup(
-                key_size=AESCTR.key_sizes[-1],
-                storage_name=os.path.join(thisdir, "baselines", "exists.empty"),
+                os.path.join(thisdir,
+                             "baselines",
+                             "exists.empty"),
                 block_size=10,
                 block_count=10,
+                key_size=AESCTR.key_sizes[-1],
                 storage_type=self._type_name,
                 ignore_existing=False)
         with self.assertRaises(ValueError):
             EncryptedBlockStorage.setup(
-                key_size=AESCTR.key_sizes[-1],
-                storage_name="tmp",
+                dummy_name,
                 block_size=0,
                 block_count=1,
+                key_size=AESCTR.key_sizes[-1],
                 storage_type=self._type_name)
         with self.assertRaises(ValueError):
             EncryptedBlockStorage.setup(
-                key_size=AESCTR.key_sizes[-1],
-                storage_name="tmp",
+                dummy_name,
                 block_size=1,
                 block_count=0,
-                storage_type=self._type_name)
-        with self.assertRaises(ValueError):
-            EncryptedBlockStorage.setup(
-                storage_name="tmp",
-                block_size=1,
-                block_count=1,
-                storage_type=self._type_name)
-        with self.assertRaises(ValueError):
-            EncryptedBlockStorage.setup(
                 key_size=AESCTR.key_sizes[-1],
-                storage_name="tmp",
-                block_count=1,
-                storage_type=self._type_name)
-        with self.assertRaises(ValueError):
-            EncryptedBlockStorage.setup(
-                key_size=AESCTR.key_sizes[-1],
-                storage_name="tmp",
-                block_size=1,
                 storage_type=self._type_name)
         with self.assertRaises(TypeError):
             EncryptedBlockStorage.setup(
-                key_size=AESCTR.key_sizes[-1],
-                storage_name="tmp",
+                dummy_name,
                 block_size=1,
                 block_count=1,
+                key_size=AESCTR.key_sizes[-1],
                 storage_type=self._type_name,
                 user_header_data=2)
 
@@ -105,18 +95,54 @@ class _TestEncryptedBlockStorage(object):
             os.remove(fname)                           # pragma: no cover
         bsize = 10
         bcount = 11
-        key = EncryptedBlockStorage.setup(key_size=AESCTR.key_sizes[-1],
-                                          storage_name=fname,
-                                          block_size=bsize,
-                                          block_count=bcount)
-        with EncryptedBlockStorage(encryption_key=key,
-                                   storage_name=fname,
+        fsetup = EncryptedBlockStorage.setup(
+            fname,
+            block_size=bsize,
+            block_count=bcount,
+            key_size=AESCTR.key_sizes[-1])
+        fsetup.close()
+        with EncryptedBlockStorage(fname,
+                                   key=fsetup.key,
                                    storage_type=self._type_name) as f:
             self.assertEqual(f.user_header_data, bytes())
-            self.assertEqual(f.encryption_key, key)
+            self.assertEqual(fsetup.user_header_data, bytes())
+            self.assertEqual(f.key, fsetup.key)
             self.assertEqual(f.block_size, bsize)
+            self.assertEqual(fsetup.block_size, bsize)
             self.assertEqual(f.block_count, bcount)
+            self.assertEqual(fsetup.block_count, bcount)
             self.assertEqual(f.storage_name, fname)
+            self.assertEqual(fsetup.storage_name, fname)
+        os.remove(fname)
+
+    def test_setup_withdata(self):
+        fname = ".".join(self.id().split(".")[1:])
+        fname += ".bin"
+        fname = os.path.join(thisdir, fname)
+        if os.path.exists(fname):
+            os.remove(fname)                           # pragma: no cover
+        bsize = 10
+        bcount = 11
+        user_header_data = bytes(bytearray(['a',1,2]))
+        fsetup = EncryptedBlockStorage.setup(
+            fname,
+            block_size=bsize,
+            block_count=bcount,
+            key_size=AESCTR.key_sizes[-1],
+            user_header_data=user_header_data)
+        fsetup.close()
+        with EncryptedBlockStorage(fname,
+                                   key=fsetup.key,
+                                   storage_type=self._type_name) as f:
+            self.assertEqual(f.user_header_data, user_header_data)
+            self.assertEqual(fsetup.user_header_data, user_header_data)
+            self.assertEqual(f.key, fsetup.key)
+            self.assertEqual(f.block_size, bsize)
+            self.assertEqual(fsetup.block_size, bsize)
+            self.assertEqual(f.block_count, bcount)
+            self.assertEqual(fsetup.block_count, bcount)
+            self.assertEqual(f.storage_name, fname)
+            self.assertEqual(fsetup.storage_name, fname)
         os.remove(fname)
 
     def test_init_noexists(self):
@@ -124,8 +150,8 @@ class _TestEncryptedBlockStorage(object):
                          True)
         with self.assertRaises(IOError):
             with EncryptedBlockStorage(
-                    encryption_key=self._key,
-                    storage_name=self._testfname+"SDFSDFSDFSFSDFS",
+                    self._testfname+"SDFSDFSDFSFSDFS",
+                    key=self._key,
                     storage_type=self._type_name) as f:
                 pass                                   # pragma: no cover
 
@@ -133,12 +159,12 @@ class _TestEncryptedBlockStorage(object):
         self.assertEqual(os.path.exists(self._testfname), True)
         with open(self._testfname, 'rb') as f:
             databefore = f.read()
-        with EncryptedBlockStorage(encryption_key=self._key,
-                                   storage_name=self._testfname,
+        with EncryptedBlockStorage(self._testfname,
+                                   key=self._key,
                                    storage_type=self._type_name) as f:
             encrypted_size = f.ciphertext_block_size * \
                              self._block_count
-            self.assertEqual(f.encryption_key, self._key)
+            self.assertEqual(f.key, self._key)
             self.assertEqual(f.block_size, self._block_size)
             self.assertEqual(f.block_count, self._block_count)
             self.assertEqual(f.storage_name, self._testfname)
@@ -152,8 +178,8 @@ class _TestEncryptedBlockStorage(object):
         self.assertEqual(databefore, dataafter)
 
     def test_read_block(self):
-        with EncryptedBlockStorage(encryption_key=self._key,
-                                   storage_name=self._testfname,
+        with EncryptedBlockStorage(self._testfname,
+                                   key=self._key,
                                    storage_type=self._type_name) as f:
             for i, data in enumerate(self._blocks):
                 self.assertEqual(list(bytearray(f.read_block(i))),
@@ -167,8 +193,8 @@ class _TestEncryptedBlockStorage(object):
             for i, data in reversed(list(enumerate(self._blocks))):
                 self.assertEqual(list(bytearray(f.read_block(i))),
                                  list(self._blocks[i]))
-        with EncryptedBlockStorage(encryption_key=self._key,
-                                   storage_name=self._testfname,
+        with EncryptedBlockStorage(self._testfname,
+                                   key=self._key,
                                    storage_type=self._type_name) as f:
             self.assertEqual(list(bytearray(f.read_block(0))),
                              list(self._blocks[0]))
@@ -178,8 +204,8 @@ class _TestEncryptedBlockStorage(object):
     def test_write_block(self):
         data = bytearray([self._block_count])*self._block_size
         self.assertEqual(len(data) > 0, True)
-        with EncryptedBlockStorage(encryption_key=self._key,
-                                   storage_name=self._testfname,
+        with EncryptedBlockStorage(self._testfname,
+                                   key=self._key,
                                    storage_type=self._type_name) as f:
             for i in xrange(self._block_count):
                 self.assertNotEqual(list(bytearray(f.read_block(i))),
@@ -193,8 +219,8 @@ class _TestEncryptedBlockStorage(object):
                 f.write_block(i, bytes(block))
 
     def test_read_blocks(self):
-        with EncryptedBlockStorage(encryption_key=self._key,
-                                   storage_name=self._testfname,
+        with EncryptedBlockStorage(self._testfname,
+                                   key=self._key,
                                    storage_type=self._type_name) as f:
             data = f.read_blocks(list(xrange(self._block_count)))
             self.assertEqual(len(data), self._block_count)
@@ -217,8 +243,8 @@ class _TestEncryptedBlockStorage(object):
     def test_write_blocks(self):
         data = [bytearray([self._block_count])*self._block_size
                 for i in xrange(self._block_count)]
-        with EncryptedBlockStorage(encryption_key=self._key,
-                                   storage_name=self._testfname,
+        with EncryptedBlockStorage(self._testfname,
+                                   key=self._key,
                                    storage_type=self._type_name) as f:
             orig = f.read_blocks(list(xrange(self._block_count)))
             self.assertEqual(len(orig), self._block_count)

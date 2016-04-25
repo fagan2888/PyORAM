@@ -5,22 +5,31 @@ from pyoram.crypto.aesctr import AESCTR
 
 class EncryptedBlockStorage(BlockStorageInterface):
 
-    def __init__(self,
-                 *args,
-                 **kwds):
-        self._encryption_key = kwds.pop('encryption_key')
-        storage_type = kwds.pop('storage_type', 'file')
-        self._storage = \
-            BlockStorageTypeFactory(storage_type)\
-            (*args, **kwds)
+    def __init__(self, storage, **kwds):
+        self._key = kwds.pop('key', None)
+        if self._key is None:
+            raise ValueError(
+                "An encryption key is required using "
+                "the 'key' keyword.")
+        if isinstance(storage, BlockStorageInterface):
+            self._storage = storage
+            if len(kwds):
+                raise ValueError(
+                    "Keywords not used when initializing "
+                    "with a storage device: %s"
+                    % (str(kwds)))
+        else:
+            storage_type = kwds.pop('storage_type', 'file')
+            self._storage = \
+                BlockStorageTypeFactory(storage_type)(storage, **kwds)
 
     #
     # Add some new methods
     #
 
     @property
-    def encryption_key(self):
-        return self._encryption_key
+    def key(self):
+        return self._key
 
     @property
     def ciphertext_block_size(self):
@@ -32,24 +41,21 @@ class EncryptedBlockStorage(BlockStorageInterface):
 
     @classmethod
     def setup(cls,
-              *args,
+              storage_name,
+              block_size,
+              block_count,
               **kwds):
 
-        key_size = kwds.pop("key_size", None)
-        if key_size is None:
-            raise ValueError("'key_size' is required")
-        encryption_key = AESCTR.KeyGen(key_size)
-
-        block_size = kwds.get("block_size")
-        if (block_size is None):
-            raise ValueError("'block_size' is required")
+        key = AESCTR.KeyGen(
+            kwds.pop('key_size', AESCTR.key_sizes[-1]))
         if (block_size <= 0) or (block_size != int(block_size)):
             raise ValueError(
                 "Block size (bytes) must be a positive integer: %s"
                 % (block_size))
 
+        storage_type_name = kwds.pop('storage_type', 'file')
         storage_type = BlockStorageTypeFactory(
-            kwds.pop('storage_type', 'file'))
+            storage_type_name)
         initialize = kwds.pop('initialize', None)
         encrypted_block_size = block_size + AESCTR.block_size
 
@@ -57,10 +63,8 @@ class EncryptedBlockStorage(BlockStorageInterface):
             zeros = bytes(bytearray(block_size))
             initialize = lambda i: zeros
         def encrypted_initialize(i):
-            return AESCTR.Enc(encryption_key, initialize(i))
+            return AESCTR.Enc(key, initialize(i))
         kwds['initialize'] = encrypted_initialize
-
-        kwds['block_size'] = encrypted_block_size
 
         user_header_data = kwds.get('user_header_data', bytes())
         if type(user_header_data) is not bytes:
@@ -68,14 +72,17 @@ class EncryptedBlockStorage(BlockStorageInterface):
                 "'user_header_data' must be of type bytes. "
                 "Invalid type: %s" % (type(user_header_data)))
         kwds['user_header_data'] = \
-                AESCTR.Enc(encryption_key, user_header_data)
-        storage_type.setup(*args, **kwds)
-
-        return encryption_key
+                AESCTR.Enc(key, user_header_data)
+        return EncryptedBlockStorage(
+            storage_type.setup(storage_name,
+                               encrypted_block_size,
+                               block_count,
+                               **kwds),
+            key=key)
 
     @property
     def user_header_data(self):
-        return AESCTR.Dec(self._encryption_key,
+        return AESCTR.Dec(self._key,
                           self._storage.user_header_data)
 
     @property
@@ -94,21 +101,21 @@ class EncryptedBlockStorage(BlockStorageInterface):
         self._storage.close()
 
     def read_block(self, i):
-        return AESCTR.Dec(self._encryption_key,
+        return AESCTR.Dec(self._key,
                           self._storage.read_block(i))
 
     def read_blocks(self, indices):
-        return [AESCTR.Dec(self._encryption_key, b)
+        return [AESCTR.Dec(self._key, b)
                 for b in self._storage.read_blocks(indices)]
 
     def write_block(self, i, block):
         self._storage.write_block(
             i,
-            AESCTR.Enc(self._encryption_key, block))
+            AESCTR.Enc(self._key, block))
 
     def write_blocks(self, indices, blocks):
         enc_blocks = []
         for i, b in zip(indices, blocks):
             enc_blocks.append(
-                AESCTR.Enc(self._encryption_key, b))
+                AESCTR.Enc(self._key, b))
         self._storage.write_blocks(indices, enc_blocks)
