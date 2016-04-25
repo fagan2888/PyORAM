@@ -9,9 +9,9 @@ environment:
     - PYTHON: "C:\\Python34-x64"
     - PYTHON: "C:\\Python35-x64"
 install:
-  - %PYTHON%\\python.exe -m pip install -v -e .
-  - %PYTHON%\\python.exe -m pip install codecov coverage
+  - "%PYTHON%\\python.exe -m pip install -v -e ."
+  - "%PYTHON%\\python.exe -m pip install codecov coverage"
 test_script:
-  - "%PYTHON%\\python.exe -m nose pyoram examples --with-coverage
+  - "%PYTHON%\\python.exe -m nose pyoram examples --with-coverage"
 on_success:
-  - "%PYTHON%\\Scripts\\codecov.exe
+  - "%PYTHON%\\Scripts\\codecov.exe"
