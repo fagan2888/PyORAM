@@ -1,6 +1,8 @@
 import os
 import unittest
 
+from pyoram.storage.block_storage import \
+    BlockStorageTypeFactory
 from pyoram.storage.encrypted_block_storage import \
     EncryptedBlockStorage
 from pyoram.crypto.aesctr import AESCTR
@@ -159,6 +161,16 @@ class _TestEncryptedBlockStorage(object):
         self.assertEqual(os.path.exists(self._testfname), True)
         with open(self._testfname, 'rb') as f:
             databefore = f.read()
+        with self.assertRaises(ValueError):
+            with EncryptedBlockStorage(self._testfname,
+                                       storage_type=self._type_name) as f:
+                pass
+        with self.assertRaises(ValueError):
+            with BlockStorageTypeFactory(self._type_name)(self._testfname) as fb:
+                with EncryptedBlockStorage(fb,
+                                           key=self._key,
+                                           storage_type=self._type_name) as f:
+                    pass
         with EncryptedBlockStorage(self._testfname,
                                    key=self._key,
                                    storage_type=self._type_name) as f:

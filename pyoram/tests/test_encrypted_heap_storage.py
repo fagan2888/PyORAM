@@ -3,6 +3,8 @@ import unittest
 
 from pyoram.storage.virtualheap import \
     SizedVirtualHeap
+from pyoram.storage.encrypted_block_storage import \
+    EncryptedBlockStorage
 from pyoram.storage.encrypted_heap_storage import \
     EncryptedHeapStorage
 from pyoram.crypto.aesctr import AESCTR
@@ -231,6 +233,12 @@ class TestEncryptedHeapStorage(unittest.TestCase):
         self.assertEqual(os.path.exists(self._testfname), True)
         with open(self._testfname, 'rb') as f:
             databefore = f.read()
+        with self.assertRaises(ValueError):
+            with EncryptedBlockStorage(self._testfname,
+                                       key=self._key,
+                                       storage_type=self._type_name) as fb:
+                with EncryptedHeapStorage(fb, key=self._key) as f:
+                    pass
         with EncryptedHeapStorage(
                 self._testfname,
                 key=self._key,
