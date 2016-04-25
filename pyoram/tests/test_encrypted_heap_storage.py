@@ -57,7 +57,7 @@ class TestEncryptedHeapStorage(unittest.TestCase):
 
     def test_setup_fails(self):
         dummy_name = "sdfsdfsldkfjwerwerfsdfsdfsd"
-        self.assertEquals(os.path.exists(dummy_name), False)
+        self.assertEqual(os.path.exists(dummy_name), False)
         with self.assertRaises(ValueError):
             EncryptedHeapStorage.setup(
                 os.path.join(thisdir,
@@ -317,6 +317,56 @@ class TestEncryptedHeapStorage(unittest.TestCase):
                 for i, bucket in zip(bucket_path, orig):
                     self.assertEqual(list(bytearray(bucket)),
                                      list(self._buckets[i]))
+
+    def test_update_user_header_data(self):
+        fname = ".".join(self.id().split(".")[1:])
+        fname += ".bin"
+        fname = os.path.join(thisdir, fname)
+        if os.path.exists(fname):
+            os.remove(fname)                           # pragma: no cover
+        bsize = 10
+        heap_height = 2
+        blocks_per_bucket = 1
+        user_header_data = bytes(bytearray([0,1,2]))
+        fsetup = EncryptedHeapStorage.setup(
+            fname,
+            block_size=bsize,
+            heap_height=heap_height,
+            key_size=AESCTR.key_sizes[-1],
+            blocks_per_bucket=blocks_per_bucket,
+            user_header_data=user_header_data)
+        fsetup.close()
+        new_user_header_data = bytes(bytearray([1,1,1]))
+        with EncryptedHeapStorage(
+                fname,
+                key=fsetup.key,
+                storage_type=self._type_name) as f:
+            self.assertEqual(f.user_header_data, user_header_data)
+            f.update_user_header_data(new_user_header_data)
+            self.assertEqual(f.user_header_data, new_user_header_data)
+        with EncryptedHeapStorage(
+                fname,
+                key=fsetup.key,
+                storage_type=self._type_name) as f:
+            self.assertEqual(f.user_header_data, new_user_header_data)
+        with self.assertRaises(ValueError):
+            with EncryptedHeapStorage(
+                    fname,
+                    key=fsetup.key,
+                    storage_type=self._type_name) as f:
+                f.update_user_header_data(bytes(bytearray([1,1])))
+        with self.assertRaises(ValueError):
+            with EncryptedHeapStorage(
+                    fname,
+                    key=fsetup.key,
+                    storage_type=self._type_name) as f:
+                f.update_user_header_data(bytes(bytearray([1,1,1,1])))
+        with EncryptedHeapStorage(
+                fname,
+                key=fsetup.key,
+                storage_type=self._type_name) as f:
+            self.assertEqual(f.user_header_data, new_user_header_data)
+        os.remove(fname)
 
 if __name__ == "__main__":
     unittest.main()                                    # pragma: no cover

@@ -97,6 +97,10 @@ class EncryptedBlockStorage(BlockStorageInterface):
     def storage_name(self):
         return self._storage.storage_name
 
+    def update_user_header_data(self, new_user_header_data):
+        self._storage.update_user_header_data(
+            AESCTR.Enc(self._key, new_user_header_data))
+
     def close(self):
         self._storage.close()
 

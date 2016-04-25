@@ -44,7 +44,7 @@ class _TestEncryptedBlockStorage(object):
 
     def test_setup_fails(self):
         dummy_name = "sdfsdfsldkfjwerwerfsdfsdfsd"
-        self.assertEquals(os.path.exists(dummy_name), False)
+        self.assertEqual(os.path.exists(dummy_name), False)
         with self.assertRaises(ValueError):
             EncryptedBlockStorage.setup(
                 os.path.join(thisdir,
@@ -265,6 +265,49 @@ class _TestEncryptedBlockStorage(object):
             for i, block in enumerate(orig):
                 self.assertEqual(list(bytearray(block)),
                                  list(self._blocks[i]))
+
+    def test_update_user_header_data(self):
+        fname = ".".join(self.id().split(".")[1:])
+        fname += ".bin"
+        fname = os.path.join(thisdir, fname)
+        if os.path.exists(fname):
+            os.remove(fname)                           # pragma: no cover
+        bsize = 10
+        bcount = 11
+        user_header_data = bytes(bytearray([0,1,2]))
+        fsetup = EncryptedBlockStorage.setup(
+            fname,
+            block_size=bsize,
+            block_count=bcount,
+            key_size=AESCTR.key_sizes[-1],
+            user_header_data=user_header_data)
+        fsetup.close()
+        new_user_header_data = bytes(bytearray([1,1,1]))
+        with EncryptedBlockStorage(fname,
+                                   key=fsetup.key,
+                                   storage_type=self._type_name) as f:
+            self.assertEqual(f.user_header_data, user_header_data)
+            f.update_user_header_data(new_user_header_data)
+            self.assertEqual(f.user_header_data, new_user_header_data)
+        with EncryptedBlockStorage(fname,
+                                   key=fsetup.key,
+                                   storage_type=self._type_name) as f:
+            self.assertEqual(f.user_header_data, new_user_header_data)
+        with self.assertRaises(ValueError):
+            with EncryptedBlockStorage(fname,
+                                       key=fsetup.key,
+                                       storage_type=self._type_name) as f:
+                f.update_user_header_data(bytes(bytearray([1,1])))
+        with self.assertRaises(ValueError):
+            with EncryptedBlockStorage(fname,
+                                       key=fsetup.key,
+                                       storage_type=self._type_name) as f:
+                f.update_user_header_data(bytes(bytearray([1,1,1,1])))
+        with EncryptedBlockStorage(fname,
+                                   key=fsetup.key,
+                                   storage_type=self._type_name) as f:
+            self.assertEqual(f.user_header_data, new_user_header_data)
+        os.remove(fname)
 
 class TestEncryptedBlockStorageFile(_TestEncryptedBlockStorage,
                                     unittest.TestCase):

@@ -60,7 +60,7 @@ class _TestBlockStorage(object):
 
     def test_setup_fails(self):
         dummy_name = "sdfsdfsldkfjwerwerfsdfsdfsd"
-        self.assertEquals(os.path.exists(dummy_name), False)
+        self.assertEqual(os.path.exists(dummy_name), False)
         with self.assertRaises(ValueError):
             self._type.setup(
                 os.path.join(thisdir,
@@ -68,7 +68,7 @@ class _TestBlockStorage(object):
                              "exists.empty"),
                 block_size=10,
                 block_count=10)
-        self.assertEquals(os.path.exists(dummy_name), False)
+        self.assertEqual(os.path.exists(dummy_name), False)
         with self.assertRaises(ValueError):
             self._type.setup(
                 os.path.join(thisdir,
@@ -77,23 +77,23 @@ class _TestBlockStorage(object):
                 block_size=10,
                 block_count=10,
                 ignore_existing=False)
-        self.assertEquals(os.path.exists(dummy_name), False)
+        self.assertEqual(os.path.exists(dummy_name), False)
         with self.assertRaises(ValueError):
             self._type.setup(dummy_name,
                              block_size=0,
                              block_count=1)
-        self.assertEquals(os.path.exists(dummy_name), False)
+        self.assertEqual(os.path.exists(dummy_name), False)
         with self.assertRaises(ValueError):
             self._type.setup(dummy_name,
                              block_size=1,
                              block_count=0)
-        self.assertEquals(os.path.exists(dummy_name), False)
+        self.assertEqual(os.path.exists(dummy_name), False)
         with self.assertRaises(TypeError):
             self._type.setup(dummy_name,
                              block_size=1,
                              block_count=1,
                              user_header_data=2)
-        self.assertEquals(os.path.exists(dummy_name), False)
+        self.assertEqual(os.path.exists(dummy_name), False)
         with self.assertRaises(ValueError):
             def _init(i):
                 raise ValueError
@@ -101,7 +101,7 @@ class _TestBlockStorage(object):
                              block_size=1,
                              block_count=1,
                              initialize=_init)
-        self.assertEquals(os.path.exists(dummy_name), False)
+        self.assertEqual(os.path.exists(dummy_name), False)
 
     def test_setup(self):
         fname = ".".join(self.id().split(".")[1:])
@@ -250,6 +250,37 @@ class _TestBlockStorage(object):
             for i, block in enumerate(orig):
                 self.assertEqual(list(bytearray(block)),
                                  list(self._blocks[i]))
+
+    def test_update_user_header_data(self):
+        fname = ".".join(self.id().split(".")[1:])
+        fname += ".bin"
+        fname = os.path.join(thisdir, fname)
+        if os.path.exists(fname):
+            os.remove(fname)                           # pragma: no cover
+        bsize = 10
+        bcount = 11
+        user_header_data = bytes(bytearray([0,1,2]))
+        fsetup = self._type.setup(fname,
+                                  block_size=bsize,
+                                  block_count=bcount,
+                                  user_header_data=user_header_data)
+        fsetup.close()
+        new_user_header_data = bytes(bytearray([1,1,1]))
+        with self._type(fname) as f:
+            self.assertEqual(f.user_header_data, user_header_data)
+            f.update_user_header_data(new_user_header_data)
+            self.assertEqual(f.user_header_data, new_user_header_data)
+        with self._type(fname) as f:
+            self.assertEqual(f.user_header_data, new_user_header_data)
+        with self.assertRaises(ValueError):
+            with self._type(fname) as f:
+                f.update_user_header_data(bytes(bytearray([1,1])))
+        with self.assertRaises(ValueError):
+            with self._type(fname) as f:
+                f.update_user_header_data(bytes(bytearray([1,1,1,1])))
+        with self._type(fname) as f:
+            self.assertEqual(f.user_header_data, new_user_header_data)
+        os.remove(fname)
 
 class TestBlockStorageFile(_TestBlockStorage,
                            unittest.TestCase):

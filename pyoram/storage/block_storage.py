@@ -51,6 +51,8 @@ class BlockStorageInterface(object):
     @property
     def storage_name(self, *args, **kwds):
         raise NotImplementedError                      # pragma: no cover
+    def update_user_header_data(self, *args, **kwds):
+        raise NotImplementedError                      # pragma: no cover
     def close(self, *args, **kwds):
         raise NotImplementedError                      # pragma: no cover
     def read_blocks(self, *args, **kwds):
@@ -161,6 +163,17 @@ class BlockStorageFile(BlockStorageInterface):
     def storage_name(self):
         return self._storage_name
 
+    def update_user_header_data(self, new_user_header_data):
+        if len(new_user_header_data) != len(self.user_header_data):
+            raise ValueError(
+                "The size of user header data can not change.\n"
+                "Original bytes: %s\n"
+                "New bytes: %s" % (len(self.user_header_data),
+                                   len(new_user_header_data)))
+        self._user_header_data = new_user_header_data
+        self._f.seek(self._index_offset)
+        self._f.write(new_user_header_data)
+
     def close(self):
         if self._f is not None:
             self._f.close()
@@ -213,6 +226,17 @@ class BlockStorageMMapFile(BlockStorageFile):
         f.close()
         return BlockStorageMMapFile(storage_name)
 
+    def update_user_header_data(self, new_user_header_data):
+        if len(new_user_header_data) != len(self.user_header_data):
+            raise ValueError(
+                "The size of user header data can not change.\n"
+                "Original bytes: %s\n"
+                "New bytes: %s" % (len(self.user_header_data),
+                                   len(new_user_header_data)))
+        self._user_header_data = new_user_header_data
+        self._mm.seek(self._index_offset)
+        self._mm.write(new_user_header_data)
+
     def close(self):
         if self._mm is not None:
             self._mm.close()
@@ -242,8 +266,8 @@ class BlockStorageMMapFile(BlockStorageFile):
 class BlockStorageS3(BlockStorageInterface):
 
     _index_name = "/PyORAMBlockStorageS3_index.txt"
-    _index_storage_string = "!LLL"
-    _index_offset = struct.calcsize(_index_storage_string)
+    _header_storage_string = "!LLL"
+    _header_offset = struct.calcsize(_header_storage_string)
 
     def __init__(self,
                  storage_name,
@@ -281,8 +305,8 @@ class BlockStorageS3(BlockStorageInterface):
             Key=self._storage_name+self._index_name)['Body']
         self._block_size, self._block_count, self._user_header_size = \
             struct.unpack(
-                self._index_storage_string,
-                index_data.read(self._index_offset))
+                self._header_storage_string,
+                index_data.read(self._header_offset))
         self._user_header_data = bytes()
         if self._user_header_size > 0:
             self._user_header_data = \
@@ -348,13 +372,13 @@ class BlockStorageS3(BlockStorageInterface):
 
         if user_header_data is None:
             bucket.put_object(Key=storage_name+cls._index_name,
-                              Body=struct.pack(cls._index_storage_string,
+                              Body=struct.pack(cls._header_storage_string,
                                                block_size,
                                                block_count,
                                                0))
         else:
             bucket.put_object(Key=storage_name+cls._index_name,
-                              Body=struct.pack(cls._index_storage_string,
+                              Body=struct.pack(cls._header_storage_string,
                                                block_size,
                                                block_count,
                                                len(user_header_data)) + \
@@ -391,6 +415,25 @@ class BlockStorageS3(BlockStorageInterface):
     @property
     def storage_name(self):
         return self._storage_name
+
+    def update_user_header_data(self, new_user_header_data):
+        if len(new_user_header_data) != len(self.user_header_data):
+            raise ValueError(
+                "The size of user header data can not change.\n"
+                "Original bytes: %s\n"
+                "New bytes: %s" % (len(self.user_header_data),
+                                   len(new_user_header_data)))
+        self._user_header_data = new_user_header_data
+
+        index_data = bytearray(self._s3.meta.client.get_object(
+            Bucket=self._bucket.name,
+            Key=self._storage_name+self._index_name)['Body'].read())
+        lenbefore = len(index_data)
+        index_data[self._header_offset:] = new_header_data
+        assert lenbefore == len(index_data)
+        self._bucket.put_object(
+            Key=self._storage_name+self._index_name,
+            Body=bytes(index_data))
 
     def close(self):
         self._check_async()

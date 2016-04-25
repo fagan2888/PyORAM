@@ -39,6 +39,8 @@ class HeapStorageInterface(object):
     @property
     def virtual_heap(self, *args, **kwds):
         raise NotImplementedError                      # pragma: no cover
+    def update_user_header_data(self, *args, **kwds):
+        raise NotImplementedError                      # pragma: no cover
     def close(self, *args, **kwds):
         raise NotImplementedError                      # pragma: no cover
     def read_path(self, *args, **kwds):
@@ -48,8 +50,8 @@ class HeapStorageInterface(object):
 
 class EncryptedHeapStorage(HeapStorageInterface):
 
-    _index_storage_string = "!LLL"
-    _index_offset = struct.calcsize(_index_storage_string)
+    _header_storage_string = "!LLL"
+    _header_offset = struct.calcsize(_header_storage_string)
 
     def __init__(self, storage, **kwds):
         if isinstance(storage, EncryptedBlockStorage):
@@ -63,9 +65,9 @@ class EncryptedHeapStorage(HeapStorageInterface):
             self._storage = EncryptedBlockStorage(storage, **kwds)
         heap_base, heap_height, blocks_per_bucket = \
             struct.unpack(
-                self._index_storage_string,
+                self._header_storage_string,
                 self._storage.\
-                user_header_data[:self._index_offset])
+                user_header_data[:self._header_offset])
         self._vheap = SizedVirtualHeap(
             heap_base,
             heap_height,
@@ -121,7 +123,7 @@ class EncryptedHeapStorage(HeapStorageInterface):
                 "'user_header_data' must be of type bytes. "
                 "Invalid type: %s" % (type(user_header_data)))
         kwds['user_header_data'] = \
-            struct.pack(cls._index_storage_string,
+            struct.pack(cls._header_storage_string,
                         heap_base,
                         heap_height,
                         blocks_per_bucket) + \
@@ -135,7 +137,7 @@ class EncryptedHeapStorage(HeapStorageInterface):
 
     @property
     def user_header_data(self):
-        return self._storage.user_header_data[self._index_offset:]
+        return self._storage.user_header_data[self._header_offset:]
 
     @property
     def bucket_count(self):
@@ -156,6 +158,11 @@ class EncryptedHeapStorage(HeapStorageInterface):
     @property
     def virtual_heap(self):
         return self._vheap
+
+    def update_user_header_data(self, new_user_header_data):
+        self._storage.update_user_header_data(
+            self._storage.user_header_data[:self._header_offset] + \
+            new_user_header_data)
 
     def close(self):
         self._storage.close()
