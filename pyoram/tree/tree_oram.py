@@ -4,92 +4,95 @@ import copy
 from pyoram.storage.virtualheap import \
     SizedVirtualHeap
 
-class TreeORAM(object):
+from six.moves import xrange
 
-    _block_info_storage_string = "!QQ"
-    _block_info_storage_size = \
-        struct.calcsize(_block_info_storage_string)
-    _empty_block_id = 0
-    _empty_block_info_tag = \
-        struct.pack(_block_info_storage_string,
-                    _empty_block_id, 0)
+class TreeORAMStorage(object):
 
-    class _LoadedPath(object):
-        __slots__ = ("b",
-                     "bucket_data",
-                     "block_ids",
-                     "block_eviction_levels",
-                     "blocks_from_stash",
-                     "block_reordering")
-        def __init__(self):
-            self.b = None
-            self.bucket_data = []
-            self.block_ids = []
-            self.block_eviction_levels = []
-            self.blocks_from_stash = []
-            self.block_reordering = []
+    id_storage_string = "!L"
+    empty_block_id = 0
 
-    def __init__(self, storage_heap):
-        self._stash = {}
-        self._storage_heap = storage_heap
-        self._vheap = \
-            SizedVirtualHeap(
-                storage_heap.virtual_heap.k,
-                storage_heap.virtual_heap.height,
-                blocks_per_bucket=storage_heap.\
-                virtual_heap.blocks_per_bucket)
-        self._path = self._LoadedPath()
+    def __init__(self,
+                 storage_heap,
+                 stash):
+        self.storage_heap = storage_heap
+        self.stash = stash
 
-    @property
-    def stash(self):
-        return self._stash
+        vheap = self.storage_heap.virtual_heap
+        self.bucket_size = self.storage_heap.bucket_size
+        self.block_size = self.bucket_size // vheap.blocks_per_bucket
+        assert self.block_size * vheap.blocks_per_bucket == \
+            self.bucket_size
 
-    @property
-    def virtual_heap(self):
-        return self._vheap
+        self.path_stop_bucket = None
+        self.path_bucket_count = 0
+        self.path_byte_dataview = \
+            bytearray(self.bucket_size * vheap.levels)
+        dataview = memoryview(self.path_byte_dataview)
+        self.path_bucket_dataview = \
+            [dataview[(i*self.bucket_size):((i+1)*self.bucket_size)]
+             for i in xrange(vheap.levels)]
+
+        self.path_block_dataview = []
+        for i in xrange(vheap.levels):
+            bucketview = self.path_bucket_dataview[i]
+            for j in xrange(vheap.blocks_per_bucket):
+                self.path_block_dataview.append(
+                    bucketview[(j*self.block_size):((j+1)*self.block_size)])
+
+        max_blocks_on_path = vheap.levels * vheap.blocks_per_bucket
+        assert len(self.path_block_dataview) == max_blocks_on_path
+        self.path_block_ids = [-1] * max_blocks_on_path
+        self.path_block_eviction_levels = [None] * max_blocks_on_path
+        self.path_block_reordering = [None] * max_blocks_on_path
+        self.path_blocks_inserted = []
 
     def load_path(self, b):
+        vheap = self.storage_heap.virtual_heap
+        Z = vheap.blocks_per_bucket
+        lcl = vheap.clib.calculate_last_common_level
+        k = vheap.k
 
-        Z = self._vheap.blocks_per_bucket
-        block_size = self._storage_heap.bucket_size // \
-                     self._storage_heap.blocks_per_bucket
-        lcl = self._vheap.clib.calculate_last_common_level
-        k = self._vheap.k
-
-        self._path.b = b
-        self._path.bucket_data = \
-            [bytearray(bucket) for bucket in self._storage_heap.read_path(b)]
-        self._path.block_ids = []
-        self._path.block_eviction_levels = []
-        self._path.blocks_from_stash = []
-        self._path.block_reordering = []
-        for bucket in self._path.bucket_data:
-            for i in xrange(Z):
-                block = bucket[(i * block_size):\
-                               ((i+1) * block_size)]
-                block_id, block_bucket = struct.unpack(
-                    self._block_info_storage_string,
-                    block[:self._block_info_storage_size])
-                self._path.block_ids.append(block_id)
-                if block_id != self._empty_block_id:
-                    self._path.block_eviction_levels.append(
-                        lcl(k, b, block_bucket))
+        assert 0 <= b < vheap.bucket_count()
+        self.path_stop_bucket = b
+        new_buckets = self.storage_heap.read_path(self.path_stop_bucket)
+        self.path_bucket_count = len(new_buckets)
+        pos = 0
+        for i, bucket in enumerate(new_buckets):
+            self.path_bucket_dataview[i][:] = bucket
+            for j in xrange(Z):
+                block_id, block_addr = \
+                    self.get_block_info(self.path_block_dataview[pos])
+                self.path_block_ids[pos] = block_id
+                if block_id != self.empty_block_id:
+                    self.path_block_eviction_levels[pos] = \
+                        lcl(k, self.path_stop_bucket, block_addr)
                 else:
-                    self._path.block_eviction_levels.append(None)
-                self._path.block_reordering.append(None)
+                    self.path_block_eviction_levels[pos] = None
+                self.path_block_reordering[pos] = None
+                pos += 1
+
+        max_blocks_on_path = vheap.levels * Z
+        while pos != max_blocks_on_path:
+            self.path_block_ids[pos] = None
+            self.path_block_eviction_levels[pos] = None
+            self.path_block_reordering[pos] = None
+            pos += 1
+
+        self.path_blocks_inserted = []
 
     def push_down_path(self):
+        vheap = self.storage_heap.virtual_heap
+        Z = vheap.blocks_per_bucket
 
-        blocks_per_bucket = self._vheap.blocks_per_bucket
-        block_ids = self._path.block_ids
-        block_eviction_levels = self._path.block_eviction_levels
-        block_reordering = self._path.block_reordering
-
+        bucket_count = self.path_bucket_count
+        block_ids = self.path_block_ids
+        block_eviction_levels = self.path_block_eviction_levels
+        block_reordering = self.path_block_reordering
         def _do_swap(write_pos, read_pos):
             block_ids[write_pos], block_eviction_levels[write_pos] = \
                 block_ids[read_pos], block_eviction_levels[read_pos]
             block_ids[read_pos], block_eviction_levels[read_pos] = \
-                self._empty_block_id, None
+                self.empty_block_id, None
             block_reordering[write_pos] = read_pos
             block_reordering[read_pos] = -1
 
@@ -99,10 +102,10 @@ class TreeORAM(object):
                 if current < 0:
                     return None, None
             assert block_ids[current] == \
-                self._empty_block_id
-            return current, current // blocks_per_bucket
+                self.empty_block_id
+            return current, current // Z
         write_pos, write_level = _next_write_pos(
-            len(block_eviction_levels)-1)
+            (bucket_count * Z) - 1)
 
         def _next_read_pos(current):
             current -= 1
@@ -113,14 +116,15 @@ class TreeORAM(object):
                 if current < 0:
                     return None
             assert block_ids[current] != \
-                self._empty_block_id
+                self.empty_block_id
             return current
 
         while write_pos is not None:
             read_pos = _next_read_pos(write_pos)
             if read_pos is None:
                 break
-            while write_level > block_eviction_levels[read_pos]:
+            while ((read_pos // Z) == write_level) or \
+                  (write_level > block_eviction_levels[read_pos]):
                 read_pos = _next_read_pos(read_pos)
                 if read_pos is None:
                     break
@@ -130,76 +134,146 @@ class TreeORAM(object):
             write_pos, write_level = _next_write_pos(write_pos)
 
     def fill_path_from_stash(self):
+        vheap = self.storage_heap.virtual_heap
+        lcl = vheap.clib.calculate_last_common_level
+        k = vheap.k
+        Z = vheap.blocks_per_bucket
 
-        b = self._path.b
-        lcl = self._vheap.clib.calculate_last_common_level
-        k = self._vheap.k
-        blocks_per_bucket = self._vheap.blocks_per_bucket
+        bucket_count = self.path_bucket_count
+        stop_bucket = self.path_stop_bucket
+        block_ids = self.path_block_ids
+        block_eviction_levels = self.path_block_eviction_levels
+        blocks_inserted = self.path_blocks_inserted
 
         stash_eviction_levels = {}
-        for write_pos in xrange(len(self._path.block_ids)-1,-1,-1):
-            write_level = write_pos // blocks_per_bucket
-            if self._path.block_ids[write_pos] == self._empty_block_id:
+        largest_write_position = (bucket_count * Z) - 1
+        for write_pos in xrange(largest_write_position,-1,-1):
+            write_level = write_pos // Z
+            if block_ids[write_pos] == self.empty_block_id:
                 del_id = None
-                for id_ in self._stash:
+                for id_ in self.stash:
                     if id_ not in stash_eviction_levels:
+                        block_id, block_addr = \
+                            self.get_block_info(self.stash[id_])
                         eviction_level = stash_eviction_levels[id_] = \
-                            lcl(k, b, self._stash[id_][0])
+                            lcl(k, stop_bucket, block_addr)
                     else:
                         eviction_level = stash_eviction_levels[id_]
                     if write_level <= eviction_level:
-                        self._path.block_ids[write_pos] = id_
-                        self._path.block_eviction_levels[write_pos] = \
+                        block_ids[write_pos] = id_
+                        block_eviction_levels[write_pos] = \
                             eviction_level
-                        self._path.blocks_from_stash.append(
-                            (write_pos, self._stash[id_]))
+                        blocks_inserted.append(
+                            (write_pos, self.stash[id_]))
                         del_id = id_
                         break
                 if del_id is not None:
-                    del self._stash[del_id]
+                    del self.stash[del_id]
 
     def evict_path(self):
+        vheap = self.storage_heap.virtual_heap
+        Z = vheap.blocks_per_bucket
 
-        Z = self._vheap.blocks_per_bucket
-        block_size = self._storage_heap.bucket_size // \
-                     self._storage_heap.blocks_per_bucket
-        b = self._path.b
+        stop_bucket = self.path_stop_bucket
+        bucket_dataview = self.path_bucket_dataview
+        block_dataview = self.path_block_dataview
+        block_reordering = self.path_block_reordering
+        blocks_inserted = self.path_blocks_inserted
 
-        bucket_data = self._path.bucket_data
         for i, read_pos in enumerate(
-                reversed(self._path.block_reordering)):
-            write_pos = len(self._path.block_reordering) - 1 - i
+                reversed(block_reordering)):
             if (read_pos is not None) and \
                (read_pos != -1):
-                wbindex, wboffset = write_pos // Z, write_pos % Z
-                rbindex, rboffset = read_pos // Z, read_pos % Z
-                bucket_data[wbindex][(wboffset * block_size):\
-                                     ((wboffset+1) * block_size)] = \
-                self._path.\
-                bucket_data[rbindex][(rboffset * block_size):\
-                                     ((rboffset+1) * block_size)]
+                write_pos = len(block_reordering) - 1 - i
+                block_dataview[write_pos][:] = block_dataview[read_pos]
 
-        for write_pos, read_pos in enumerate(
-                self._path.block_reordering):
+        for write_pos, read_pos in enumerate(block_reordering):
             if read_pos == -1:
-                # tag this block as empty
-                wbindex, wboffset = write_pos // Z, write_pos % Z
-                bucket_data[wbindex][(wboffset * block_size):\
-                                     ((wboffset * block_size) + \
-                                      self._block_info_storage_size)] = \
-                    self._empty_block_info_tag
+                self.tag_block_as_empty(block_dataview[write_pos])
 
-        for write_pos, block in self._path.blocks_from_stash:
-            bindex, boffset = write_pos // Z, write_pos % Z
-            bucket_data[bindex][(boffset * block_size):\
-                                ((boffset+1) * block_size)] = block
+        for write_pos, block in blocks_inserted:
+            block_dataview[write_pos] = block
 
-        self._storage_heap.write_path(b, bucket_data)
+        self.storage_heap.write_path(
+            stop_bucket,
+            (b_.tobytes() for b_ in bucket_dataview))
 
-    def shuffle_access(self,
-                       level=None,
-                       evict=False):
+    def extract_block_from_path(self, id_):
+        vheap = self.storage_heap.virtual_heap
+        Z = vheap.blocks_per_bucket
 
-        self.load_path(self.random_address_at_level(level))
-        self.push_down_path()
-        self.evict_path()
+        block_ids = self._current_path.block_ids
+        bucket_data = self._current_path.bucket_data
+        try:
+            pos = block_ids.index(id_)
+            # make a copy
+            block = bytes(self.path_block_dataview[pos])
+            self._set_path_position_to_empty(pos)
+            return block
+        except ValueError:
+            return None
+
+    def _set_path_position_to_empty(self, pos):
+        self.path_block_ids[pos] = self.empty_block_id
+        self.path_block_eviction_levels[pos] = None
+        self.path_block_reording[pos] = -1
+
+    @classmethod
+    def tag_block_as_empty(cls, block):
+        raise NotImplementedError                      # pragma: no cover
+
+    def get_block_info(self, block):
+        raise NotImplementedError                      # pragma: no cover
+
+class TreeORAMStorageManagerExplicit(
+        TreeORAMStorage):
+
+    block_info_storage_string = \
+        TreeORAMStorage.id_storage_string
+    block_info_storage_size = \
+        struct.calcsize(block_info_storage_string)
+    empty_block_info_tag = \
+        struct.pack(block_info_storage_string,
+                    TreeORAMStorage.\
+                    empty_block_id)
+
+    def __init__(self,
+                 storage_heap,
+                 stash,
+                 position_map):
+        super(self, TreeORAMStorageManagerExplicit).\
+            __init__(storage_heap, stash)
+        self.position_map = position_map
+
+    @classmethod
+    def tag_block_as_empty(cls, block):
+        block[:cls.block_info_storage_size] = \
+            cls.empty_block_info_tag
+
+    def get_block_info(self, block):
+        id_, = struct.unpack(
+            self.block_info_storage_string,
+            block[:self.block_info_storage_size])
+        return id_, self.position_map[id_]
+
+class TreeORAMStorageManagerImplicit(
+        TreeORAMStorage):
+
+    block_info_storage_string = \
+        TreeORAMStorage.id_storage_string + "L"
+    block_info_storage_size = \
+        struct.calcsize(block_info_storage_string)
+    empty_block_info_tag = \
+        struct.pack(block_info_storage_string,
+                    TreeORAMStorage.\
+                    empty_block_id, 0)
+
+    @classmethod
+    def tag_block_as_empty(cls, block):
+        block[:cls.block_info_storage_size] = \
+            cls.empty_block_info_tag
+
+    def get_block_info(self, block):
+        return struct.unpack(
+            self.block_info_storage_string,
+            block[:self.block_info_storage_size])
