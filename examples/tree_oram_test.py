@@ -85,5 +85,7 @@ def main():
         print(oram.path_block_reordering)
         assert all(x is None for x in oram.path_block_reordering)
 
+    os.remove(storage_name)
+
 if __name__ == "__main__":
     main()
