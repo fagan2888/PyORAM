@@ -5,9 +5,12 @@ import unittest
 
 thisfile = os.path.abspath(__file__)
 thisdir = os.path.dirname(thisfile)
-exdir = os.path.dirname(thisdir)
+topdir = os.path.dirname(
+    os.path.dirname(thisdir))
+exdir = os.path.join(topdir, 'examples')
 examples = glob.glob(os.path.join(exdir,"*.py"))
 
+assert os.path.exists(exdir)
 assert thisfile not in examples
 
 tdict = {}
@@ -17,18 +20,19 @@ for fname in examples:
     assert len(basename) >= 3
     basename = basename[:-3]
     tname = 'test_'+basename
-    tdict[tname] = fname
+    tdict[tname] = fname, basename
 
 assert len(tdict) == len(examples)
 
 def _execute_example(example_name):
-    filename = tdict[example_name]
+    filename, basename = tdict[example_name]
     assert os.path.exists(filename)
-    rc = os.system(sys.executable+' '+filename)
-    if rc:
-        raise AssertionError(                          # pragma: no cover
-            "Bad return code for example '%s': %s"
-            % (example_name, rc))
+    try:
+        sys.path.insert(0, exdir)
+        m = __import__(basename)
+        m.main()
+    finally:
+        sys.path.remove(exdir)
 
 # this is recognized by nosetests as
 # a dynamic test generator
