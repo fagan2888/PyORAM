@@ -10,7 +10,7 @@ environment:
     - PYTHON: "C:\\Python35-x64"
 install:
   - "%PYTHON%\\python.exe -m pip install -v -e ."
-  - "%PYTHON%\\python.exe -m pip install codecov coverage"
+  - "%PYTHON%\\python.exe -m pip install nose codecov coverage"
 build: off
 test_script:
   - "%PYTHON%\\python.exe -m nose pyoram examples --with-coverage"
