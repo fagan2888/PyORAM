@@ -23,11 +23,6 @@ class Test(unittest.TestCase):
         self._test_Enc_Dec(
             lambda i, size: bytes(bytearray([i]) * size))
 
-    # TODO
-    def Xtest_Enc_Dec_bytearray(self):
-        self._test_Enc_Dec(
-            lambda i, size: bytearray([i]) * size)
-
     def _test_Enc_Dec(self, get_plaintext):
         blocksize_factor = [0.5, 1, 1.5, 2, 2.5]
         plaintext_blocks = []

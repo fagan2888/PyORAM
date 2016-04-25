@@ -178,8 +178,8 @@ class BlockStorageFile(BlockStorageInterface):
         if self._f is not None:
             try:
                 self._f.close()
-            except OSError:
-                pass
+            except OSError:                            # pragma: no cover
+                pass                                   # pragma: no cover
             self._f = None
 
     def read_blocks(self, indices):
@@ -244,8 +244,8 @@ class BlockStorageMMapFile(BlockStorageFile):
         if self._mm is not None:
             try:
                 self._mm.close()
-            except OSError:
-                pass
+            except OSError:                            # pragma: no cover
+                pass                                   # pragma: no cover
             self._mm = None
         super(BlockStorageMMapFile, self).close()
 

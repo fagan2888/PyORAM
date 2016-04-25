@@ -89,4 +89,4 @@ def main():
     os.remove(storage_name)
 
 if __name__ == "__main__":
-    main()
+    main()                                             # pragma: no cover

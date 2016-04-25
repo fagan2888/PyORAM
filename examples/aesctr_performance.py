@@ -102,5 +102,4 @@ def main():
                  (total_bytes * 1.0e-6) / (stop_time-start_time)))
 
 if __name__ == "__main__":
-    main()
-
+    main()                                             # pragma: no cover

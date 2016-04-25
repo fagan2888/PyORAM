@@ -55,7 +55,6 @@ class TestEncryptedHeapStorage(unittest.TestCase):
             os.remove(cls._testfname)
         except OSError:                                # pragma: no cover
             pass                                       # pragma: no cover
-        pass
 
     def test_setup_fails(self):
         dummy_name = "sdfsdfsldkfjwerwerfsdfsdfsd"
@@ -238,7 +237,7 @@ class TestEncryptedHeapStorage(unittest.TestCase):
                                        key=self._key,
                                        storage_type=self._type_name) as fb:
                 with EncryptedHeapStorage(fb, key=self._key) as f:
-                    pass
+                    pass                               # pragma: no cover
         with EncryptedHeapStorage(
                 self._testfname,
                 key=self._key,

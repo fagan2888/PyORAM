@@ -54,4 +54,4 @@ def main():
     os.remove(tmpname)
 
 if __name__ == "__main__":
-    main()
+    main()                                             # pragma: no cover

@@ -42,7 +42,6 @@ class _TestEncryptedBlockStorage(object):
             os.remove(cls._testfname)
         except OSError:                                # pragma: no cover
             pass                                       # pragma: no cover
-        pass
 
     def test_setup_fails(self):
         dummy_name = "sdfsdfsldkfjwerwerfsdfsdfsd"
@@ -164,13 +163,13 @@ class _TestEncryptedBlockStorage(object):
         with self.assertRaises(ValueError):
             with EncryptedBlockStorage(self._testfname,
                                        storage_type=self._type_name) as f:
-                pass
+                pass                                   # pragma: no cover
         with self.assertRaises(ValueError):
             with BlockStorageTypeFactory(self._type_name)(self._testfname) as fb:
                 with EncryptedBlockStorage(fb,
                                            key=self._key,
                                            storage_type=self._type_name) as f:
-                    pass
+                    pass                               # pragma: no cover
         with EncryptedBlockStorage(self._testfname,
                                    key=self._key,
                                    storage_type=self._type_name) as f:

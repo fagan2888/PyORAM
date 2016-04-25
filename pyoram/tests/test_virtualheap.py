@@ -1013,8 +1013,11 @@ class TestSizedVirtualHeap(unittest.TestCase):
             heap = SizedVirtualHeap(k, h, blocks_per_bucket=b)
 
             fname = label+".pdf"
-            if os.path.exists(os.path.join(thisdir, fname)):
+            try:
                 os.remove(os.path.join(thisdir, fname))
+            except OSError:                            # pragma: no cover
+                pass                                   # pragma: no cover
+
             rc = heap.save_image_as_pdf(os.path.join(thisdir, label),
                                         max_levels=maxl)
 
@@ -1026,8 +1029,8 @@ class TestSizedVirtualHeap(unittest.TestCase):
                     os.path.exists(os.path.join(thisdir, fname)), True)
                 try:
                     os.remove(os.path.join(thisdir, fname))
-                except OSError:
-                    pass
+                except OSError:                        # pragma: no cover
+                    pass                               # pragma: no cover
 
             data = list(range(heap.block_count()))
             fname = label+"_data.pdf"
@@ -1044,8 +1047,8 @@ class TestSizedVirtualHeap(unittest.TestCase):
                     os.path.exists(os.path.join(thisdir, fname)), True)
                 try:
                     os.remove(os.path.join(thisdir, fname))
-                except OSError:
-                    pass
+                except OSError:                        # pragma: no cover
+                    pass                               # pragma: no cover
 
 class TestMisc(unittest.TestCase):
 

@@ -56,7 +56,6 @@ class _TestBlockStorage(object):
             os.remove(cls._testfname)
         except OSError:                                # pragma: no cover
             pass                                       # pragma: no cover
-        pass
 
     def test_setup_fails(self):
         dummy_name = "sdfsdfsldkfjwerwerfsdfsdfsd"
