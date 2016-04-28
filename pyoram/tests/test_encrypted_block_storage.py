@@ -149,7 +149,7 @@ class _TestEncryptedBlockStorage(object):
                 dummy_name,
                 block_size=1,
                 block_count=1,
-                key_size=AES.key_sizes[-1]+100,
+                key=os.urandom(AES.key_sizes[-1]+100),
                 aes_mode=self._aes_mode,
                 storage_type=self._type_name)
 

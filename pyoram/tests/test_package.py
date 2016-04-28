@@ -30,9 +30,6 @@ class Test(unittest.TestCase):
             if sys.version_info.major == 2:
                 if sys.version_info.minor == 7:
                     print(sys.version_info)
-            #elif sys.version_info.major == 3:
-            #    if sys.version_info.minor == 2:
-            #        print(sys.version_info)
 
     def test_version(self):
         pyoram.__version__
