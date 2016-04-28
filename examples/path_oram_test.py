@@ -12,7 +12,7 @@ def main():
 
     key_size = 32
     block_size = 128
-    block_count = 2**8
+    block_count = 2**5
     print("Block Size: %s" % (block_size))
     print("Block Count: %s" % (block_count))
 
