@@ -300,9 +300,10 @@ class PathORAM(EncryptedBlockStorageInterface):
                         (2*hashlib.sha1().digest_size)] = positiondigest
         self._oram.storage_heap.update_header_data(
             bytes(new_header_data) + self.header_data)
+        self._oram.storage_heap.close()
 
     def read_blocks(self, indices):
-        pass
+        raise NotImplementedError
 
     def read_block(self, i):
         assert 0 <= i <= self.block_count
@@ -321,7 +322,7 @@ class PathORAM(EncryptedBlockStorageInterface):
         return block
 
     def write_blocks(self, indices, blocks):
-        pass
+        raise NotImplementedError
 
     def write_block(self, i, block):
-        pass
+        raise NotImplementedError
