@@ -1,14 +1,14 @@
 PyORAM
 ======
 
-.. image:: https://travis-ci.org/ghackebeil/PyORAM?branch=master&svg=true
-    :target: https://travis-ci.org/ghackebeil/PyORAM?branch=master
+.. image:: https://travis-ci.org/ghackebeil/PyORAM.svg?branch=master
+    :target: https://travis-ci.org/ghackebeil/PyORAM
 
 .. image:: https://ci.appveyor.com/api/projects/status/898bxsvqdch1btv6/branch/master?svg=true
     :target: https://ci.appveyor.com/project/ghackebeil/PyORAM?branch=master
 
-.. image:: https://codecov.io/github/ghackebeil/PyORAM/coverage?branch=master&svg=true
-    :target: https://codecov.io/github/ghackebeil/PyORAM?branch=master
+.. image:: https://codecov.io/github/ghackebeil/PyORAM.svg?branch=master
+    :target: https://codecov.io/github/ghackebeil/PyORAM
 
 This package is still being setup. Do not try to use it.
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
