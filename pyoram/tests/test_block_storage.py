@@ -317,15 +317,15 @@ class _TestBlockStorage(object):
         with self._type(self._testfname) as f:
             with self.assertRaises(IOError):
                 with self._type(self._testfname) as f1:
-                    pass
+                    pass                               # pragma: no cover
             with self.assertRaises(IOError):
                 with self._type(self._testfname) as f1:
-                    pass
+                    pass                               # pragma: no cover
             with self._type(self._testfname, ignore_lock=True) as f1:
                 pass
             with self.assertRaises(IOError):
                 with self._type(self._testfname) as f1:
-                    pass
+                    pass                               # pragma: no cover
             with self._type(self._testfname, ignore_lock=True) as f1:
                 pass
             with self._type(self._testfname, ignore_lock=True) as f1:

@@ -422,12 +422,12 @@ class TestEncryptedHeapStorage(unittest.TestCase):
                 with EncryptedHeapStorage(self._testfname,
                                           key=self._key,
                                           storage_type=self._type_name) as f1:
-                    pass
+                    pass                               # pragma: no cover
             with self.assertRaises(IOError):
                 with EncryptedHeapStorage(self._testfname,
                                           key=self._key,
                                           storage_type=self._type_name) as f1:
-                    pass
+                    pass                               # pragma: no cover
             with EncryptedHeapStorage(self._testfname,
                                       key=self._key,
                                       storage_type=self._type_name,
@@ -437,7 +437,7 @@ class TestEncryptedHeapStorage(unittest.TestCase):
                 with EncryptedHeapStorage(self._testfname,
                                           key=self._key,
                                           storage_type=self._type_name) as f1:
-                    pass
+                    pass                               # pragma: no cover
             with EncryptedHeapStorage(self._testfname,
                                       key=self._key,
                                       storage_type=self._type_name,

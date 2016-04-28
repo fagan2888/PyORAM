@@ -426,12 +426,12 @@ class _TestEncryptedBlockStorage(object):
                 with EncryptedBlockStorage(self._testfname,
                                            key=self._key,
                                            storage_type=self._type_name) as f1:
-                    pass
+                    pass                               # pragma: no cover
             with self.assertRaises(IOError):
                 with EncryptedBlockStorage(self._testfname,
                                            key=self._key,
                                            storage_type=self._type_name) as f1:
-                    pass
+                    pass                               # pragma: no cover
             with EncryptedBlockStorage(self._testfname,
                                        key=self._key,
                                        storage_type=self._type_name,
@@ -441,7 +441,7 @@ class _TestEncryptedBlockStorage(object):
                 with EncryptedBlockStorage(self._testfname,
                                            key=self._key,
                                            storage_type=self._type_name) as f1:
-                    pass
+                    pass                               # pragma: no cover
             with EncryptedBlockStorage(self._testfname,
                                        key=self._key,
                                        storage_type=self._type_name,
