@@ -4,7 +4,7 @@ PyORAM
 .. image:: https://travis-ci.org/ghackebeil/PyORAM?branch=master&svg=true
     :target: https://travis-ci.org/ghackebeil/PyORAM?branch=master
 
-.. image:: https://ci.appveyor.com/project/ghackebeil/PyORAM?branch=master&svg=true
+.. image:: https://ci.appveyor.com/api/projects/status/898bxsvqdch1btv6/branch/master?svg=true
     :target: https://ci.appveyor.com/project/ghackebeil/PyORAM?branch=master
 
 .. image:: https://codecov.io/github/ghackebeil/PyORAM/coverage?branch=master&svg=true
