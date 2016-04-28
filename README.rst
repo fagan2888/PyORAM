@@ -2,13 +2,13 @@ PyORAM
 ======
 
 .. image:: https://travis-ci.org/ghackebeil/PyORAM?branch=master&svg=true
-    :target: https://travis-ci.org/ghackebeil/PyORAM?branch=master&svg=true
+    :target: https://travis-ci.org/ghackebeil/PyORAM?branch=master
 
 .. image:: https://ci.appveyor.com/project/ghackebeil/PyORAM?branch=master&svg=true
-    :target: https://ci.appveyor.com/project/ghackebeil/PyORAM?branch=master&svg=true
+    :target: https://ci.appveyor.com/project/ghackebeil/PyORAM?branch=master
 
 .. image:: https://codecov.io/github/ghackebeil/PyORAM/coverage?branch=master&svg=true
-    :target: https://codecov.io/github/ghackebeil/PyORAM?branch=master&svg=true
+    :target: https://codecov.io/github/ghackebeil/PyORAM?branch=master
 
 This package is still being setup. Do not try to use it.
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -28,5 +28,5 @@ This license, including disclaimer, is available in the 'LICENSE' file.
 Installation Tips
 ~~~~~~~~~~~~~~~~~
 
- * If you have trouble installing the cryptography package
-   on OS X with PyPy: `stackoverflow<https://stackoverflow.com/questions/36662704/fatal-error-openssl-e-os2-h-file-not-found-in-pypy/36706513#36706513>`_.
+* If you have trouble installing the cryptography package
+  on OS X with PyPy: `stackoverflow <https://stackoverflow.com/questions/36662704/fatal-error-openssl-e-os2-h-file-not-found-in-pypy/36706513#36706513>`_.
