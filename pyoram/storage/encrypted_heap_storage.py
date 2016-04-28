@@ -2,56 +2,26 @@ __all__ = ('EncryptedHeapStorage',)
 
 import struct
 
-from pyoram.storage.virtualheap import (VirtualHeap,
-                                        SizedVirtualHeap)
+from pyoram.storage.virtualheap import SizedVirtualHeap
+from pyoram.storage.heap_storage import \
+    HeapStorageInterface
 from pyoram.storage.encrypted_block_storage import \
     EncryptedBlockStorage
 
-class HeapStorageInterface(object):
-
-    def __enter__(self):
-        return self
-    def __exit__(self, *args):
-        self.close()
+class EncryptedHeapStorageInterface(HeapStorageInterface):
 
     #
     # Abstract Interface
     #
 
-    @classmethod
-    def setup(cls, *args, **kwds):
-        raise NotImplementedError                      # pragma: no cover
     @property
-    def user_header_data(self, *args, **kwds):
-        raise NotImplementedError                      # pragma: no cover
-    @property
-    def bucket_count(self, *args, **kwds):
-        raise NotImplementedError                      # pragma: no cover
-    @property
-    def bucket_size(self, *args, **kwds):
-        raise NotImplementedError                      # pragma: no cover
-    @property
-    def blocks_per_bucket(self, *args, **kwds):
-        raise NotImplementedError                      # pragma: no cover
-    @property
-    def storage_name(self, *args, **kwds):
-        raise NotImplementedError                      # pragma: no cover
-    @property
-    def virtual_heap(self, *args, **kwds):
-        raise NotImplementedError                      # pragma: no cover
-    def update_user_header_data(self, *args, **kwds):
-        raise NotImplementedError                      # pragma: no cover
-    def close(self, *args, **kwds):
-        raise NotImplementedError                      # pragma: no cover
-    def read_path(self, *args, **kwds):
-        raise NotImplementedError                      # pragma: no cover
-    def write_path(self, *args, **kwds):
+    def key(self, *args, **kwds):
         raise NotImplementedError                      # pragma: no cover
 
-class EncryptedHeapStorage(HeapStorageInterface):
+class EncryptedHeapStorage(EncryptedHeapStorageInterface):
 
-    _header_storage_string = "!LLL"
-    _header_offset = struct.calcsize(_header_storage_string)
+    _header_struct_string = "!LLL"
+    _header_offset = struct.calcsize(_header_struct_string)
 
     def __init__(self, storage, **kwds):
         if isinstance(storage, EncryptedBlockStorage):
@@ -65,9 +35,8 @@ class EncryptedHeapStorage(HeapStorageInterface):
             self._storage = EncryptedBlockStorage(storage, **kwds)
         heap_base, heap_height, blocks_per_bucket = \
             struct.unpack(
-                self._header_storage_string,
-                self._storage.\
-                user_header_data[:self._header_offset])
+                self._header_struct_string,
+                self._storage.header_data[:self._header_offset])
         self._vheap = SizedVirtualHeap(
             heap_base,
             heap_height,
@@ -81,19 +50,48 @@ class EncryptedHeapStorage(HeapStorageInterface):
     def key(self):
         return self._storage.key
 
-    @property
-    def ciphertext_bucket_size(self):
-        return self._storage.ciphertext_block_size
-
     #
     # Define HeapStorageInterface Methods
     #
+
+    @classmethod
+    def compute_storage_size(cls,
+                             block_size,
+                             heap_height,
+                             blocks_per_bucket=1,
+                             heap_base=2,
+                             ignore_header=False,
+                             **kwds):
+        assert (block_size > 0) and (block_size == int(block_size))
+        assert heap_height >= 0
+        assert blocks_per_bucket >= 1
+        assert heap_base >= 2
+        assert 'block_count' not in kwds
+        vheap = SizedVirtualHeap(
+            heap_base,
+            heap_height,
+            blocks_per_bucket=blocks_per_bucket)
+        if ignore_header:
+            return EncryptedBlockStorage.compute_storage_size(
+                vheap.blocks_per_bucket * block_size,
+                vheap.bucket_count(),
+                ignore_header=True,
+                **kwds)
+        else:
+            return cls._header_offset + \
+                   EncryptedBlockStorage.compute_storage_size(
+                       vheap.blocks_per_bucket * block_size,
+                       vheap.bucket_count(),
+                       ignore_header=False,
+                       **kwds)
 
     @classmethod
     def setup(cls,
               storage_name,
               block_size,
               heap_height,
+              blocks_per_bucket=1,
+              heap_base=2,
               **kwds):
         if 'block_count' in kwds:
             raise ValueError("'block_count' keyword is not accepted")
@@ -101,12 +99,10 @@ class EncryptedHeapStorage(HeapStorageInterface):
             raise ValueError(
                 "heap height must be 0 or greater. Invalid value: %s"
                 % (heap_height))
-        blocks_per_bucket = kwds.pop('blocks_per_bucket', 1)
         if blocks_per_bucket < 1:
             raise ValueError(
                 "blocks_per_bucket must be 1 or greater. "
                 "Invalid value: %s" % (blocks_per_bucket))
-        heap_base = kwds.pop('heap_base', 2)
         if heap_base < 2:
             raise ValueError(
                 "heap base must be 2 or greater. Invalid value: %s"
@@ -117,13 +113,13 @@ class EncryptedHeapStorage(HeapStorageInterface):
             heap_height,
             blocks_per_bucket=blocks_per_bucket)
 
-        user_header_data = kwds.pop('user_header_data', bytes())
+        user_header_data = kwds.pop('header_data', bytes())
         if type(user_header_data) is not bytes:
             raise TypeError(
-                "'user_header_data' must be of type bytes. "
+                "'header_data' must be of type bytes. "
                 "Invalid type: %s" % (type(user_header_data)))
-        kwds['user_header_data'] = \
-            struct.pack(cls._header_storage_string,
+        kwds['header_data'] = \
+            struct.pack(cls._header_struct_string,
                         heap_base,
                         heap_height,
                         blocks_per_bucket) + \
@@ -136,8 +132,8 @@ class EncryptedHeapStorage(HeapStorageInterface):
                 **kwds))
 
     @property
-    def user_header_data(self):
-        return self._storage.user_header_data[self._header_offset:]
+    def header_data(self):
+        return self._storage.header_data[self._header_offset:]
 
     @property
     def bucket_count(self):
@@ -159,19 +155,21 @@ class EncryptedHeapStorage(HeapStorageInterface):
     def virtual_heap(self):
         return self._vheap
 
-    def update_user_header_data(self, new_user_header_data):
-        self._storage.update_user_header_data(
-            self._storage.user_header_data[:self._header_offset] + \
-            new_user_header_data)
+    def update_header_data(self, new_header_data):
+        self._storage.update_header_data(
+            self._storage.header_data[:self._header_offset] + \
+            new_header_data)
 
     def close(self):
         self._storage.close()
 
     def read_path(self, b):
+        assert 0 <= b < self._vheap.bucket_count()
         return self._storage.read_blocks(
             self._vheap.Node(b).bucket_path_from_root())
 
     def write_path(self, b, buckets):
+        assert 0 <= b < self._vheap.bucket_count()
         self._storage.write_blocks(
             self._vheap.Node(b).bucket_path_from_root(),
             buckets)

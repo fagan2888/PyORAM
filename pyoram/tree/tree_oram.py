@@ -1,3 +1,6 @@
+__all__ = ('TreeORAMStorageManagerExplicitAddressing',
+           'TreeORAMStorageManagerPointerAddressing')
+
 import struct
 import copy
 
@@ -225,8 +228,13 @@ class TreeORAMStorage(object):
     def get_block_info(self, block):
         raise NotImplementedError                      # pragma: no cover
 
-class TreeORAMStorageManagerExplicit(
+class TreeORAMStorageManagerExplicitAddressing(
         TreeORAMStorage):
+    """
+    This class should be used to implement tree-based ORAMs
+    that use an explicit position map. Blocks are assumed to
+    begin with bytes representing the block id.
+    """
 
     block_info_storage_string = \
         TreeORAMStorage.id_storage_string
@@ -241,7 +249,7 @@ class TreeORAMStorageManagerExplicit(
                  storage_heap,
                  stash,
                  position_map):
-        super(self, TreeORAMStorageManagerExplicit).\
+        super(TreeORAMStorageManagerExplicitAddressing, self).\
             __init__(storage_heap, stash)
         self.position_map = position_map
 
@@ -256,8 +264,15 @@ class TreeORAMStorageManagerExplicit(
             block[:self.block_info_storage_size])
         return id_, self.position_map[id_]
 
-class TreeORAMStorageManagerImplicit(
+class TreeORAMStorageManagerPointerAddressing(
         TreeORAMStorage):
+    """
+    This class should be used to implement tree-based ORAMs
+    that use a pointer-based position map stored with the
+    blocks. Blocks are assumed to begin with bytes
+    representing the block id followed by bytes representing
+    the blocks current heap bucket address.
+    """
 
     block_info_storage_string = \
         TreeORAMStorage.id_storage_string + "L"
@@ -267,6 +282,13 @@ class TreeORAMStorageManagerImplicit(
         struct.pack(block_info_storage_string,
                     TreeORAMStorage.\
                     empty_block_id, 0)
+
+    def __init__(self,
+                 storage_heap,
+                 stash):
+        super(TreeORAMStorageManagerPointerAddressing, self).\
+            __init__(storage_heap, stash)
+        self.position_map = None
 
     @classmethod
     def tag_block_as_empty(cls, block):

@@ -1,10 +1,14 @@
 import time
 import base64
 
-from pyoram.crypto.aesctr import AESCTR
+from pyoram.crypto.aes import AES
 
-def main():
-    for keysize in AESCTR.key_sizes:
+def runtest(label, enc_func, dec_func):
+    print("")
+    print("$"*20)
+    print("{0:^20}".format(label))
+    print("$"*20)
+    for keysize in AES.key_sizes:
         print("")
         print("@@@@@@@@@@@@@@@@@@@@")
         print(" Key Size: %s bytes" % (keysize))
@@ -13,14 +17,14 @@ def main():
         #
         # generate a key
         #
-        key = AESCTR.KeyGen(keysize)
+        key = AES.KeyGen(keysize)
         print("Key: %s" % (base64.b64encode(key)))
 
         #
         # generate some plaintext
         #
         nblocks = 10000000
-        plaintext_numbytes = AESCTR.block_size * nblocks
+        plaintext_numbytes = AES.block_size * nblocks
         print("Plaintext Size: %s MB"
               % (plaintext_numbytes * 1.0e-6))
         # all zeros
@@ -30,7 +34,7 @@ def main():
         # time encryption
         #
         start_time = time.time()
-        ciphertext = AESCTR.Enc(key, plaintext)
+        ciphertext = enc_func(key, plaintext)
         stop_time = time.time()
         print("Encryption Time: %.3fs (%.3f MB/s)"
               % (stop_time-start_time,
@@ -40,7 +44,7 @@ def main():
         # time decryption
         #
         start_time = time.time()
-        plaintext_decrypted = AESCTR.Dec(key, ciphertext)
+        plaintext_decrypted = dec_func(key, ciphertext)
         stop_time = time.time()
         print("Decryption Time: %.3fs (%.3f MB/s)"
               % (stop_time-start_time,
@@ -49,12 +53,17 @@ def main():
         assert plaintext_decrypted == plaintext
         assert ciphertext != plaintext
         # IND-CPA
-        assert AESCTR.Enc(key, plaintext) != ciphertext
+        assert enc_func(key, plaintext) != ciphertext
         # make sure the only difference is not in the IV
-        assert AESCTR.Enc(key, plaintext)[AESCTR.block_size:] \
-            != ciphertext[AESCTR.block_size:]
-        assert len(plaintext) == \
-            len(ciphertext) - AESCTR.block_size
+        assert enc_func(key, plaintext)[AES.block_size:] \
+            != ciphertext[AES.block_size:]
+        if enc_func is AES.CTREnc:
+            assert len(plaintext) == \
+                len(ciphertext) - AES.block_size
+        else:
+            assert enc_func is AES.GCMEnc
+            assert len(plaintext) == \
+                len(ciphertext) - 2*AES.block_size
 
         del plaintext
         del plaintext_decrypted
@@ -64,7 +73,7 @@ def main():
         #
         # generate a key
         #
-        key = AESCTR.KeyGen(keysize)
+        key = AES.KeyGen(keysize)
         print("Key: %s" % (base64.b64encode(key)))
 
         #
@@ -83,7 +92,7 @@ def main():
         # time encryption
         #
         start_time = time.time()
-        ciphertext_blocks = [AESCTR.Enc(key, b)
+        ciphertext_blocks = [enc_func(key, b)
                              for b in plaintext_blocks]
         stop_time = time.time()
         print("Encryption Time: %.3fs (%.3f MB/s)"
@@ -94,12 +103,16 @@ def main():
         # time decryption
         #
         start_time = time.time()
-        plaintext_decrypted_blocks = [AESCTR.Dec(key, c)
+        plaintext_decrypted_blocks = [dec_func(key, c)
                                       for c in ciphertext_blocks]
         stop_time = time.time()
         print("Decryption Time: %.3fs (%.3f MB/s)"
               % (stop_time-start_time,
                  (total_bytes * 1.0e-6) / (stop_time-start_time)))
+
+def main():
+    runtest("AES - CTR Mode", AES.CTREnc, AES.CTRDec)
+    runtest("AES - GCM Mode", AES.GCMEnc, AES.GCMDec)
 
 if __name__ == "__main__":
     main()                                             # pragma: no cover

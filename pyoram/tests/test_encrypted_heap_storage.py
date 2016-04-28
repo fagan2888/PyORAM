@@ -7,7 +7,7 @@ from pyoram.storage.encrypted_block_storage import \
     EncryptedBlockStorage
 from pyoram.storage.encrypted_heap_storage import \
     EncryptedHeapStorage
-from pyoram.crypto.aesctr import AESCTR
+from pyoram.crypto.aes import AES
 
 from six.moves import xrange
 
@@ -32,7 +32,7 @@ class TestEncryptedHeapStorage(unittest.TestCase):
             cls._testfname,
             block_size=cls._block_size,
             heap_height=cls._heap_height,
-            key_size=AESCTR.key_sizes[-1],
+            key_size=AES.key_sizes[-1],
             heap_base=cls._heap_base,
             blocks_per_bucket=cls._blocks_per_bucket,
             storage_type=cls._type_name,
@@ -66,7 +66,7 @@ class TestEncryptedHeapStorage(unittest.TestCase):
                              "exists.empty"),
                 block_size=10,
                 heap_height=1,
-                key_size=AESCTR.key_sizes[-1],
+                key_size=AES.key_sizes[-1],
                 blocks_per_bucket=1,
                 storage_type=self._type_name)
         with self.assertRaises(ValueError):
@@ -76,7 +76,7 @@ class TestEncryptedHeapStorage(unittest.TestCase):
                              "exists.empty"),
                 block_size=10,
                 heap_height=1,
-                key_size=AESCTR.key_sizes[-1],
+                key_size=AES.key_sizes[-1],
                 blocks_per_bucket=1,
                 storage_type=self._type_name,
                 ignore_existing=False)
@@ -86,7 +86,7 @@ class TestEncryptedHeapStorage(unittest.TestCase):
                 dummy_name,
                 block_size=0,
                 heap_height=1,
-                key_size=AESCTR.key_sizes[-1],
+                key_size=AES.key_sizes[-1],
                 blocks_per_bucket=1,
                 storage_type=self._type_name)
         # bad heap_height
@@ -103,7 +103,7 @@ class TestEncryptedHeapStorage(unittest.TestCase):
                 dummy_name,
                 block_size=1,
                 heap_height=1,
-                key_size=AESCTR.key_sizes[-1],
+                key_size=AES.key_sizes[-1],
                 blocks_per_bucket=0,
                 storage_type=self._type_name)
         # bad heap_base
@@ -112,27 +112,27 @@ class TestEncryptedHeapStorage(unittest.TestCase):
                 dummy_name,
                 block_size=1,
                 heap_height=1,
-                key_size=AESCTR.key_sizes[-1],
+                key_size=AES.key_sizes[-1],
                 blocks_per_bucket=1,
                 heap_base=1,
                 storage_type=self._type_name)
-        # bad user_header_data
+        # bad header_data
         with self.assertRaises(TypeError):
             EncryptedHeapStorage.setup(
                 dummy_name,
                 block_size=1,
                 heap_height=1,
-                key_size=AESCTR.key_sizes[-1],
+                key_size=AES.key_sizes[-1],
                 blocks_per_bucket=1,
                 storage_type=self._type_name,
-                user_header_data=2)
+                header_data=2)
         # uses block_count
         with self.assertRaises(ValueError):
             EncryptedHeapStorage.setup(
                 dummy_name,
                 block_size=1,
                 heap_height=1,
-                key_size=AESCTR.key_sizes[-1],
+                key_size=AES.key_sizes[-1],
                 blocks_per_bucket=1,
                 block_count=1,
                 storage_type=self._type_name)
@@ -145,20 +145,36 @@ class TestEncryptedHeapStorage(unittest.TestCase):
             os.remove(fname)                           # pragma: no cover
         bsize = 10
         heap_height = 2
-        blocks_per_bucket = 1
+        blocks_per_bucket = 3
         fsetup = EncryptedHeapStorage.setup(
             fname,
-            block_size=bsize,
-            heap_height=heap_height,
-            key_size=AESCTR.key_sizes[-1],
+            bsize,
+            heap_height,
+            key_size=AES.key_sizes[-1],
             blocks_per_bucket=blocks_per_bucket)
         fsetup.close()
+        with open(fname, 'rb') as f:
+            flen = len(f.read())
+            self.assertEqual(
+                flen,
+                EncryptedHeapStorage.compute_storage_size(
+                    bsize,
+                    heap_height,
+                    blocks_per_bucket=blocks_per_bucket))
+            self.assertEqual(
+                flen >
+                EncryptedHeapStorage.compute_storage_size(
+                    bsize,
+                    heap_height,
+                    blocks_per_bucket=blocks_per_bucket,
+                    ignore_header=True),
+                True)
         with EncryptedHeapStorage(
                 fname,
                 key=fsetup.key,
                 storage_type=self._type_name) as f:
-            self.assertEqual(f.user_header_data, bytes())
-            self.assertEqual(fsetup.user_header_data, bytes())
+            self.assertEqual(f.header_data, bytes())
+            self.assertEqual(fsetup.header_data, bytes())
             self.assertEqual(f.key, fsetup.key)
             self.assertEqual(f.blocks_per_bucket,
                              blocks_per_bucket)
@@ -185,21 +201,50 @@ class TestEncryptedHeapStorage(unittest.TestCase):
         bsize = 10
         heap_height = 2
         blocks_per_bucket = 1
-        user_header_data = bytes(bytearray([0,1,2]))
+        header_data = bytes(bytearray([0,1,2]))
         fsetup = EncryptedHeapStorage.setup(
             fname,
-            block_size=bsize,
-            heap_height=heap_height,
-            key_size=AESCTR.key_sizes[-1],
+            bsize,
+            heap_height,
+            key_size=AES.key_sizes[-1],
             blocks_per_bucket=blocks_per_bucket,
-            user_header_data=user_header_data)
+            header_data=header_data)
         fsetup.close()
+        with open(fname, 'rb') as f:
+            flen = len(f.read())
+            self.assertEqual(
+                flen,
+                EncryptedHeapStorage.compute_storage_size(
+                    bsize,
+                    heap_height,
+                    header_data=header_data))
+            self.assertTrue(len(header_data) > 0)
+            self.assertEqual(
+                EncryptedHeapStorage.compute_storage_size(
+                    bsize,
+                    heap_height,
+                    storage_type=self._type_name) <
+                EncryptedHeapStorage.compute_storage_size(
+                    bsize,
+                    heap_height,
+                    storage_type=self._type_name,
+                    header_data=header_data),
+                True)
+            self.assertEqual(
+                flen >
+                EncryptedHeapStorage.compute_storage_size(
+                    bsize,
+                    heap_height,
+                    storage_type=self._type_name,
+                    header_data=header_data,
+                    ignore_header=True),
+                True)
         with EncryptedHeapStorage(
                 fname,
                 key=fsetup.key,
                 storage_type=self._type_name) as f:
-            self.assertEqual(f.user_header_data, user_header_data)
-            self.assertEqual(fsetup.user_header_data, user_header_data)
+            self.assertEqual(f.header_data, header_data)
+            self.assertEqual(fsetup.header_data, header_data)
             self.assertEqual(f.key, fsetup.key)
             self.assertEqual(f.blocks_per_bucket,
                              blocks_per_bucket)
@@ -242,8 +287,6 @@ class TestEncryptedHeapStorage(unittest.TestCase):
                 self._testfname,
                 key=self._key,
                 storage_type=self._type_name) as f:
-            encrypted_size = f.ciphertext_bucket_size * \
-                             self._bucket_count
             self.assertEqual(f.key, self._key)
             self.assertEqual(f.bucket_size,
                              self._block_size * \
@@ -251,11 +294,7 @@ class TestEncryptedHeapStorage(unittest.TestCase):
             self.assertEqual(f.bucket_count,
                              self._bucket_count)
             self.assertEqual(f.storage_name, self._testfname)
-            self.assertEqual(f.user_header_data, bytes())
-            self.assertNotEqual(self._block_size * \
-                                self._blocks_per_bucket,
-                                f.ciphertext_bucket_size)
-        self.assertEqual(len(databefore) >= encrypted_size, True)
+            self.assertEqual(f.header_data, bytes())
         self.assertEqual(os.path.exists(self._testfname), True)
         with open(self._testfname, 'rb') as f:
             dataafter = f.read()
@@ -325,7 +364,7 @@ class TestEncryptedHeapStorage(unittest.TestCase):
                     self.assertEqual(list(bytearray(bucket)),
                                      list(self._buckets[i]))
 
-    def test_update_user_header_data(self):
+    def test_update_header_data(self):
         fname = ".".join(self.id().split(".")[1:])
         fname += ".bin"
         fname = os.path.join(thisdir, fname)
@@ -334,45 +373,45 @@ class TestEncryptedHeapStorage(unittest.TestCase):
         bsize = 10
         heap_height = 2
         blocks_per_bucket = 1
-        user_header_data = bytes(bytearray([0,1,2]))
+        header_data = bytes(bytearray([0,1,2]))
         fsetup = EncryptedHeapStorage.setup(
             fname,
             block_size=bsize,
             heap_height=heap_height,
-            key_size=AESCTR.key_sizes[-1],
+            key_size=AES.key_sizes[-1],
             blocks_per_bucket=blocks_per_bucket,
-            user_header_data=user_header_data)
+            header_data=header_data)
         fsetup.close()
-        new_user_header_data = bytes(bytearray([1,1,1]))
+        new_header_data = bytes(bytearray([1,1,1]))
         with EncryptedHeapStorage(
                 fname,
                 key=fsetup.key,
                 storage_type=self._type_name) as f:
-            self.assertEqual(f.user_header_data, user_header_data)
-            f.update_user_header_data(new_user_header_data)
-            self.assertEqual(f.user_header_data, new_user_header_data)
+            self.assertEqual(f.header_data, header_data)
+            f.update_header_data(new_header_data)
+            self.assertEqual(f.header_data, new_header_data)
         with EncryptedHeapStorage(
                 fname,
                 key=fsetup.key,
                 storage_type=self._type_name) as f:
-            self.assertEqual(f.user_header_data, new_user_header_data)
+            self.assertEqual(f.header_data, new_header_data)
         with self.assertRaises(ValueError):
             with EncryptedHeapStorage(
                     fname,
                     key=fsetup.key,
                     storage_type=self._type_name) as f:
-                f.update_user_header_data(bytes(bytearray([1,1])))
+                f.update_header_data(bytes(bytearray([1,1])))
         with self.assertRaises(ValueError):
             with EncryptedHeapStorage(
                     fname,
                     key=fsetup.key,
                     storage_type=self._type_name) as f:
-                f.update_user_header_data(bytes(bytearray([1,1,1,1])))
+                f.update_header_data(bytes(bytearray([1,1,1,1])))
         with EncryptedHeapStorage(
                 fname,
                 key=fsetup.key,
                 storage_type=self._type_name) as f:
-            self.assertEqual(f.user_header_data, new_user_header_data)
+            self.assertEqual(f.header_data, new_header_data)
         os.remove(fname)
 
 if __name__ == "__main__":

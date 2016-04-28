@@ -91,7 +91,7 @@ class _TestBlockStorage(object):
             self._type.setup(dummy_name,
                              block_size=1,
                              block_count=1,
-                             user_header_data=2)
+                             header_data=2)
         self.assertEqual(os.path.exists(dummy_name), False)
         with self.assertRaises(ValueError):
             def _init(i):
@@ -110,13 +110,23 @@ class _TestBlockStorage(object):
             os.remove(fname)                           # pragma: no cover
         bsize = 10
         bcount = 11
-        fsetup = self._type.setup(fname,
-                                  block_size=bsize,
-                                  block_count=bcount)
+        fsetup = self._type.setup(fname, bsize, bcount)
         fsetup.close()
+        with open(fname, 'rb') as f:
+            flen = len(f.read())
+            self.assertEqual(
+                flen,
+                self._type.compute_storage_size(bsize,
+                                                bcount))
+            self.assertEqual(
+                flen >
+                self._type.compute_storage_size(bsize,
+                                                bcount,
+                                                ignore_header=True),
+                True)
         with self._type(fname) as f:
-            self.assertEqual(f.user_header_data, bytes())
-            self.assertEqual(fsetup.user_header_data, bytes())
+            self.assertEqual(f.header_data, bytes())
+            self.assertEqual(fsetup.header_data, bytes())
             self.assertEqual(f.block_size, bsize)
             self.assertEqual(fsetup.block_size, bsize)
             self.assertEqual(f.block_count, bcount)
@@ -133,15 +143,37 @@ class _TestBlockStorage(object):
             os.remove(fname)                           # pragma: no cover
         bsize = 10
         bcount = 11
-        user_header_data = bytes(bytearray([0,1,2]))
+        header_data = bytes(bytearray([0,1,2]))
         fsetup = self._type.setup(fname,
-                                  block_size=bsize,
-                                  block_count=bcount,
-                                  user_header_data=user_header_data)
+                                  bsize,
+                                  bcount,
+                                  header_data=header_data)
         fsetup.close()
+        with open(fname, 'rb') as f:
+            flen = len(f.read())
+            self.assertEqual(
+                flen,
+                self._type.compute_storage_size(bsize,
+                                                bcount,
+                                                header_data=header_data))
+            self.assertTrue(len(header_data) > 0)
+            self.assertEqual(
+                self._type.compute_storage_size(bsize,
+                                                bcount) <
+                self._type.compute_storage_size(bsize,
+                                                bcount,
+                                                header_data=header_data),
+                True)
+            self.assertEqual(
+                flen >
+                self._type.compute_storage_size(bsize,
+                                                bcount,
+                                                header_data=header_data,
+                                                ignore_header=True),
+                True)
         with self._type(fname) as f:
-            self.assertEqual(f.user_header_data, user_header_data)
-            self.assertEqual(fsetup.user_header_data, user_header_data)
+            self.assertEqual(f.header_data, header_data)
+            self.assertEqual(fsetup.header_data, header_data)
             self.assertEqual(f.block_size, bsize)
             self.assertEqual(fsetup.block_size, bsize)
             self.assertEqual(f.block_count, bcount)
@@ -165,7 +197,7 @@ class _TestBlockStorage(object):
             self.assertEqual(f.block_size, self._block_size)
             self.assertEqual(f.block_count, self._block_count)
             self.assertEqual(f.storage_name, self._testfname)
-            self.assertEqual(f.user_header_data, bytes())
+            self.assertEqual(f.header_data, bytes())
         self.assertEqual(os.path.exists(self._testfname), True)
         with open(self._testfname) as f:
             dataafter = f.read()
@@ -250,7 +282,7 @@ class _TestBlockStorage(object):
                 self.assertEqual(list(bytearray(block)),
                                  list(self._blocks[i]))
 
-    def test_update_user_header_data(self):
+    def test_update_header_data(self):
         fname = ".".join(self.id().split(".")[1:])
         fname += ".bin"
         fname = os.path.join(thisdir, fname)
@@ -258,27 +290,27 @@ class _TestBlockStorage(object):
             os.remove(fname)                           # pragma: no cover
         bsize = 10
         bcount = 11
-        user_header_data = bytes(bytearray([0,1,2]))
+        header_data = bytes(bytearray([0,1,2]))
         fsetup = self._type.setup(fname,
                                   block_size=bsize,
                                   block_count=bcount,
-                                  user_header_data=user_header_data)
+                                  header_data=header_data)
         fsetup.close()
-        new_user_header_data = bytes(bytearray([1,1,1]))
+        new_header_data = bytes(bytearray([1,1,1]))
         with self._type(fname) as f:
-            self.assertEqual(f.user_header_data, user_header_data)
-            f.update_user_header_data(new_user_header_data)
-            self.assertEqual(f.user_header_data, new_user_header_data)
+            self.assertEqual(f.header_data, header_data)
+            f.update_header_data(new_header_data)
+            self.assertEqual(f.header_data, new_header_data)
         with self._type(fname) as f:
-            self.assertEqual(f.user_header_data, new_user_header_data)
+            self.assertEqual(f.header_data, new_header_data)
         with self.assertRaises(ValueError):
             with self._type(fname) as f:
-                f.update_user_header_data(bytes(bytearray([1,1])))
+                f.update_header_data(bytes(bytearray([1,1])))
         with self.assertRaises(ValueError):
             with self._type(fname) as f:
-                f.update_user_header_data(bytes(bytearray([1,1,1,1])))
+                f.update_header_data(bytes(bytearray([1,1,1,1])))
         with self._type(fname) as f:
-            self.assertEqual(f.user_header_data, new_user_header_data)
+            self.assertEqual(f.header_data, new_header_data)
         os.remove(fname)
 
 class TestBlockStorageFile(_TestBlockStorage,

@@ -1,5 +1,4 @@
-__all__ = ('BlockStorageInterface',
-           'BlockStorageFile'
+__all__ = ('BlockStorageFile'
            'BlockStorageMMapFile',
            'BlockStorageS3')
 
@@ -11,6 +10,7 @@ from multiprocessing.pool import ThreadPool
 import boto3
 import botocore
 
+import six
 from six.moves import xrange
 
 def BlockStorageTypeFactory(storage_type_name):
@@ -37,10 +37,13 @@ class BlockStorageInterface(object):
     #
 
     @classmethod
+    def compute_storage_size(cls, *args, **kwds):
+        raise NotImplementedError                      # pragma: no cover
+    @classmethod
     def setup(cls, *args, **kwds):
         raise NotImplementedError                      # pragma: no cover
     @property
-    def user_header_data(self, *args, **kwds):
+    def header_data(self, *args, **kwds):
         raise NotImplementedError                      # pragma: no cover
     @property
     def block_count(self, *args, **kwds):
@@ -51,7 +54,7 @@ class BlockStorageInterface(object):
     @property
     def storage_name(self, *args, **kwds):
         raise NotImplementedError                      # pragma: no cover
-    def update_user_header_data(self, *args, **kwds):
+    def update_header_data(self, *args, **kwds):
         raise NotImplementedError                      # pragma: no cover
     def close(self, *args, **kwds):
         raise NotImplementedError                      # pragma: no cover
@@ -77,20 +80,36 @@ class BlockStorageFile(BlockStorageInterface):
         self._storage_name = storage_name
         self._f = open(self.storage_name, "r+b")
         self._f.seek(0)
-        self._block_size, self._block_count, self._user_header_size = \
+        self._block_size, self._block_count, user_header_size = \
             struct.unpack(
                 self._index_storage_string,
                 self._f.read(self._index_offset))
         self._user_header_data = bytes()
-        if self._user_header_size > 0:
+        if user_header_size > 0:
             self._user_header_data = \
-                self._f.read(self._user_header_size)
+                self._f.read(user_header_size)
         self._header_offset = self._index_offset + \
                               len(self._user_header_data)
 
     #
     # Define BlockStorageInterface Methods
     #
+    @classmethod
+    def compute_storage_size(cls,
+                             block_size,
+                             block_count,
+                             header_data=None,
+                             ignore_header=False):
+        assert (block_size > 0) and (block_size == int(block_size))
+        assert (block_count > 0) and (block_count == int(block_count))
+        if header_data is None:
+            header_data = bytes()
+        if ignore_header:
+            return block_size * block_count
+        else:
+            return cls._index_offset + \
+                   len(header_data) + \
+                   block_size * block_count
 
     @classmethod
     def setup(cls,
@@ -98,7 +117,7 @@ class BlockStorageFile(BlockStorageInterface):
               block_size,
               block_count,
               initialize=None,
-              user_header_data=None,
+              header_data=None,
               ignore_existing=False):
         if (not ignore_existing) and \
            os.path.exists(storage_name):
@@ -113,11 +132,11 @@ class BlockStorageFile(BlockStorageInterface):
             raise ValueError(
                 "Block count must be a positive integer: %s"
                 % (block_count))
-        if (user_header_data is not None) and \
-           (type(user_header_data) is not bytes):
+        if (header_data is not None) and \
+           (type(header_data) is not bytes):
             raise TypeError(
-                "'user_header_data' must be of type bytes. "
-                "Invalid type: %s" % (type(user_header_data)))
+                "'header_data' must be of type bytes. "
+                "Invalid type: %s" % (type(header_data)))
 
         if initialize is None:
             zeros = bytes(bytearray(block_size))
@@ -125,7 +144,7 @@ class BlockStorageFile(BlockStorageInterface):
         try:
             with open(storage_name, "wb") as f:
                 # create_index
-                if user_header_data is None:
+                if header_data is None:
                     f.write(struct.pack(cls._index_storage_string,
                                         block_size,
                                         block_count,
@@ -134,8 +153,8 @@ class BlockStorageFile(BlockStorageInterface):
                     f.write(struct.pack(cls._index_storage_string,
                                         block_size,
                                         block_count,
-                                        len(user_header_data)))
-                    f.write(user_header_data)
+                                        len(header_data)))
+                    f.write(header_data)
                 for i in xrange(block_count):
                     block = initialize(i)
                     assert len(block) == block_size, \
@@ -148,7 +167,7 @@ class BlockStorageFile(BlockStorageInterface):
         return BlockStorageFile(storage_name)
 
     @property
-    def user_header_data(self):
+    def header_data(self):
         return self._user_header_data
 
     @property
@@ -163,16 +182,16 @@ class BlockStorageFile(BlockStorageInterface):
     def storage_name(self):
         return self._storage_name
 
-    def update_user_header_data(self, new_user_header_data):
-        if len(new_user_header_data) != len(self.user_header_data):
+    def update_header_data(self, new_header_data):
+        if len(new_header_data) != len(self.header_data):
             raise ValueError(
-                "The size of user header data can not change.\n"
+                "The size of header data can not change.\n"
                 "Original bytes: %s\n"
-                "New bytes: %s" % (len(self.user_header_data),
-                                   len(new_user_header_data)))
-        self._user_header_data = new_user_header_data
+                "New bytes: %s" % (len(self.header_data),
+                                   len(new_header_data)))
+        self._user_header_data = new_header_data
         self._f.seek(self._index_offset)
-        self._f.write(new_user_header_data)
+        self._f.write(self._user_header_data)
 
     def close(self):
         if self._f is not None:
@@ -185,22 +204,26 @@ class BlockStorageFile(BlockStorageInterface):
     def read_blocks(self, indices):
         blocks = []
         for i in indices:
+            assert 0 <= i < self.block_count
             self._f.seek(self._header_offset + i * self.block_size)
             blocks.append(self._f.read(self.block_size))
         return blocks
 
     def read_block(self, i):
+        assert 0 <= i < self.block_count
         self._f.seek(self._header_offset + i * self.block_size)
         return self._f.read(self.block_size)
 
     def write_blocks(self, indices, blocks):
         for i, block in zip(indices, blocks):
+            assert 0 <= i < self.block_count
             self._f.seek(self._header_offset + i * self.block_size)
             assert len(block) == self.block_size, \
                 ("%s != %s" % (len(block), self.block_size))
             self._f.write(block)
 
     def write_block(self, i, block):
+        assert 0 <= i < self.block_count
         self._f.seek(self._header_offset + i * self.block_size)
         assert len(block) == self.block_size
         self._f.write(block)
@@ -229,16 +252,16 @@ class BlockStorageMMapFile(BlockStorageFile):
         f.close()
         return BlockStorageMMapFile(storage_name)
 
-    def update_user_header_data(self, new_user_header_data):
-        if len(new_user_header_data) != len(self.user_header_data):
+    def update_header_data(self, new_header_data):
+        if len(new_header_data) != len(self.header_data):
             raise ValueError(
-                "The size of user header data can not change.\n"
+                "The size of header data can not change.\n"
                 "Original bytes: %s\n"
-                "New bytes: %s" % (len(self.user_header_data),
-                                   len(new_user_header_data)))
-        self._user_header_data = new_user_header_data
+                "New bytes: %s" % (len(self.header_data),
+                                   len(new_header_data)))
+        self._user_header_data = new_header_data
         self._mm.seek(self._index_offset)
-        self._mm.write(new_user_header_data)
+        self._mm.write(self._user_header_data)
 
     def close(self):
         if self._mm is not None:
@@ -252,28 +275,32 @@ class BlockStorageMMapFile(BlockStorageFile):
     def read_blocks(self, indices):
         blocks = []
         for i in indices:
+            assert 0 <= i < self.block_count
             self._mm.seek(self._header_offset + i * self.block_size)
             blocks.append(self._mm.read(self.block_size))
         return blocks
 
     def read_block(self, i):
+        assert 0 <= i < self.block_count
         return self._mm[self._header_offset + i*self.block_size : \
                         self._header_offset + (i+1)*self.block_size]
 
     def write_blocks(self, indices, blocks):
         for i, block in zip(indices, blocks):
+            assert 0 <= i < self.block_count
             self._mm[self._header_offset + i*self.block_size : \
                      self._header_offset + (i+1)*self.block_size] = block
 
     def write_block(self, i, block):
+        assert 0 <= i < self.block_count
         self._mm[self._header_offset + i*self.block_size : \
                  self._header_offset + (i+1)*self.block_size] = block
 
 class BlockStorageS3(BlockStorageInterface):
 
     _index_name = "/PyORAMBlockStorageS3_index.txt"
-    _header_storage_string = "!LLL"
-    _header_offset = struct.calcsize(_header_storage_string)
+    _header_struct_string = "!LLL"
+    _header_offset = struct.calcsize(_header_struct_string)
 
     def __init__(self,
                  storage_name,
@@ -309,14 +336,14 @@ class BlockStorageS3(BlockStorageInterface):
         index_data = self._s3.meta.client.get_object(
             Bucket=self._bucket.name,
             Key=self._storage_name+self._index_name)['Body']
-        self._block_size, self._block_count, self._user_header_size = \
+        self._block_size, self._block_count, user_header_size = \
             struct.unpack(
-                self._header_storage_string,
+                self._header_struct_string,
                 index_data.read(self._header_offset))
         self._user_header_data = bytes()
-        if self._user_header_size > 0:
+        if user_header_size > 0:
             self._user_header_data = \
-                index_data.read(self._user_header_size)
+                index_data.read(user_header_size)
 
     def _check_async(self):
         if self._async_write is not None:
@@ -328,6 +355,23 @@ class BlockStorageS3(BlockStorageInterface):
     #
 
     @classmethod
+    def compute_storage_size(cls,
+                             block_size,
+                             block_count,
+                             header_data=None,
+                             ignore_header=False):
+        assert (block_size > 0) and (block_size == int(block_size))
+        assert (block_count > 0) and (block_count == int(block_count))
+        if header_data is None:
+            header_data = bytes()
+        if ignore_header:
+            return block_size * block_count
+        else:
+            return self._header_offset + \
+                    len(header_data) + \
+                    block_size * block_count
+
+    @classmethod
     def setup(cls,
               storage_name,
               block_size,
@@ -336,7 +380,7 @@ class BlockStorageS3(BlockStorageInterface):
               access_key_id=None,
               secret_access_key=None,
               region=None,
-              user_header_data=None,
+              header_data=None,
               initialize=None,
               threadpool_size=4,
               ignore_existing=False):
@@ -350,11 +394,11 @@ class BlockStorageS3(BlockStorageInterface):
             raise ValueError(
                 "Block count must be a positive integer: %s"
                 % (block_count))
-        if (user_header_data is not None) and \
-           (type(user_header_data) is not bytes):
+        if (header_data is not None) and \
+           (type(header_data) is not bytes):
             raise TypeError(
-                "'user_header_data' must be of type bytes. "
-                "Invalid type: %s" % (type(user_header_data)))
+                "'header_data' must be of type bytes. "
+                "Invalid type: %s" % (type(header_data)))
 
         s3 = boto3.session.Session(
             aws_access_key_id=access_key_id,
@@ -376,19 +420,19 @@ class BlockStorageS3(BlockStorageInterface):
                 "Storage location already exists in bucket %s: %s"
                 % (bucket_name, storage_name))
 
-        if user_header_data is None:
+        if header_data is None:
             bucket.put_object(Key=storage_name+cls._index_name,
-                              Body=struct.pack(cls._header_storage_string,
+                              Body=struct.pack(cls._header_struct_string,
                                                block_size,
                                                block_count,
                                                0))
         else:
             bucket.put_object(Key=storage_name+cls._index_name,
-                              Body=struct.pack(cls._header_storage_string,
+                              Body=struct.pack(cls._header_struct_string,
                                                block_size,
                                                block_count,
-                                               len(user_header_data)) + \
-                                               user_header_data)
+                                               len(header_data)) + \
+                                               header_data)
 
         if initialize is None:
             zeros = bytes(bytearray(block_size))
@@ -407,7 +451,7 @@ class BlockStorageS3(BlockStorageInterface):
                               threadpool_size=threadpool_size)
 
     @property
-    def user_header_data(self):
+    def header_data(self):
         return self._user_header_data
 
     @property
@@ -422,14 +466,14 @@ class BlockStorageS3(BlockStorageInterface):
     def storage_name(self):
         return self._storage_name
 
-    def update_user_header_data(self, new_user_header_data):
-        if len(new_user_header_data) != len(self.user_header_data):
+    def update_header_data(self, new_header_data):
+        if len(new_header_data) != len(self.header_data):
             raise ValueError(
-                "The size of user header data can not change.\n"
+                "The size of header data can not change.\n"
                 "Original bytes: %s\n"
-                "New bytes: %s" % (len(self.user_header_data),
-                                   len(new_user_header_data)))
-        self._user_header_data = new_user_header_data
+                "New bytes: %s" % (len(self.header_data),
+                                   len(new_header_data)))
+        self._user_header_data = new_header_data
 
         index_data = bytearray(self._s3.meta.client.get_object(
             Bucket=self._bucket.name,
@@ -445,19 +489,29 @@ class BlockStorageS3(BlockStorageInterface):
         self._check_async()
 
     def read_blocks(self, indices):
+        # be sure not to exhaust this if it is an iterator
+        # or generator
+        indices = list(indices)
+        assert all(0 <= i <= self.block_count for i in indices)
         self._check_async()
         return self._pool.map(self._download, indices)
 
     def read_block(self, i):
+        assert 0 <= i < self.block_count
         self._check_async()
         return self._download(i)
 
     def write_blocks(self, indices, blocks):
+        # be sure not to exhaust this if it is an iterator
+        # or generator
+        indices = list(indices)
+        assert all(0 <= i <= self.block_count for i in indices)
         self._check_async()
         self._async_write = \
             self._pool.map_async(self._upload,
                                  zip(indices, blocks))
 
     def write_block(self, i, block):
+        assert 0 <= i < self.block_count
         self._check_async()
         self._upload((i, block))

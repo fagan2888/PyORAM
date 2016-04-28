@@ -6,7 +6,7 @@ from pyoram.storage.virtualheap import \
     SizedVirtualHeap
 from pyoram.storage.encrypted_heap_storage import \
     EncryptedHeapStorage
-from pyoram.tree.tree_oram import TreeORAMStorageManagerImplicit
+from pyoram.tree.tree_oram import TreeORAMStorageManagerPointerAddressing
 
 def main():
     storage_name = "heap.bin"
@@ -55,7 +55,7 @@ def main():
             ignore_existing=True) as f:
         assert storage_name == f.storage_name
         stash = {}
-        oram = TreeORAMStorageManagerImplicit(f, stash)
+        oram = TreeORAMStorageManagerPointerAddressing(f, stash)
 
         b = vheap.random_bucket()
         oram.load_path(b)

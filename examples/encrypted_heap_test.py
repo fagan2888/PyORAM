@@ -16,7 +16,7 @@ def main():
     print("Storage Name: %s" % (tmpname))
 
     key_size = 32
-    user_header_data = b'a message'
+    header_data = b'a message'
     heap_base = 3
     heap_height = 2
     block_size = 8
@@ -33,19 +33,19 @@ def main():
             block_size,
             heap_height,
             key_size=key_size,
-            user_header_data=user_header_data,
+            header_data=header_data,
             heap_base=heap_base,
             blocks_per_bucket=blocks_per_bucket,
             initialize=initialize) as f:
         assert tmpname == f.storage_name
-        assert f.user_header_data == user_header_data
+        assert f.header_data == header_data
         print(f.read_path(vheap.random_bucket()))
         key = f.key
     assert os.path.exists(tmpname)
 
     with EncryptedHeapStorage(tmpname, key=key) as f:
         assert tmpname == f.storage_name
-        assert f.user_header_data == user_header_data
+        assert f.header_data == header_data
         print(f.read_path(vheap.random_bucket()))
 
     #
