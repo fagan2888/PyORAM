@@ -6,7 +6,9 @@ python:
   - 3.4
   - 3.5
   - pypy
-#  - pypy3
+os:
+ - linux
+ - osx
 cache: false
 before_install:
   - sudo apt-get update -q
