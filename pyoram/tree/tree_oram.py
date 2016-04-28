@@ -11,8 +11,21 @@ from six.moves import xrange
 
 class TreeORAMStorage(object):
 
-    id_storage_string = "!L"
-    empty_block_id = 0
+    empty_block_id = -1
+
+    block_status_storage_string = "!?"
+    block_id_storage_string = "!L"
+    block_info_storage_string = "!?L"
+
+    block_status_storage_size = \
+        struct.calcsize(block_status_storage_string)
+    block_info_storage_size = \
+        struct.calcsize(block_info_storage_string)
+
+    empty_block_bytes_tag = \
+        struct.pack(block_status_storage_string, False)
+    real_block_bytes_tag = \
+        struct.pack(block_status_storage_string, True)
 
     def __init__(self,
                  storage_heap,
@@ -61,7 +74,7 @@ class TreeORAMStorage(object):
         self.path_bucket_count = len(new_buckets)
         pos = 0
         for i, bucket in enumerate(new_buckets):
-            self.path_bucket_dataview[i][:] = bucket
+            self.path_bucket_dataview[i][:] = bucket[:]
             for j in xrange(Z):
                 block_id, block_addr = \
                     self.get_block_info(self.path_block_dataview[pos])
@@ -158,6 +171,7 @@ class TreeORAMStorage(object):
                     if id_ not in stash_eviction_levels:
                         block_id, block_addr = \
                             self.get_block_info(self.stash[id_])
+                        assert id_ != self.empty_block_id
                         eviction_level = stash_eviction_levels[id_] = \
                             lcl(k, stop_bucket, block_addr)
                     else:
@@ -188,29 +202,26 @@ class TreeORAMStorage(object):
             if (read_pos is not None) and \
                (read_pos != -1):
                 write_pos = len(block_reordering) - 1 - i
-                block_dataview[write_pos][:] = block_dataview[read_pos]
+                block_dataview[write_pos][:] = block_dataview[read_pos][:]
 
         for write_pos, read_pos in enumerate(block_reordering):
             if read_pos == -1:
                 self.tag_block_as_empty(block_dataview[write_pos])
 
         for write_pos, block in blocks_inserted:
-            block_dataview[write_pos] = block
+            block_dataview[write_pos][:] = block[:]
 
         self.storage_heap.write_path(
             stop_bucket,
             (b_.tobytes() for b_ in bucket_dataview))
 
     def extract_block_from_path(self, id_):
-        vheap = self.storage_heap.virtual_heap
-        Z = vheap.blocks_per_bucket
-
-        block_ids = self._current_path.block_ids
-        bucket_data = self._current_path.bucket_data
+        block_ids = self.path_block_ids
+        block_dataview = self.path_block_dataview
         try:
             pos = block_ids.index(id_)
             # make a copy
-            block = bytes(self.path_block_dataview[pos])
+            block = bytearray(block_dataview[pos])
             self._set_path_position_to_empty(pos)
             return block
         except ValueError:
@@ -219,11 +230,26 @@ class TreeORAMStorage(object):
     def _set_path_position_to_empty(self, pos):
         self.path_block_ids[pos] = self.empty_block_id
         self.path_block_eviction_levels[pos] = None
-        self.path_block_reording[pos] = -1
+        self.path_block_reordering[pos] = -1
 
-    @classmethod
-    def tag_block_as_empty(cls, block):
-        raise NotImplementedError                      # pragma: no cover
+    @staticmethod
+    def tag_block_as_empty(block):
+        block[:TreeORAMStorage.block_status_storage_size] = \
+            TreeORAMStorage.empty_block_bytes_tag[:]
+
+    @staticmethod
+    def tag_block_as_real(block):
+        block[:TreeORAMStorage.block_status_storage_size] = \
+            TreeORAMStorage.real_block_bytes_tag[:]
+
+    @staticmethod
+    def tag_block_with_id(block, id_):
+        assert id_ >= 0
+        struct.pack_into(TreeORAMStorage.block_info_storage_string,
+                         block,
+                         0,
+                         True,
+                         id_)
 
     def get_block_info(self, block):
         raise NotImplementedError                      # pragma: no cover
@@ -237,13 +263,9 @@ class TreeORAMStorageManagerExplicitAddressing(
     """
 
     block_info_storage_string = \
-        TreeORAMStorage.id_storage_string
+        TreeORAMStorage.block_info_storage_string
     block_info_storage_size = \
         struct.calcsize(block_info_storage_string)
-    empty_block_info_tag = \
-        struct.pack(block_info_storage_string,
-                    TreeORAMStorage.\
-                    empty_block_id)
 
     def __init__(self,
                  storage_heap,
@@ -253,16 +275,13 @@ class TreeORAMStorageManagerExplicitAddressing(
             __init__(storage_heap, stash)
         self.position_map = position_map
 
-    @classmethod
-    def tag_block_as_empty(cls, block):
-        block[:cls.block_info_storage_size] = \
-            cls.empty_block_info_tag
-
     def get_block_info(self, block):
-        id_, = struct.unpack(
-            self.block_info_storage_string,
-            block[:self.block_info_storage_size])
-        return id_, self.position_map[id_]
+        real, id_ = struct.unpack_from(
+            self.block_info_storage_string, block)
+        if real:
+            return id_, self.position_map[id_]
+        else:
+            return self.empty_block_id, None
 
 class TreeORAMStorageManagerPointerAddressing(
         TreeORAMStorage):
@@ -275,13 +294,9 @@ class TreeORAMStorageManagerPointerAddressing(
     """
 
     block_info_storage_string = \
-        TreeORAMStorage.id_storage_string + "L"
+        TreeORAMStorage.block_info_storage_string + "L"
     block_info_storage_size = \
         struct.calcsize(block_info_storage_string)
-    empty_block_info_tag = \
-        struct.pack(block_info_storage_string,
-                    TreeORAMStorage.\
-                    empty_block_id, 0)
 
     def __init__(self,
                  storage_heap,
@@ -290,12 +305,10 @@ class TreeORAMStorageManagerPointerAddressing(
             __init__(storage_heap, stash)
         self.position_map = None
 
-    @classmethod
-    def tag_block_as_empty(cls, block):
-        block[:cls.block_info_storage_size] = \
-            cls.empty_block_info_tag
-
     def get_block_info(self, block):
-        return struct.unpack(
-            self.block_info_storage_string,
-            block[:self.block_info_storage_size])
+        real, id_, addr = struct.unpack_from(
+            self.block_info_storage_string, block)
+        if not real:
+            return self.empty_block_id, 0
+        else:
+            return id_, addr

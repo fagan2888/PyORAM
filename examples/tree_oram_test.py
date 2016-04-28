@@ -15,7 +15,7 @@ def main():
     key_size = 32
     heap_base = 2
     heap_height = 2
-    block_size = struct.calcsize("!LL")
+    block_size = struct.calcsize("!?LL")
     blocks_per_bucket = 2
     vheap = SizedVirtualHeap(
         heap_base,
@@ -31,14 +31,14 @@ def main():
         for j in range(blocks_per_bucket):
             if (i*j) % 3:
                 bucket += struct.pack(
-                    "!LL", 0, 0)
+                    "!?LL", False, 0, 0)
             else:
                 x = vheap.Node(i)
                 while not vheap.is_nil_node(x):
                     x = x.child_node(random.randint(0, heap_base-1))
                 x = x.parent_node()
                 bucket += struct.pack(
-                    "!LL", initialize.id_, x.bucket)
+                    "!?LL", True, initialize.id_, x.bucket)
                 position_map[initialize.id_] = x.bucket
                 initialize.id_ += 1
         return bucket
