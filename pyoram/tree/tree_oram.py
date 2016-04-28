@@ -238,11 +238,6 @@ class TreeORAMStorage(object):
             TreeORAMStorage.empty_block_bytes_tag[:]
 
     @staticmethod
-    def tag_block_as_real(block):
-        block[:TreeORAMStorage.block_status_storage_size] = \
-            TreeORAMStorage.real_block_bytes_tag[:]
-
-    @staticmethod
     def tag_block_with_id(block, id_):
         assert id_ >= 0
         struct.pack_into(TreeORAMStorage.block_info_storage_string,
