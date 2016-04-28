@@ -203,6 +203,7 @@ def create_node_type(k):
 class VirtualHeap(object):
 
     clib = _clib
+    random = random.SystemRandom()
 
     def __init__(self, k, blocks_per_bucket=1):
         assert 1 < k
@@ -241,11 +242,11 @@ class VirtualHeap(object):
     def last_bucket_at_level(self, l):
         return calculate_bucket_count_in_heap_with_height(self.k, l) - 1
     def random_bucket_up_to_level(self, l):
-        return random.randint(self.first_bucket_at_level(0),
-                              self.last_bucket_at_level(l))
+        return self.random.randint(self.first_bucket_at_level(0),
+                                   self.last_bucket_at_level(l))
     def random_bucket_at_level(self, l):
-        return random.randint(self.first_bucket_at_level(l),
-                              self.first_bucket_at_level(l+1)-1)
+        return self.random.randint(self.first_bucket_at_level(l),
+                                   self.first_bucket_at_level(l+1)-1)
 
     #
     # Nodes (a class that helps with heap path calculations)
@@ -319,8 +320,8 @@ class SizedVirtualHeap(VirtualHeap):
     def last_leaf_bucket(self):
         return self.last_bucket_at_level(self.height)
     def random_bucket(self):
-        return random.randint(self.first_bucket_at_level(0),
-                              self.last_leaf_bucket())
+        return self.random.randint(self.first_bucket_at_level(0),
+                                   self.last_leaf_bucket())
     def random_leaf_bucket(self):
         return self.random_bucket_at_level(self.height)
 
