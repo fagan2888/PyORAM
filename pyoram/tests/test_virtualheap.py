@@ -1034,8 +1034,10 @@ class TestSizedVirtualHeap(unittest.TestCase):
 
             data = list(range(heap.block_count()))
             fname = label+"_data.pdf"
-            if os.path.exists(os.path.join(thisdir, fname)):
+            try:
                 os.remove(os.path.join(thisdir, fname))
+            except OSError:                            # pragma: no cover
+                pass                                   # pragma: no cover
             rc = heap.save_image_as_pdf(os.path.join(thisdir, fname),
                                         data=data,
                                         max_levels=maxl)
