@@ -7,8 +7,8 @@ PyORAM
 .. image:: https://ci.appveyor.com/api/projects/status/898bxsvqdch1btv6/branch/master?svg=true
     :target: https://ci.appveyor.com/project/ghackebeil/PyORAM?branch=master
 
-.. image:: https://codecov.io/github/ghackebeil/PyORAM.svg?branch=master
-    :target: https://codecov.io/github/ghackebeil/PyORAM
+.. image:: https://codecov.io/github/ghackebeil/PyORAM/coverage.svg?branch=master
+    :target: https://codecov.io/github/ghackebeil/PyORAM?branch=master
 
 This package is still being setup. Do not try to use it.
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
