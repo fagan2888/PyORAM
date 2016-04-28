@@ -414,5 +414,44 @@ class TestEncryptedHeapStorage(unittest.TestCase):
             self.assertEqual(f.header_data, new_header_data)
         os.remove(fname)
 
+    def test_locked_flag(self):
+        with EncryptedHeapStorage(self._testfname,
+                                  key=self._key,
+                                  storage_type=self._type_name) as f:
+            with self.assertRaises(IOError):
+                with EncryptedHeapStorage(self._testfname,
+                                          key=self._key,
+                                          storage_type=self._type_name) as f1:
+                    pass
+            with self.assertRaises(IOError):
+                with EncryptedHeapStorage(self._testfname,
+                                          key=self._key,
+                                          storage_type=self._type_name) as f1:
+                    pass
+            with EncryptedHeapStorage(self._testfname,
+                                      key=self._key,
+                                      storage_type=self._type_name,
+                                      ignore_lock=True) as f1:
+                pass
+            with self.assertRaises(IOError):
+                with EncryptedHeapStorage(self._testfname,
+                                          key=self._key,
+                                          storage_type=self._type_name) as f1:
+                    pass
+            with EncryptedHeapStorage(self._testfname,
+                                      key=self._key,
+                                      storage_type=self._type_name,
+                                      ignore_lock=True) as f1:
+                pass
+            with EncryptedHeapStorage(self._testfname,
+                                      key=self._key,
+                                      storage_type=self._type_name,
+                                      ignore_lock=True) as f1:
+                pass
+        with EncryptedHeapStorage(self._testfname,
+                                  key=self._key,
+                                  storage_type=self._type_name) as f:
+            pass
+
 if __name__ == "__main__":
     unittest.main()                                    # pragma: no cover

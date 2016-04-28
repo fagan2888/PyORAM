@@ -69,27 +69,48 @@ class BlockStorageInterface(object):
 
 class BlockStorageFile(BlockStorageInterface):
 
-    _index_storage_string = "!LLL"
+    _index_storage_string = "!LLL?"
     _index_offset = struct.calcsize(_index_storage_string)
 
-    def __init__(self, storage_name):
+    def __init__(self,
+                 storage_name,
+                 ignore_lock=False):
+        self._ignore_lock = ignore_lock
+        self._f = None
         if not os.path.exists(storage_name):
             raise IOError("Storage location does not exist: %s"
                           % (storage_name))
-        self._f = None
         self._storage_name = storage_name
         self._f = open(self.storage_name, "r+b")
         self._f.seek(0)
-        self._block_size, self._block_count, user_header_size = \
+        self._block_size, self._block_count, user_header_size, locked = \
             struct.unpack(
                 self._index_storage_string,
                 self._f.read(self._index_offset))
+
+        if locked and (not self._ignore_lock):
+            self._f.close()
+            self._f = None
+            raise IOError(
+                "Can not open block storage device because it is "
+                "locked by another process. To ignore this check, "
+                "initialize this class with the keyword 'ignore_lock' "
+                "set to True.")
         self._user_header_data = bytes()
         if user_header_size > 0:
             self._user_header_data = \
                 self._f.read(user_header_size)
         self._header_offset = self._index_offset + \
                               len(self._user_header_data)
+        if not self._ignore_lock:
+            # turn on the locked flag
+            self._f.seek(0)
+            self._f.write(struct.pack(self._index_storage_string,
+                                      self.block_size,
+                                      self.block_count,
+                                      len(self._user_header_data),
+                                      True))
+            self._f.flush()
 
     #
     # Define BlockStorageInterface Methods
@@ -148,12 +169,14 @@ class BlockStorageFile(BlockStorageInterface):
                     f.write(struct.pack(cls._index_storage_string,
                                         block_size,
                                         block_count,
-                                        0))
+                                        0,
+                                        False))
                 else:
                     f.write(struct.pack(cls._index_storage_string,
                                         block_size,
                                         block_count,
-                                        len(header_data)))
+                                        len(header_data),
+                                        False))
                     f.write(header_data)
                 for i in xrange(block_count):
                     block = initialize(i)
@@ -195,6 +218,15 @@ class BlockStorageFile(BlockStorageInterface):
 
     def close(self):
         if self._f is not None:
+            if not self._ignore_lock:
+                # turn off the locked flag
+                self._f.seek(0)
+                self._f.write(struct.pack(self._index_storage_string,
+                                          self.block_size,
+                                          self.block_count,
+                                          len(self._user_header_data),
+                                          False))
+                self._f.flush()
             try:
                 self._f.close()
             except OSError:                            # pragma: no cover
@@ -299,16 +331,20 @@ class BlockStorageMMapFile(BlockStorageFile):
 class BlockStorageS3(BlockStorageInterface):
 
     _index_name = "/PyORAMBlockStorageS3_index.txt"
-    _header_struct_string = "!LLL"
+    _header_struct_string = "!LLL?"
     _header_offset = struct.calcsize(_header_struct_string)
 
     def __init__(self,
                  storage_name,
+                 ignore_lock=False,
                  bucket_name=None,
                  access_key_id=None,
                  secret_access_key=None,
                  region=None,
                  threadpool_size=4):
+        self._bucket = None
+        self._ignore_lock = ignore_lock
+
         if bucket_name is None:
             raise ValueError("'bucket_name' is required")
         self._storage_name = storage_name
@@ -336,14 +372,31 @@ class BlockStorageS3(BlockStorageInterface):
         index_data = self._s3.meta.client.get_object(
             Bucket=self._bucket.name,
             Key=self._storage_name+self._index_name)['Body']
-        self._block_size, self._block_count, user_header_size = \
+        self._block_size, self._block_count, user_header_size, locked = \
             struct.unpack(
                 self._header_struct_string,
                 index_data.read(self._header_offset))
+        if locked and (not self._ignore_lock):
+            raise IOError(
+                "Can not open block storage device because it is "
+                "locked by another process. To ignore this check, "
+                "initialize this class with the keyword 'ignore_lock' "
+                "set to True.")
         self._user_header_data = bytes()
         if user_header_size > 0:
             self._user_header_data = \
                 index_data.read(user_header_size)
+
+        if not self._ignore_lock:
+            # turn on the locked flag
+            self._bucket.put_object(
+                Key=self._storage_name+self._index_name,
+                Body=struct.pack(cls._header_struct_string,
+                                 self.block_count,
+                                 self.block_size,
+                                 len(self.header_data),
+                                 True) + \
+                     self.header_data)
 
     def _check_async(self):
         if self._async_write is not None:
@@ -425,14 +478,16 @@ class BlockStorageS3(BlockStorageInterface):
                               Body=struct.pack(cls._header_struct_string,
                                                block_size,
                                                block_count,
-                                               0))
+                                               0,
+                                               False))
         else:
             bucket.put_object(Key=storage_name+cls._index_name,
                               Body=struct.pack(cls._header_struct_string,
                                                block_size,
                                                block_count,
-                                               len(header_data)) + \
-                                               header_data)
+                                               len(header_data),
+                                               False) + \
+                                    header_data)
 
         if initialize is None:
             zeros = bytes(bytearray(block_size))
@@ -486,6 +541,17 @@ class BlockStorageS3(BlockStorageInterface):
             Body=bytes(index_data))
 
     def close(self):
+        if self._bucket is not None:
+            if not self._ignore_lock:
+                # turn off the locked flag
+                self._bucket.put_object(
+                    Key=self._storage_name+self._index_name,
+                    Body=struct.pack(cls._header_struct_string,
+                                     self.block_count,
+                                     self.block_size,
+                                     len(self.header_data),
+                                     False) + \
+                         self.header_data)
         self._check_async()
 
     def read_blocks(self, indices):

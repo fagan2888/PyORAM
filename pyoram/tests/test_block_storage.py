@@ -313,6 +313,26 @@ class _TestBlockStorage(object):
             self.assertEqual(f.header_data, new_header_data)
         os.remove(fname)
 
+    def test_locked_flag(self):
+        with self._type(self._testfname) as f:
+            with self.assertRaises(IOError):
+                with self._type(self._testfname) as f1:
+                    pass
+            with self.assertRaises(IOError):
+                with self._type(self._testfname) as f1:
+                    pass
+            with self._type(self._testfname, ignore_lock=True) as f1:
+                pass
+            with self.assertRaises(IOError):
+                with self._type(self._testfname) as f1:
+                    pass
+            with self._type(self._testfname, ignore_lock=True) as f1:
+                pass
+            with self._type(self._testfname, ignore_lock=True) as f1:
+                pass
+        with self._type(self._testfname, ignore_lock=True) as f:
+            pass
+
 class TestBlockStorageFile(_TestBlockStorage,
                            unittest.TestCase):
     _type = BlockStorageFile

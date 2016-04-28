@@ -418,6 +418,45 @@ class _TestEncryptedBlockStorage(object):
             self.assertEqual(f.header_data, new_header_data)
         os.remove(fname)
 
+    def test_locked_flag(self):
+        with EncryptedBlockStorage(self._testfname,
+                                   key=self._key,
+                                   storage_type=self._type_name) as f:
+            with self.assertRaises(IOError):
+                with EncryptedBlockStorage(self._testfname,
+                                           key=self._key,
+                                           storage_type=self._type_name) as f1:
+                    pass
+            with self.assertRaises(IOError):
+                with EncryptedBlockStorage(self._testfname,
+                                           key=self._key,
+                                           storage_type=self._type_name) as f1:
+                    pass
+            with EncryptedBlockStorage(self._testfname,
+                                       key=self._key,
+                                       storage_type=self._type_name,
+                                       ignore_lock=True) as f1:
+                pass
+            with self.assertRaises(IOError):
+                with EncryptedBlockStorage(self._testfname,
+                                           key=self._key,
+                                           storage_type=self._type_name) as f1:
+                    pass
+            with EncryptedBlockStorage(self._testfname,
+                                       key=self._key,
+                                       storage_type=self._type_name,
+                                       ignore_lock=True) as f1:
+                pass
+            with EncryptedBlockStorage(self._testfname,
+                                       key=self._key,
+                                       storage_type=self._type_name,
+                                       ignore_lock=True) as f1:
+                pass
+        with EncryptedBlockStorage(self._testfname,
+                                   key=self._key,
+                                   storage_type=self._type_name) as f:
+            pass
+
 class TestEncryptedBlockStorageFileCTRKey(_TestEncryptedBlockStorage,
                                           unittest.TestCase):
     _type_name = 'file'
