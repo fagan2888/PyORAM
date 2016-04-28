@@ -53,7 +53,11 @@ class _TestEncryptedBlockStorage(object):
             pass                                       # pragma: no cover
 
     def test_setup_fails(self):
-        dummy_name = "sdfsdfsldkfjwerwerfsdfsdfsd"
+        dummy_name = "sdfsdfsldkfjwerwerfsdsdfsdfsdfsdffsdfsd"
+        try:
+            os.remove(dummy_name)
+        except OSError:
+            pass                                       # pragma: no cover
         self.assertEqual(os.path.exists(dummy_name), False)
         with self.assertRaises(ValueError):
             EncryptedBlockStorage.setup(
@@ -129,6 +133,23 @@ class _TestEncryptedBlockStorage(object):
                 block_size=1,
                 block_count=1,
                 key=-1,
+                aes_mode=self._aes_mode,
+                storage_type=self._type_name)
+        with self.assertRaises(ValueError):
+            EncryptedBlockStorage.setup(
+                dummy_name,
+                block_size=1,
+                block_count=1,
+                key=AES.KeyGen(AES.key_sizes[-1]),
+                key_size=AES.key_sizes[-1],
+                aes_mode=self._aes_mode,
+                storage_type=self._type_name)
+        with self.assertRaises(ValueError):
+            EncryptedBlockStorage.setup(
+                dummy_name,
+                block_size=1,
+                block_count=1,
+                key_size=AES.key_sizes[-1]+100,
                 aes_mode=self._aes_mode,
                 storage_type=self._type_name)
 
@@ -497,13 +518,11 @@ class TestEncryptedBlockStorageMMapFileGCMKey(_TestEncryptedBlockStorage,
                                               unittest.TestCase):
     _type_name = 'mmap'
     _aes_mode = 'gcm'
-    _test_key = AES.KeyGen(32)
 
 class TestEncryptedBlockStorageMMapFileGCM32(_TestEncryptedBlockStorage,
                                              unittest.TestCase):
     _type_name = 'mmap'
     _aes_mode = 'gcm'
-    _test_key_size = 32
 
 if __name__ == "__main__":
     unittest.main()                                    # pragma: no cover
