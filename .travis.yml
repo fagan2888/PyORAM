@@ -14,6 +14,7 @@ before_install:
   - sudo apt-get update -q
   - sudo apt-get install graphviz -y
 install:
+  - pip install -v -U pip setuptools
   - pip install -v -e .
   - pip install codecov coverage
 script: nosetests -v pyoram --with-coverage
