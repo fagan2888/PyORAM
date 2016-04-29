@@ -23,7 +23,7 @@ def runtest(label, enc_func, dec_func):
         #
         # generate some plaintext
         #
-        nblocks = 10000000
+        nblocks = 1000000
         plaintext_numbytes = AES.block_size * nblocks
         print("Plaintext Size: %s MB"
               % (plaintext_numbytes * 1.0e-6))
@@ -79,7 +79,7 @@ def runtest(label, enc_func, dec_func):
         #
         # generate some plaintext
         #
-        nblocks = 10000
+        nblocks = 1000
         blocksize = 16000
         total_bytes = blocksize * nblocks
         print("Block Size: %s KB" % (blocksize * 1.0e-3))
