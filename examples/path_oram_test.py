@@ -4,7 +4,7 @@ import random
 
 from pyoram.storage.virtualheap import \
     SizedVirtualHeap
-from pyoram.tree.pathoram import PathORAM
+from pyoram.tree.path_oram import PathORAM
 
 def main():
     storage_name = "heap.bin"

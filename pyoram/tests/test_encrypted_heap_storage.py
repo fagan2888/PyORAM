@@ -1,5 +1,6 @@
 import os
 import unittest
+import tempfile
 
 from pyoram.storage.virtualheap import \
     SizedVirtualHeap
@@ -17,6 +18,12 @@ class TestEncryptedHeapStorage(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
+        fd, cls._dummy_name = tempfile.mkstemp()
+        os.close(fd)
+        try:
+            os.remove(cls._dummy_name)
+        except OSError:                                # pragma: no cover
+            pass                                       # pragma: no cover
         cls._block_size = 25
         cls._blocks_per_bucket = 3
         cls._heap_base = 4
@@ -55,10 +62,13 @@ class TestEncryptedHeapStorage(unittest.TestCase):
             os.remove(cls._testfname)
         except OSError:                                # pragma: no cover
             pass                                       # pragma: no cover
+        try:
+            os.remove(cls._dummy_name)
+        except OSError:                                # pragma: no cover
+            pass                                       # pragma: no cover
 
     def test_setup_fails(self):
-        dummy_name = "sdfsdfsldkfjwerwerfsdfsdfsd"
-        self.assertEqual(os.path.exists(dummy_name), False)
+        self.assertEqual(os.path.exists(self._dummy_name), False)
         with self.assertRaises(ValueError):
             EncryptedHeapStorage.setup(
                 os.path.join(thisdir,
@@ -69,6 +79,7 @@ class TestEncryptedHeapStorage(unittest.TestCase):
                 key_size=AES.key_sizes[-1],
                 blocks_per_bucket=1,
                 storage_type=self._type_name)
+        self.assertEqual(os.path.exists(self._dummy_name), False)
         with self.assertRaises(ValueError):
             EncryptedHeapStorage.setup(
                 os.path.join(thisdir,
@@ -80,62 +91,69 @@ class TestEncryptedHeapStorage(unittest.TestCase):
                 blocks_per_bucket=1,
                 storage_type=self._type_name,
                 ignore_existing=False)
+        self.assertEqual(os.path.exists(self._dummy_name), False)
         # bad block_size
         with self.assertRaises(ValueError):
             EncryptedHeapStorage.setup(
-                dummy_name,
+                self._dummy_name,
                 block_size=0,
                 heap_height=1,
                 key_size=AES.key_sizes[-1],
                 blocks_per_bucket=1,
                 storage_type=self._type_name)
+        self.assertEqual(os.path.exists(self._dummy_name), False)
         # bad heap_height
         with self.assertRaises(ValueError):
             EncryptedHeapStorage.setup(
-                dummy_name,
+                self._dummy_name,
                 block_size=1,
                 heap_height=-1,
                 blocks_per_bucket=1,
                 storage_type=self._type_name)
+        self.assertEqual(os.path.exists(self._dummy_name), False)
         # bad blocks_per_bucket
         with self.assertRaises(ValueError):
             EncryptedHeapStorage.setup(
-                dummy_name,
+                self._dummy_name,
                 block_size=1,
                 heap_height=1,
                 key_size=AES.key_sizes[-1],
                 blocks_per_bucket=0,
                 storage_type=self._type_name)
+        self.assertEqual(os.path.exists(self._dummy_name), False)
         # bad heap_base
         with self.assertRaises(ValueError):
             EncryptedHeapStorage.setup(
-                dummy_name,
+                self._dummy_name,
                 block_size=1,
                 heap_height=1,
                 key_size=AES.key_sizes[-1],
                 blocks_per_bucket=1,
                 heap_base=1,
                 storage_type=self._type_name)
+        self.assertEqual(os.path.exists(self._dummy_name), False)
         # bad header_data
         with self.assertRaises(TypeError):
             EncryptedHeapStorage.setup(
-                dummy_name,
+                self._dummy_name,
                 block_size=1,
                 heap_height=1,
                 key_size=AES.key_sizes[-1],
                 blocks_per_bucket=1,
                 storage_type=self._type_name,
                 header_data=2)
+        self.assertEqual(os.path.exists(self._dummy_name), False)
         # uses block_count
         with self.assertRaises(ValueError):
             EncryptedHeapStorage.setup(
-                dummy_name,
+                self._dummy_name,
                 block_size=1,
                 heap_height=1,
                 key_size=AES.key_sizes[-1],
                 blocks_per_bucket=1,
                 block_count=1,
                 storage_type=self._type_name)
+        self.assertEqual(os.path.exists(self._dummy_name), False)
 
     def test_setup(self):
         fname = ".".join(self.id().split(".")[1:])
@@ -263,12 +281,10 @@ class TestEncryptedHeapStorage(unittest.TestCase):
         os.remove(fname)
 
     def test_init_noexists(self):
-        self.assertEqual(
-            not os.path.exists(self._testfname+"SDFSDFSDFSFSDFS"),
-            True)
+        self.assertEqual(os.path.exists(self._dummy_name), False)
         with self.assertRaises(IOError):
             with EncryptedHeapStorage(
-                    self._testfname+"SDFSDFSDFSFSDFS",
+                    self._dummy_name,
                     key=self._key,
                     storage_type=self._type_name) as f:
                 pass                                   # pragma: no cover

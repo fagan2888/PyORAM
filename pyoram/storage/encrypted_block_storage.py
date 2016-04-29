@@ -20,8 +20,8 @@ class EncryptedBlockStorageInterface(BlockStorageInterface):
 
 class EncryptedBlockStorage(EncryptedBlockStorageInterface):
 
-    _header_struct_string = "!?"
-    _header_offset = struct.calcsize(_header_struct_string)
+    _index_struct_string = "!?"
+    _index_offset = struct.calcsize(_index_struct_string)
 
     def __init__(self, storage, **kwds):
         self._key = kwds.pop('key', None)
@@ -44,8 +44,8 @@ class EncryptedBlockStorage(EncryptedBlockStorageInterface):
         header_data = AES.GCMDec(self._key,
                                  self._storage.header_data)
         (self._ismodegcm,) = struct.unpack(
-            self._header_struct_string,
-            header_data[:self._header_offset])
+            self._index_struct_string,
+            header_data[:self._index_offset])
         if self._ismodegcm:
             self._encrypt_block_func = AES.GCMEnc
             self._decrypt_block_func = AES.GCMDec
@@ -92,7 +92,7 @@ class EncryptedBlockStorage(EncryptedBlockStorageInterface):
                         ignore_header=True,
                         **kwds)
         else:
-            return cls._header_offset + \
+            return cls._index_offset + \
                    2 * AES.block_size + \
                    (extra_block_data * block_count) + \
                    storage_type.compute_storage_size(
@@ -167,7 +167,7 @@ class EncryptedBlockStorage(EncryptedBlockStorageInterface):
             raise TypeError(
                 "'header_data' must be of type bytes. "
                 "Invalid type: %s" % (type(user_header_data)))
-        header_data = struct.pack(cls._header_struct_string,
+        header_data = struct.pack(cls._index_struct_string,
                                   ismodegcm) + \
                         user_header_data
         kwds['header_data'] = AES.GCMEnc(key, header_data)
@@ -182,7 +182,7 @@ class EncryptedBlockStorage(EncryptedBlockStorageInterface):
     def header_data(self):
         return AES.GCMDec(self._key,
                           self._storage.header_data)\
-                          [self._header_offset:]
+                          [self._index_offset:]
 
     @property
     def block_count(self):
@@ -205,7 +205,7 @@ class EncryptedBlockStorage(EncryptedBlockStorageInterface):
                 self.key,
                 AES.GCMDec(self._key,
                            self._storage.header_data)\
-                           [:self._header_offset] + \
+                           [:self._index_offset] + \
                            new_header_data))
 
     def close(self):

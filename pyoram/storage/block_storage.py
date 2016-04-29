@@ -42,6 +42,7 @@ class BlockStorageInterface(object):
     @classmethod
     def setup(cls, *args, **kwds):
         raise NotImplementedError                      # pragma: no cover
+
     @property
     def header_data(self, *args, **kwds):
         raise NotImplementedError                      # pragma: no cover
@@ -54,6 +55,7 @@ class BlockStorageInterface(object):
     @property
     def storage_name(self, *args, **kwds):
         raise NotImplementedError                      # pragma: no cover
+
     def update_header_data(self, *args, **kwds):
         raise NotImplementedError                      # pragma: no cover
     def close(self, *args, **kwds):
@@ -331,8 +333,8 @@ class BlockStorageMMapFile(BlockStorageFile):
 class BlockStorageS3(BlockStorageInterface):
 
     _index_name = "/PyORAMBlockStorageS3_index.txt"
-    _header_struct_string = "!LLL?"
-    _header_offset = struct.calcsize(_header_struct_string)
+    _index_struct_string = "!LLL?"
+    _index_offset = struct.calcsize(_index_struct_string)
 
     def __init__(self,
                  storage_name,
@@ -374,8 +376,8 @@ class BlockStorageS3(BlockStorageInterface):
             Key=self._storage_name+self._index_name)['Body']
         self._block_size, self._block_count, user_header_size, locked = \
             struct.unpack(
-                self._header_struct_string,
-                index_data.read(self._header_offset))
+                self._index_struct_string,
+                index_data.read(self._index_offset))
         if locked and (not self._ignore_lock):
             raise IOError(
                 "Can not open block storage device because it is "
@@ -391,7 +393,7 @@ class BlockStorageS3(BlockStorageInterface):
             # turn on the locked flag
             self._bucket.put_object(
                 Key=self._storage_name+self._index_name,
-                Body=struct.pack(cls._header_struct_string,
+                Body=struct.pack(cls._index_struct_string,
                                  self.block_count,
                                  self.block_size,
                                  len(self.header_data),
@@ -420,7 +422,7 @@ class BlockStorageS3(BlockStorageInterface):
         if ignore_header:
             return block_size * block_count
         else:
-            return self._header_offset + \
+            return self._index_offset + \
                     len(header_data) + \
                     block_size * block_count
 
@@ -475,14 +477,14 @@ class BlockStorageS3(BlockStorageInterface):
 
         if header_data is None:
             bucket.put_object(Key=storage_name+cls._index_name,
-                              Body=struct.pack(cls._header_struct_string,
+                              Body=struct.pack(cls._index_struct_string,
                                                block_size,
                                                block_count,
                                                0,
                                                False))
         else:
             bucket.put_object(Key=storage_name+cls._index_name,
-                              Body=struct.pack(cls._header_struct_string,
+                              Body=struct.pack(cls._index_struct_string,
                                                block_size,
                                                block_count,
                                                len(header_data),
@@ -534,7 +536,7 @@ class BlockStorageS3(BlockStorageInterface):
             Bucket=self._bucket.name,
             Key=self._storage_name+self._index_name)['Body'].read())
         lenbefore = len(index_data)
-        index_data[self._header_offset:] = new_header_data
+        index_data[self._index_offset:] = new_header_data
         assert lenbefore == len(index_data)
         self._bucket.put_object(
             Key=self._storage_name+self._index_name,
@@ -546,7 +548,7 @@ class BlockStorageS3(BlockStorageInterface):
                 # turn off the locked flag
                 self._bucket.put_object(
                     Key=self._storage_name+self._index_name,
-                    Body=struct.pack(cls._header_struct_string,
+                    Body=struct.pack(cls._index_struct_string,
                                      self.block_count,
                                      self.block_size,
                                      len(self.header_data),

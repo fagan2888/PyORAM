@@ -1,5 +1,6 @@
 import os
 import unittest
+import tempfile
 
 from pyoram.storage.block_storage import \
     (BlockStorageTypeFactory,
@@ -36,6 +37,12 @@ class _TestBlockStorage(object):
     @classmethod
     def setUpClass(cls):
         assert cls._type is not None
+        fd, cls._dummy_name = tempfile.mkstemp()
+        os.close(fd)
+        try:
+            os.remove(cls._dummy_name)
+        except OSError:                                # pragma: no cover
+            pass                                       # pragma: no cover
         cls._block_size = 25
         cls._block_count = 5
         cls._testfname = cls.__name__ + "_testfile.bin"
@@ -56,10 +63,13 @@ class _TestBlockStorage(object):
             os.remove(cls._testfname)
         except OSError:                                # pragma: no cover
             pass                                       # pragma: no cover
+        try:
+            os.remove(cls._dummy_name)
+        except OSError:                                # pragma: no cover
+            pass                                       # pragma: no cover
 
     def test_setup_fails(self):
-        dummy_name = "sdfsdfsldkfjwerwerfsdfsdfsd"
-        self.assertEqual(os.path.exists(dummy_name), False)
+        self.assertEqual(os.path.exists(self._dummy_name), False)
         with self.assertRaises(ValueError):
             self._type.setup(
                 os.path.join(thisdir,
@@ -67,7 +77,7 @@ class _TestBlockStorage(object):
                              "exists.empty"),
                 block_size=10,
                 block_count=10)
-        self.assertEqual(os.path.exists(dummy_name), False)
+        self.assertEqual(os.path.exists(self._dummy_name), False)
         with self.assertRaises(ValueError):
             self._type.setup(
                 os.path.join(thisdir,
@@ -76,31 +86,31 @@ class _TestBlockStorage(object):
                 block_size=10,
                 block_count=10,
                 ignore_existing=False)
-        self.assertEqual(os.path.exists(dummy_name), False)
+        self.assertEqual(os.path.exists(self._dummy_name), False)
         with self.assertRaises(ValueError):
-            self._type.setup(dummy_name,
+            self._type.setup(self._dummy_name,
                              block_size=0,
                              block_count=1)
-        self.assertEqual(os.path.exists(dummy_name), False)
+        self.assertEqual(os.path.exists(self._dummy_name), False)
         with self.assertRaises(ValueError):
-            self._type.setup(dummy_name,
+            self._type.setup(self._dummy_name,
                              block_size=1,
                              block_count=0)
-        self.assertEqual(os.path.exists(dummy_name), False)
+        self.assertEqual(os.path.exists(self._dummy_name), False)
         with self.assertRaises(TypeError):
-            self._type.setup(dummy_name,
+            self._type.setup(self._dummy_name,
                              block_size=1,
                              block_count=1,
                              header_data=2)
-        self.assertEqual(os.path.exists(dummy_name), False)
+        self.assertEqual(os.path.exists(self._dummy_name), False)
         with self.assertRaises(ValueError):
             def _init(i):
                 raise ValueError
-            self._type.setup(dummy_name,
+            self._type.setup(self._dummy_name,
                              block_size=1,
                              block_count=1,
                              initialize=_init)
-        self.assertEqual(os.path.exists(dummy_name), False)
+        self.assertEqual(os.path.exists(self._dummy_name), False)
 
     def test_setup(self):
         fname = ".".join(self.id().split(".")[1:])
@@ -183,15 +193,14 @@ class _TestBlockStorage(object):
         os.remove(fname)
 
     def test_init_noexists(self):
-        self.assertEqual(not os.path.exists(self._testfname+"SDFSDFSDFSFSDFS"),
-                         True)
+        self.assertEqual(os.path.exists(self._dummy_name), False)
         with self.assertRaises(IOError):
-            with self._type(self._testfname+"SDFSDFSDFSFSDFS") as f:
+            with self._type(self._dummy_name) as f:
                 pass                                   # pragma: no cover
 
     def test_init_exists(self):
         self.assertEqual(os.path.exists(self._testfname), True)
-        with open(self._testfname) as f:
+        with open(self._testfname, 'rb') as f:
             databefore = f.read()
         with self._type(self._testfname) as f:
             self.assertEqual(f.block_size, self._block_size)
@@ -199,7 +208,7 @@ class _TestBlockStorage(object):
             self.assertEqual(f.storage_name, self._testfname)
             self.assertEqual(f.header_data, bytes())
         self.assertEqual(os.path.exists(self._testfname), True)
-        with open(self._testfname) as f:
+        with open(self._testfname, 'rb') as f:
             dataafter = f.read()
         self.assertEqual(databefore, dataafter)
 

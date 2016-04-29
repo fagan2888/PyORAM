@@ -2,22 +2,23 @@ import os
 import unittest
 import tempfile
 
-from pyoram.storage.block_storage import \
-    BlockStorageTypeFactory
-from pyoram.storage.encrypted_block_storage import \
-    EncryptedBlockStorage
+from pyoram.tree.path_oram import PathORAM
+from pyoram.storage.encrypted_heap_storage import \
+    EncryptedHeapStorage
 from pyoram.crypto.aes import AES
 
 from six.moves import xrange
 
 thisdir = os.path.dirname(os.path.abspath(__file__))
 
-class _TestEncryptedBlockStorage(object):
+class _TestPathORAMBase(object):
 
     _type_name = None
     _aes_mode = None
     _test_key = None
     _test_key_size = None
+    _bucket_capacity = None
+    _heap_base = None
 
     @classmethod
     def setUpClass(cls):
@@ -25,6 +26,8 @@ class _TestEncryptedBlockStorage(object):
         assert cls._aes_mode is not None
         assert not ((cls._test_key is not None) and \
                     (cls._test_key_size is not None))
+        assert cls._bucket_capacity is not None
+        assert cls._heap_base is not None
         fd, cls._dummy_name = tempfile.mkstemp()
         os.close(fd)
         try:
@@ -32,13 +35,15 @@ class _TestEncryptedBlockStorage(object):
         except OSError:                                # pragma: no cover
             pass                                       # pragma: no cover
         cls._block_size = 25
-        cls._block_count = 5
+        cls._block_count = 47
         cls._testfname = cls.__name__ + "_testfile.bin"
         cls._blocks = []
-        f = EncryptedBlockStorage.setup(
+        f = PathORAM.setup(
             cls._testfname,
             cls._block_size,
             cls._block_count,
+            bucket_capacity=cls._bucket_capacity,
+            heap_base=cls._heap_base,
             key_size=cls._test_key_size,
             key=cls._test_key,
             storage_type=cls._type_name,
@@ -47,10 +52,21 @@ class _TestEncryptedBlockStorage(object):
             ignore_existing=True)
         f.close()
         cls._key = f.key
-
+        cls._stash = f.stash
+        cls._position_map = f.position_map
         for i in range(cls._block_count):
             data = bytearray([i])*cls._block_size
             cls._blocks.append(data)
+    def _open_testfile(self, *args, **kwds):
+        _kwds = {'key': self._key}
+        _kwds.update(kwds)
+        if len(args):
+            return PathORAM(*args, **_kwds)
+        else:
+            return PathORAM(self._testfname,
+                            self._stash,
+                            self._position_map,
+                            **_kwds)
 
     @classmethod
     def tearDownClass(cls):
@@ -66,24 +82,28 @@ class _TestEncryptedBlockStorage(object):
     def test_setup_fails(self):
         self.assertEqual(os.path.exists(self._dummy_name), False)
         with self.assertRaises(ValueError):
-            EncryptedBlockStorage.setup(
+            PathORAM.setup(
                 os.path.join(thisdir,
                              "baselines",
                              "exists.empty"),
                 block_size=10,
                 block_count=10,
+                bucket_capacity=self._bucket_capacity,
+                heap_base=self._heap_base,
                 key=self._test_key,
                 key_size=self._test_key_size,
                 aes_mode=self._aes_mode,
                 storage_type=self._type_name)
         self.assertEqual(os.path.exists(self._dummy_name), False)
         with self.assertRaises(ValueError):
-            EncryptedBlockStorage.setup(
+            PathORAM.setup(
                 os.path.join(thisdir,
                              "baselines",
                              "exists.empty"),
                 block_size=10,
                 block_count=10,
+                bucket_capacity=self._bucket_capacity,
+                heap_base=self._heap_base,
                 key=self._test_key,
                 key_size=self._test_key_size,
                 storage_type=self._type_name,
@@ -91,30 +111,36 @@ class _TestEncryptedBlockStorage(object):
                 ignore_existing=False)
         self.assertEqual(os.path.exists(self._dummy_name), False)
         with self.assertRaises(ValueError):
-            EncryptedBlockStorage.setup(
+            PathORAM.setup(
                 self._dummy_name,
-                block_size=0,
-                block_count=1,
+                block_size=1,
+                block_count=0,
+                bucket_capacity=self._bucket_capacity,
+                heap_base=self._heap_base,
                 key=self._test_key,
                 key_size=self._test_key_size,
                 aes_mode=self._aes_mode,
                 storage_type=self._type_name)
         self.assertEqual(os.path.exists(self._dummy_name), False)
         with self.assertRaises(ValueError):
-            EncryptedBlockStorage.setup(
+            PathORAM.setup(
                 self._dummy_name,
-                block_size=1,
-                block_count=0,
+                block_size=0,
+                block_count=1,
+                bucket_capacity=self._bucket_capacity,
+                heap_base=self._heap_base,
                 key=self._test_key,
                 key_size=self._test_key_size,
                 aes_mode=self._aes_mode,
                 storage_type=self._type_name)
         self.assertEqual(os.path.exists(self._dummy_name), False)
         with self.assertRaises(TypeError):
-            EncryptedBlockStorage.setup(
+            PathORAM.setup(
                 self._dummy_name,
                 block_size=1,
                 block_count=1,
+                bucket_capacity=self._bucket_capacity,
+                heap_base=self._heap_base,
                 key=self._test_key,
                 key_size=self._test_key_size,
                 aes_mode=self._aes_mode,
@@ -122,48 +148,82 @@ class _TestEncryptedBlockStorage(object):
                 header_data=2)
         self.assertEqual(os.path.exists(self._dummy_name), False)
         with self.assertRaises(ValueError):
-            EncryptedBlockStorage.setup(
+            PathORAM.setup(
                 self._dummy_name,
                 block_size=1,
                 block_count=1,
+                bucket_capacity=self._bucket_capacity,
+                heap_base=self._heap_base,
                 key=self._test_key,
                 key_size=self._test_key_size,
                 aes_mode=None,
                 storage_type=self._type_name)
         self.assertEqual(os.path.exists(self._dummy_name), False)
         with self.assertRaises(ValueError):
-            EncryptedBlockStorage.setup(
+            PathORAM.setup(
                 self._dummy_name,
                 block_size=1,
                 block_count=1,
+                bucket_capacity=0,
+                heap_base=self._heap_base,
+                key=self._test_key,
+                key_size=self._test_key_size,
+                aes_mode=self._aes_mode,
+                storage_type=self._type_name)
+        self.assertEqual(os.path.exists(self._dummy_name), False)
+        with self.assertRaises(ValueError):
+            PathORAM.setup(
+                self._dummy_name,
+                block_size=1,
+                block_count=1,
+                bucket_capacity=self._bucket_capacity,
+                heap_base=1,
+                key=self._test_key,
+                key_size=self._test_key_size,
+                aes_mode=self._aes_mode,
+                storage_type=self._type_name)
+        self.assertEqual(os.path.exists(self._dummy_name), False)
+        with self.assertRaises(ValueError):
+            PathORAM.setup(
+                self._dummy_name,
+                block_size=1,
+                block_count=1,
+                bucket_capacity=self._bucket_capacity,
+                heap_base=self._heap_base,
                 key_size=-1,
                 aes_mode=self._aes_mode,
                 storage_type=self._type_name)
         self.assertEqual(os.path.exists(self._dummy_name), False)
         with self.assertRaises(TypeError):
-            EncryptedBlockStorage.setup(
+            PathORAM.setup(
                 self._dummy_name,
                 block_size=1,
                 block_count=1,
+                bucket_capacity=self._bucket_capacity,
+                heap_base=self._heap_base,
                 key=-1,
                 aes_mode=self._aes_mode,
                 storage_type=self._type_name)
         self.assertEqual(os.path.exists(self._dummy_name), False)
         with self.assertRaises(ValueError):
-            EncryptedBlockStorage.setup(
+            PathORAM.setup(
                 self._dummy_name,
                 block_size=1,
                 block_count=1,
+                bucket_capacity=self._bucket_capacity,
+                heap_base=self._heap_base,
                 key=AES.KeyGen(AES.key_sizes[-1]),
                 key_size=AES.key_sizes[-1],
                 aes_mode=self._aes_mode,
                 storage_type=self._type_name)
         self.assertEqual(os.path.exists(self._dummy_name), False)
         with self.assertRaises(ValueError):
-            EncryptedBlockStorage.setup(
+            PathORAM.setup(
                 self._dummy_name,
                 block_size=1,
                 block_count=1,
+                bucket_capacity=self._bucket_capacity,
+                heap_base=self._heap_base,
                 key=os.urandom(AES.key_sizes[-1]+100),
                 aes_mode=self._aes_mode,
                 storage_type=self._type_name)
@@ -176,10 +236,12 @@ class _TestEncryptedBlockStorage(object):
             os.remove(fname)                           # pragma: no cover
         bsize = 10
         bcount = 11
-        fsetup = EncryptedBlockStorage.setup(
+        fsetup = PathORAM.setup(
             fname,
             bsize,
             bcount,
+            bucket_capacity=self._bucket_capacity,
+            heap_base=self._heap_base,
             key=self._test_key,
             key_size=self._test_key_size,
             aes_mode=self._aes_mode,
@@ -189,23 +251,29 @@ class _TestEncryptedBlockStorage(object):
             flen = len(f.read())
             self.assertEqual(
                 flen,
-                EncryptedBlockStorage.compute_storage_size(
+                PathORAM.compute_storage_size(
                     bsize,
                     bcount,
+                    bucket_capacity=self._bucket_capacity,
+                    heap_base=self._heap_base,
                     aes_mode=self._aes_mode,
                     storage_type=self._type_name))
             self.assertEqual(
                 flen >
-                EncryptedBlockStorage.compute_storage_size(
+                PathORAM.compute_storage_size(
                     bsize,
                     bcount,
+                    bucket_capacity=self._bucket_capacity,
+                    heap_base=self._heap_base,
                     aes_mode=self._aes_mode,
                     storage_type=self._type_name,
                     ignore_header=True),
                 True)
-        with EncryptedBlockStorage(fname,
-                                   key=fsetup.key,
-                                   storage_type=self._type_name) as f:
+        with PathORAM(fname,
+                      fsetup.stash,
+                      fsetup.position_map,
+                      key=fsetup.key,
+                      storage_type=self._type_name) as f:
             self.assertEqual(f.header_data, bytes())
             self.assertEqual(fsetup.header_data, bytes())
             self.assertEqual(f.key, fsetup.key)
@@ -226,10 +294,12 @@ class _TestEncryptedBlockStorage(object):
         bsize = 10
         bcount = 11
         header_data = bytes(bytearray([0,1,2]))
-        fsetup = EncryptedBlockStorage.setup(
+        fsetup = PathORAM.setup(
             fname,
             block_size=bsize,
             block_count=bcount,
+            bucket_capacity=self._bucket_capacity,
+            heap_base=self._heap_base,
             key=self._test_key,
             key_size=self._test_key_size,
             aes_mode=self._aes_mode,
@@ -240,39 +310,49 @@ class _TestEncryptedBlockStorage(object):
             flen = len(f.read())
             self.assertEqual(
                 flen,
-                EncryptedBlockStorage.compute_storage_size(
+                PathORAM.compute_storage_size(
                     bsize,
                     bcount,
+                    bucket_capacity=self._bucket_capacity,
+                    heap_base=self._heap_base,
                     aes_mode=self._aes_mode,
                     storage_type=self._type_name,
                     header_data=header_data))
             self.assertTrue(len(header_data) > 0)
             self.assertEqual(
-                EncryptedBlockStorage.compute_storage_size(
+                PathORAM.compute_storage_size(
                     bsize,
                     bcount,
+                    bucket_capacity=self._bucket_capacity,
+                    heap_base=self._heap_base,
                     aes_mode=self._aes_mode,
                     storage_type=self._type_name) <
-                EncryptedBlockStorage.compute_storage_size(
+                PathORAM.compute_storage_size(
                     bsize,
                     bcount,
+                    bucket_capacity=self._bucket_capacity,
+                    heap_base=self._heap_base,
                     aes_mode=self._aes_mode,
                     storage_type=self._type_name,
                     header_data=header_data),
                 True)
             self.assertEqual(
                 flen >
-                EncryptedBlockStorage.compute_storage_size(
+                PathORAM.compute_storage_size(
                     bsize,
                     bcount,
+                    bucket_capacity=self._bucket_capacity,
+                    heap_base=self._heap_base,
                     aes_mode=self._aes_mode,
                     storage_type=self._type_name,
                     header_data=header_data,
                     ignore_header=True),
                 True)
-        with EncryptedBlockStorage(fname,
-                                   key=fsetup.key,
-                                   storage_type=self._type_name) as f:
+        with PathORAM(fname,
+                      fsetup.stash,
+                      fsetup.position_map,
+                      key=fsetup.key,
+                      storage_type=self._type_name) as f:
             self.assertEqual(f.header_data, header_data)
             self.assertEqual(fsetup.header_data, header_data)
             self.assertEqual(f.key, fsetup.key)
@@ -287,8 +367,10 @@ class _TestEncryptedBlockStorage(object):
     def test_init_noexists(self):
         self.assertEqual(os.path.exists(self._dummy_name), False)
         with self.assertRaises(IOError):
-            with EncryptedBlockStorage(
+            with PathORAM(
                     self._dummy_name,
+                    self._stash,
+                    self._position_map,
                     key=self._key,
                     storage_type=self._type_name) as f:
                 pass                                   # pragma: no cover
@@ -298,18 +380,26 @@ class _TestEncryptedBlockStorage(object):
         with open(self._testfname, 'rb') as f:
             databefore = f.read()
         with self.assertRaises(ValueError):
-            with EncryptedBlockStorage(self._testfname,
-                                       storage_type=self._type_name) as f:
+            with PathORAM(self._testfname,
+                          self._stash,
+                          self._position_map,
+                          storage_type=self._type_name) as f:
                 pass                                   # pragma: no cover
         with self.assertRaises(ValueError):
-            with BlockStorageTypeFactory(self._type_name)(self._testfname) as fb:
-                with EncryptedBlockStorage(fb,
-                                           key=self._key,
-                                           storage_type=self._type_name) as f:
+            with EncryptedHeapStorage(self._testfname,
+                                      key=self._key,
+                                      storage_type=self._type_name) as fb:
+                with PathORAM(fb,
+                              self._stash,
+                              self._position_map,
+                              key=self._key,
+                              storage_type=self._type_name) as f:
                     pass                               # pragma: no cover
-        with EncryptedBlockStorage(self._testfname,
-                                   key=self._key,
-                                   storage_type=self._type_name) as f:
+        with PathORAM(self._testfname,
+                      self._stash,
+                      self._position_map,
+                      key=self._key,
+                      storage_type=self._type_name) as f:
             self.assertEqual(f.key, self._key)
             self.assertEqual(f.block_size, self._block_size)
             self.assertEqual(f.block_count, self._block_count)
@@ -318,12 +408,15 @@ class _TestEncryptedBlockStorage(object):
         self.assertEqual(os.path.exists(self._testfname), True)
         with open(self._testfname, 'rb') as f:
             dataafter = f.read()
-        self.assertEqual(databefore, dataafter)
+        self.assertEqual(databefore[-(self._block_count*self._block_size):],
+                         dataafter[-(self._block_count*self._block_size):])
 
     def test_read_block(self):
-        with EncryptedBlockStorage(self._testfname,
-                                   key=self._key,
-                                   storage_type=self._type_name) as f:
+        with PathORAM(self._testfname,
+                      self._stash,
+                      self._position_map,
+                      key=self._key,
+                      storage_type=self._type_name) as f:
             for i, data in enumerate(self._blocks):
                 self.assertEqual(list(bytearray(f.read_block(i))),
                                  list(self._blocks[i]))
@@ -336,9 +429,11 @@ class _TestEncryptedBlockStorage(object):
             for i, data in reversed(list(enumerate(self._blocks))):
                 self.assertEqual(list(bytearray(f.read_block(i))),
                                  list(self._blocks[i]))
-        with EncryptedBlockStorage(self._testfname,
-                                   key=self._key,
-                                   storage_type=self._type_name) as f:
+        with PathORAM(self._testfname,
+                      self._stash,
+                      self._position_map,
+                      key=self._key,
+                      storage_type=self._type_name) as f:
             self.assertEqual(list(bytearray(f.read_block(0))),
                              list(self._blocks[0]))
             self.assertEqual(list(bytearray(f.read_block(self._block_count-1))),
@@ -347,9 +442,11 @@ class _TestEncryptedBlockStorage(object):
     def test_write_block(self):
         data = bytearray([self._block_count])*self._block_size
         self.assertEqual(len(data) > 0, True)
-        with EncryptedBlockStorage(self._testfname,
-                                   key=self._key,
-                                   storage_type=self._type_name) as f:
+        with PathORAM(self._testfname,
+                      self._stash,
+                      self._position_map,
+                      key=self._key,
+                      storage_type=self._type_name) as f:
             for i in xrange(self._block_count):
                 self.assertNotEqual(list(bytearray(f.read_block(i))),
                                     list(data))
@@ -362,9 +459,11 @@ class _TestEncryptedBlockStorage(object):
                 f.write_block(i, bytes(block))
 
     def test_read_blocks(self):
-        with EncryptedBlockStorage(self._testfname,
-                                   key=self._key,
-                                   storage_type=self._type_name) as f:
+        with PathORAM(self._testfname,
+                      self._stash,
+                      self._position_map,
+                      key=self._key,
+                      storage_type=self._type_name) as f:
             data = f.read_blocks(list(xrange(self._block_count)))
             self.assertEqual(len(data), self._block_count)
             for i, block in enumerate(data):
@@ -386,9 +485,11 @@ class _TestEncryptedBlockStorage(object):
     def test_write_blocks(self):
         data = [bytearray([self._block_count])*self._block_size
                 for i in xrange(self._block_count)]
-        with EncryptedBlockStorage(self._testfname,
-                                   key=self._key,
-                                   storage_type=self._type_name) as f:
+        with PathORAM(self._testfname,
+                      self._stash,
+                      self._position_map,
+                      key=self._key,
+                      storage_type=self._type_name) as f:
             orig = f.read_blocks(list(xrange(self._block_count)))
             self.assertEqual(len(orig), self._block_count)
             for i, block in enumerate(orig):
@@ -418,125 +519,177 @@ class _TestEncryptedBlockStorage(object):
         bsize = 10
         bcount = 11
         header_data = bytes(bytearray([0,1,2]))
-        fsetup = EncryptedBlockStorage.setup(
+        fsetup = PathORAM.setup(
             fname,
             block_size=bsize,
             block_count=bcount,
+            bucket_capacity=self._bucket_capacity,
+            heap_base=self._heap_base,
             key=self._test_key,
             key_size=self._test_key_size,
             header_data=header_data)
         fsetup.close()
         new_header_data = bytes(bytearray([1,1,1]))
-        with EncryptedBlockStorage(fname,
-                                   key=fsetup.key,
-                                   storage_type=self._type_name) as f:
+        with PathORAM(fname,
+                      fsetup.stash,
+                      fsetup.position_map,
+                      key=fsetup.key,
+                      storage_type=self._type_name) as f:
             self.assertEqual(f.header_data, header_data)
             f.update_header_data(new_header_data)
             self.assertEqual(f.header_data, new_header_data)
-        with EncryptedBlockStorage(fname,
-                                   key=fsetup.key,
-                                   storage_type=self._type_name) as f:
+        with PathORAM(fname,
+                      fsetup.stash,
+                      fsetup.position_map,
+                      key=fsetup.key,
+                      storage_type=self._type_name) as f:
             self.assertEqual(f.header_data, new_header_data)
         with self.assertRaises(ValueError):
-            with EncryptedBlockStorage(fname,
-                                       key=fsetup.key,
-                                       storage_type=self._type_name) as f:
+            with PathORAM(fname,
+                          fsetup.stash,
+                          fsetup.position_map,
+                          key=fsetup.key,
+                          storage_type=self._type_name) as f:
                 f.update_header_data(bytes(bytearray([1,1])))
         with self.assertRaises(ValueError):
-            with EncryptedBlockStorage(fname,
-                                       key=fsetup.key,
-                                       storage_type=self._type_name) as f:
+            with PathORAM(fname,
+                          fsetup.stash,
+                          fsetup.position_map,
+                          key=fsetup.key,
+                          storage_type=self._type_name) as f:
                 f.update_header_data(bytes(bytearray([1,1,1,1])))
-        with EncryptedBlockStorage(fname,
-                                   key=fsetup.key,
-                                   storage_type=self._type_name) as f:
+        with PathORAM(fname,
+                      fsetup.stash,
+                      fsetup.position_map,
+                      key=fsetup.key,
+                      storage_type=self._type_name) as f:
             self.assertEqual(f.header_data, new_header_data)
         os.remove(fname)
 
     def test_locked_flag(self):
-        with EncryptedBlockStorage(self._testfname,
-                                   key=self._key,
-                                   storage_type=self._type_name) as f:
+        with PathORAM(self._testfname,
+                      self._stash,
+                      self._position_map,
+                      key=self._key,
+                      storage_type=self._type_name) as f:
             with self.assertRaises(IOError):
-                with EncryptedBlockStorage(self._testfname,
-                                           key=self._key,
-                                           storage_type=self._type_name) as f1:
+                with PathORAM(self._testfname,
+                              self._stash,
+                              self._position_map,
+                              key=self._key,
+                              storage_type=self._type_name) as f1:
                     pass                               # pragma: no cover
             with self.assertRaises(IOError):
-                with EncryptedBlockStorage(self._testfname,
-                                           key=self._key,
-                                           storage_type=self._type_name) as f1:
+                with PathORAM(self._testfname,
+                              self._stash,
+                              self._position_map,
+                              key=self._key,
+                              storage_type=self._type_name) as f1:
                     pass                               # pragma: no cover
-            with EncryptedBlockStorage(self._testfname,
-                                       key=self._key,
-                                       storage_type=self._type_name,
-                                       ignore_lock=True) as f1:
+            with PathORAM(self._testfname,
+                          self._stash,
+                          self._position_map,
+                          key=self._key,
+                          storage_type=self._type_name,
+                          ignore_lock=True) as f1:
                 pass
             with self.assertRaises(IOError):
-                with EncryptedBlockStorage(self._testfname,
-                                           key=self._key,
-                                           storage_type=self._type_name) as f1:
+                with PathORAM(self._testfname,
+                              self._stash,
+                              self._position_map,
+                              key=self._key,
+                              storage_type=self._type_name) as f1:
                     pass                               # pragma: no cover
-            with EncryptedBlockStorage(self._testfname,
-                                       key=self._key,
-                                       storage_type=self._type_name,
-                                       ignore_lock=True) as f1:
+            with PathORAM(self._testfname,
+                          self._stash,
+                          self._position_map,
+                          key=self._key,
+                          storage_type=self._type_name,
+                          ignore_lock=True) as f1:
                 pass
-            with EncryptedBlockStorage(self._testfname,
-                                       key=self._key,
-                                       storage_type=self._type_name,
-                                       ignore_lock=True) as f1:
+            with PathORAM(self._testfname,
+                          self._stash,
+                          self._position_map,
+                          key=self._key,
+                          storage_type=self._type_name,
+                          ignore_lock=True) as f1:
                 pass
-        with EncryptedBlockStorage(self._testfname,
-                                   key=self._key,
-                                   storage_type=self._type_name) as f:
+        with PathORAM(self._testfname,
+                      self._stash,
+                      self._position_map,
+                      key=self._key,
+                      storage_type=self._type_name) as f:
             pass
 
-class TestEncryptedBlockStorageFileCTRKey(_TestEncryptedBlockStorage,
-                                          unittest.TestCase):
+class TestPathORAMB2Z1(_TestPathORAMBase,
+                       unittest.TestCase):
     _type_name = 'file'
     _aes_mode = 'ctr'
-    _test_key = AES.KeyGen(16)
+    _bucket_capacity = 1
+    _heap_base = 2
 
-class TestEncryptedBlockStorageFileCTR32(_TestEncryptedBlockStorage,
-                                         unittest.TestCase):
-    _type_name = 'file'
-    _aes_mode = 'ctr'
-    _test_key_size = 16
-
-class TestEncryptedBlockStorageFileGCMKey(_TestEncryptedBlockStorage,
-                                          unittest.TestCase):
-    _type_name = 'file'
+class TestPathORAMB2Z2(_TestPathORAMBase,
+                   unittest.TestCase):
+    _type_name = 'mmap'
     _aes_mode = 'gcm'
-    _test_key = AES.KeyGen(24)
+    _bucket_capacity = 2
+    _heap_base = 2
 
-class TestEncryptedBlockStorageFileGCM32(_TestEncryptedBlockStorage,
-                                         unittest.TestCase):
-    _type_name = 'file'
-    _aes_mode = 'gcm'
-    _test_key_size = 24
-
-class TestEncryptedBlockStorageMMapFileCTRKey(_TestEncryptedBlockStorage,
-                                              unittest.TestCase):
+class TestPathORAMB2Z3(_TestPathORAMBase,
+                   unittest.TestCase):
     _type_name = 'mmap'
     _aes_mode = 'ctr'
-    _test_key = AES.KeyGen(32)
+    _bucket_capacity = 3
+    _heap_base = 2
 
-class TestEncryptedBlockStorageMMapFileCTR32(_TestEncryptedBlockStorage,
-                                             unittest.TestCase):
+class TestPathORAMB2Z4(_TestPathORAMBase,
+                   unittest.TestCase):
+    _type_name = 'file'
+    _aes_mode = 'gcm'
+    _bucket_capacity = 4
+    _heap_base = 2
+
+class TestPathORAMB2Z5(_TestPathORAMBase,
+                   unittest.TestCase):
+    _type_name = 'file'
+    _aes_mode = 'ctr'
+    _bucket_capacity = 5
+    _heap_base = 2
+
+class TestPathORAMB3Z1(_TestPathORAMBase,
+                       unittest.TestCase):
+    _type_name = 'file'
+    _aes_mode = 'ctr'
+    _bucket_capacity = 1
+    _heap_base = 3
+
+class TestPathORAMB3Z2(_TestPathORAMBase,
+                   unittest.TestCase):
+    _type_name = 'mmap'
+    _aes_mode = 'gcm'
+    _bucket_capacity = 2
+    _heap_base = 3
+
+class TestPathORAMB3Z3(_TestPathORAMBase,
+                   unittest.TestCase):
     _type_name = 'mmap'
     _aes_mode = 'ctr'
-    _test_key_size = 32
+    _bucket_capacity = 3
+    _heap_base = 3
 
-class TestEncryptedBlockStorageMMapFileGCMKey(_TestEncryptedBlockStorage,
-                                              unittest.TestCase):
-    _type_name = 'mmap'
+class TestPathORAMB3Z4(_TestPathORAMBase,
+                   unittest.TestCase):
+    _type_name = 'file'
     _aes_mode = 'gcm'
+    _bucket_capacity = 4
+    _heap_base = 3
 
-class TestEncryptedBlockStorageMMapFileGCM32(_TestEncryptedBlockStorage,
-                                             unittest.TestCase):
-    _type_name = 'mmap'
-    _aes_mode = 'gcm'
+class TestPathORAMB3Z5(_TestPathORAMBase,
+                   unittest.TestCase):
+    _type_name = 'file'
+    _aes_mode = 'ctr'
+    _bucket_capacity = 5
+    _heap_base = 3
 
 if __name__ == "__main__":
     unittest.main()                                    # pragma: no cover

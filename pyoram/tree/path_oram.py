@@ -74,6 +74,22 @@ class PathORAM(EncryptedBlockStorageInterface):
         self._oram = tree_oram_type(storage_heap, *args)
         assert self._block_count <= self._oram.storage_heap.bucket_count
 
+    def _init_oram_block(self, id_, block):
+        oram_block = bytearray(self.block_size)
+        if self._pointer_addressing:
+            assert len(oram_block) == len(block)
+            oram_block[:] = block[:]
+        else:
+            oram_block[self._oram.block_info_storage_size:] = block[:]
+        self._oram.tag_block_with_id(oram_block, id_)
+        return oram_block
+
+    def _extract_virtual_block(self, block):
+        if self._pointer_addressing:
+            return block
+        else:
+            return block[self._oram.block_info_storage_size:]
+
     #
     # Add some methods specific to Path ORAM
     #
@@ -114,6 +130,24 @@ class PathORAM(EncryptedBlockStorageInterface):
     def stash(self):
         return self._oram.stash
 
+    def access(self, id_, write_block=None):
+        assert 0 <= id_ <= self.block_count
+        b = self.position_map[id_]
+        self.position_map[id_] = \
+            self._oram.storage_heap.virtual_heap.random_leaf_bucket()
+        self._oram.load_path(b)
+        block = self._oram.extract_block_from_path(id_)
+        if block is None:
+            block = self.stash[id_]
+        if write_block is not None:
+            block = self._init_oram_block(id_, write_block)
+        self.stash[id_] = block
+        self._oram.push_down_path()
+        self._oram.fill_path_from_stash()
+        self._oram.evict_path()
+        if write_block is None:
+            return self._extract_virtual_block(block)
+
     #
     # Define EncryptedBlockStorageInterface Methods
     #
@@ -137,7 +171,7 @@ class PathORAM(EncryptedBlockStorageInterface):
                              **kwds):
         assert (block_size > 0) and (block_size == int(block_size))
         assert (block_count > 0) and (block_count == int(block_count))
-        assert bucket_capcity >= 1
+        assert bucket_capacity >= 1
         assert addressing_scheme in ('explicit', 'pointer')
         assert heap_base >= 2
         assert 'heap_height' not in kwds
@@ -155,7 +189,7 @@ class PathORAM(EncryptedBlockStorageInterface):
                 ignore_header=True,
                 **kwds)
         else:
-            return self._header_offset + \
+            return cls._header_offset + \
                    EncryptedHeapStorage.compute_storage_size(
                        block_size,
                        heap_height,
@@ -180,9 +214,25 @@ class PathORAM(EncryptedBlockStorageInterface):
                 "Keyword 'addressing_scheme' must be "
                 "'explicit' or 'pointer', not '%s'"
                 % (addressing_scheme))
+        if (bucket_capacity <= 0) or (bucket_capacity != int(bucket_capacity)):
+            raise ValueError(
+                "Bucket capacity must be a positive integer: %s"
+                % (bucket_capacity))
+        if (block_size <= 0) or (block_size != int(block_size)):
+            raise ValueError(
+                "Block size (bytes) must be a positive integer: %s"
+                % (block_size))
+        if (block_count <= 0) or (block_count != int(block_count)):
+            raise ValueError(
+                "Block count must be a positive integer: %s"
+                % (block_count))
+        if heap_base < 2:
+            raise ValueError(
+                "heap base must be 2 or greater. Invalid value: %s"
+                % (heap_base))
+
         heap_height = calculate_necessary_heap_height(heap_base,
                                                       block_count)
-
         stash = {}
         position_map = None
         if addressing_scheme == 'explicit':
@@ -227,42 +277,49 @@ class PathORAM(EncryptedBlockStorageInterface):
         empty_bucket = bytes(empty_bucket)
 
         kwds['initialize'] = lambda i: empty_bucket
-        f = EncryptedHeapStorage.setup(storage_name,
-                                       oram_block_size,
-                                       heap_height,
-                                       blocks_per_bucket=bucket_capacity,
-                                       **kwds)
+        f = None
+        try:
+            f = EncryptedHeapStorage.setup(storage_name,
+                                           oram_block_size,
+                                           heap_height,
+                                           heap_base=heap_base,
+                                           blocks_per_bucket=bucket_capacity,
+                                           **kwds)
 
-        oram = tree_oram_type(f, stash, position_map)
+            oram = tree_oram_type(f, stash, position_map)
 
-        if initialize is None:
-            zeros = bytes(bytearray(block_size))
-            initialize = lambda i: zeros
-        initial_oram_block = bytearray(oram_block_size)
-        for i in xrange(block_count):
-            oram.tag_block_with_id(initial_oram_block, i)
-            initial_oram_block[oram.block_info_storage_size:] = \
-                initialize(i)[:]
+            if initialize is None:
+                zeros = bytes(bytearray(block_size))
+                initialize = lambda i: zeros
+            initial_oram_block = bytearray(oram_block_size)
+            for i in xrange(block_count):
+                oram.tag_block_with_id(initial_oram_block, i)
+                initial_oram_block[oram.block_info_storage_size:] = \
+                    initialize(i)[:]
 
-            b = oram.position_map[i]
-            oram.position_map[i] = \
-                oram.storage_heap.virtual_heap.random_leaf_bucket()
-            oram.load_path(b)
-            oram.push_down_path()
-            # place a copy in the stash
-            oram.stash[i] = bytearray(initial_oram_block)
-            oram.fill_path_from_stash()
-            oram.evict_path()
+                b = oram.position_map[i]
+                oram.position_map[i] = \
+                    oram.storage_heap.virtual_heap.random_leaf_bucket()
+                oram.load_path(b)
+                oram.push_down_path()
+                # place a copy in the stash
+                oram.stash[i] = bytearray(initial_oram_block)
+                oram.fill_path_from_stash()
+                oram.evict_path()
 
-        header_data = bytearray(header_data)
-        stash_digest = cls.stash_digest(oram.stash)
-        position_map_digest = cls.position_map_digest(oram.position_map)
-        header_data[:len(stash_digest)] = stash_digest[:]
-        header_data[len(stash_digest):\
-                    (len(stash_digest)+len(position_map_digest))] = \
-            position_map_digest[:]
-        f.update_header_data(bytes(header_data) + user_header_data)
-
+            header_data = bytearray(header_data)
+            stash_digest = cls.stash_digest(oram.stash)
+            position_map_digest = cls.position_map_digest(oram.position_map)
+            header_data[:len(stash_digest)] = stash_digest[:]
+            header_data[len(stash_digest):\
+                        (len(stash_digest)+len(position_map_digest))] = \
+                position_map_digest[:]
+            f.update_header_data(bytes(header_data) + user_header_data)
+        except:
+            if f is not None:
+                f.close()
+            raise
+        assert f is not None
         return PathORAM(f, stash, position_map=position_map)
 
     @property
@@ -287,7 +344,7 @@ class PathORAM(EncryptedBlockStorageInterface):
 
     def update_header_data(self, new_header_data):
         self._oram.storage_heap.update_header_data(
-            self._oram.storage_heap.header_data[self._header_offset:] + \
+            self._oram.storage_heap.header_data[:self._header_offset] + \
             new_header_data)
 
     def close(self):
@@ -303,26 +360,17 @@ class PathORAM(EncryptedBlockStorageInterface):
         self._oram.storage_heap.close()
 
     def read_blocks(self, indices):
-        raise NotImplementedError
+        blocks = []
+        for i in indices:
+            blocks.append(self.access(i))
+        return blocks
 
     def read_block(self, i):
-        assert 0 <= i <= self.block_count
-        b = self.position_map[i]
-        self.position_map[i] = \
-            self._oram.storage_heap.virtual_heap.random_leaf_bucket()
-        self._oram.load_path(b)
-        block = self._oram.extract_block_from_path(i)
-        if block is None:
-            block = self.stash[i]
-        else:
-            self.stash[i] = block
-        self._oram.push_down_path()
-        self._oram.fill_path_from_stash()
-        self._oram.evict_path()
-        return block
+        return self.access(i)
 
     def write_blocks(self, indices, blocks):
-        raise NotImplementedError
+        for i, block in zip(indices, blocks):
+            self.access(i, write_block=block)
 
     def write_block(self, i, block):
-        raise NotImplementedError
+        self.access(i, write_block=block)
