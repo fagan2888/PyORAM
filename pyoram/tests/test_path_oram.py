@@ -57,16 +57,6 @@ class _TestPathORAMBase(object):
         for i in range(cls._block_count):
             data = bytearray([i])*cls._block_size
             cls._blocks.append(data)
-    def _open_testfile(self, *args, **kwds):
-        _kwds = {'key': self._key}
-        _kwds.update(kwds)
-        if len(args):
-            return PathORAM(*args, **_kwds)
-        else:
-            return PathORAM(self._testfname,
-                            self._stash,
-                            self._position_map,
-                            **_kwds)
 
     @classmethod
     def tearDownClass(cls):
