@@ -369,10 +369,45 @@ class _TestPathORAMBase(object):
         self.assertEqual(os.path.exists(self._testfname), True)
         with open(self._testfname, 'rb') as f:
             databefore = f.read()
+        # no key
         with self.assertRaises(ValueError):
             with PathORAM(self._testfname,
                           self._stash,
                           self._position_map,
+                          storage_type=self._type_name) as f:
+                pass                                   # pragma: no cover
+        # stash does not match digest
+        with self.assertRaises(ValueError):
+            with PathORAM(self._testfname,
+                          {1: bytes()},
+                          self._position_map,
+                          key=self._key,
+                          storage_type=self._type_name) as f:
+                f.close()
+                pass                                   # pragma: no cover
+        # stash hash invalid key (negative)
+        with self.assertRaises(ValueError):
+            with PathORAM(self._testfname,
+                          {-1: bytes()},
+                          self._position_map,
+                          key=self._key,
+                          storage_type=self._type_name) as f:
+                f.close()
+                pass                                   # pragma: no cover
+        # position map has invalid item (negative)
+        with self.assertRaises(ValueError):
+            with PathORAM(self._testfname,
+                          self._stash,
+                          [-1],
+                          key=self._key,
+                          storage_type=self._type_name) as f:
+                pass                                   # pragma: no cover
+        # position map does not match digest
+        with self.assertRaises(ValueError):
+            with PathORAM(self._testfname,
+                          self._stash,
+                          [1],
+                          key=self._key,
                           storage_type=self._type_name) as f:
                 pass                                   # pragma: no cover
         with self.assertRaises(ValueError):
