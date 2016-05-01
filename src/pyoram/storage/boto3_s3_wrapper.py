@@ -7,8 +7,8 @@ try:
     import boto3
     import botocore
     boto3_available = True
-except:
-    boto3_available = False
+except:                                                # pragma: no cover
+    boto3_available = False                            # pragma: no cover
 
 class Boto3S3Wrapper(object):
     """
@@ -21,8 +21,9 @@ class Boto3S3Wrapper(object):
                  aws_secret_access_key=None,
                  region_name=None):
         if not boto3_available:
-            raise ImportError("boto3 module is required to "
-                              "use BlockStorageS3 device")
+            raise ImportError(                         # pragma: no cover
+                "boto3 module is required to "         # pragma: no cover
+                "use BlockStorageS3 device")           # pragma: no cover
 
         self._s3 = boto3.session.Session(
             aws_access_key_id=aws_access_key_id,

@@ -306,7 +306,7 @@ class PathORAM(EncryptedBlockStorageInterface):
             return PathORAM(f, stash, position_map=position_map)
         except:
             if f is not None:
-                f.close()
+                f.close()                              # pragma: no cover
             raise
 
     @property
@@ -349,8 +349,9 @@ class PathORAM(EncryptedBlockStorageInterface):
                 self._oram.storage_heap.update_header_data(
                     bytes(new_header_data) + self.header_data)
             except:
-                log.error("Failed to update PathORAM header data "
-                          "with current stash and position map state")
+                log.error(                                         # pragma: no cover
+                    "Failed to update PathORAM header data "       # pragma: no cover
+                    "with current stash and position map state")   # pragma: no cover
             finally:
                 self._oram.storage_heap.close()
 

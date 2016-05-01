@@ -22,7 +22,7 @@ thisdir = os.path.dirname(os.path.abspath(__file__))
 try:
     import boto3
     has_boto3 = True
-except:
+except:                                                # pragma: no cover
     has_boto3 = False                                  # pragma: no cover
 
 class TestBlockStorageTypeFactory(unittest2.TestCase):
@@ -435,7 +435,7 @@ class TestBlockStorageS3Mock(_TestBlockStorage,
         del kwds['bucket_name']
         with self.assertRaises(ValueError):
             with self._type(self._testfname, **kwds) as f:
-                pass
+                pass                                   # pragma: no cover
         dataafter = self._read_storage(self._testfname)
         self.assertEqual(databefore, dataafter)
 
@@ -463,7 +463,7 @@ class TestBlockStorageS3Mock(_TestBlockStorage,
                                   block_size=1,
                                   block_count=1,
                                   **self._type_kwds) as f:
-                pass
+                pass                                   # pragma: no cover
         self.assertEqual(self._check_exists(self._dummy_name), True)
         with self._type.setup(self._dummy_name,
                               block_size=1,
