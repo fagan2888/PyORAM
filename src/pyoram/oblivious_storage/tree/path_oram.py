@@ -348,7 +348,7 @@ class PathORAM(EncryptedBlockStorageInterface):
                     positiondigest
                 self._oram.storage_heap.update_header_data(
                     bytes(new_header_data) + self.header_data)
-            except:
+            except:                                                # pragma: no cover
                 log.error(                                         # pragma: no cover
                     "Failed to update PathORAM header data "       # pragma: no cover
                     "with current stash and position map state")   # pragma: no cover
