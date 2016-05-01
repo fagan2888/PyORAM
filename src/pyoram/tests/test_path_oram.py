@@ -217,6 +217,17 @@ class _TestPathORAMBase(object):
                 key=os.urandom(AES.key_sizes[-1]+100),
                 aes_mode=self._aes_mode,
                 storage_type=self._type_name)
+        with self.assertRaises(ValueError):
+            PathORAM.setup(
+                self._dummy_name,
+                block_size=1,
+                block_count=1,
+                heap_height=1,
+                bucket_capacity=self._bucket_capacity,
+                heap_base=self._heap_base,
+                key=self._key,
+                aes_mode=self._aes_mode,
+                storage_type=self._type_name)
 
     def test_setup(self):
         fname = ".".join(self.id().split(".")[1:])
