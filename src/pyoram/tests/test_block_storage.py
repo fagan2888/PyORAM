@@ -1,6 +1,6 @@
 import os
 import shutil
-import unittest
+import unittest2
 import tempfile
 
 from pyoram.storage.block_storage import \
@@ -25,7 +25,7 @@ try:
 except:
     has_boto3 = False
 
-class TestBlockStorageTypeFactory(unittest.TestCase):
+class TestBlockStorageTypeFactory(unittest2.TestCase):
 
     def test_file(self):
         self.assertIs(BlockStorageTypeFactory('file'),
@@ -390,17 +390,17 @@ class _TestBlockStorage(object):
             pass
 
 class TestBlockStorageFile(_TestBlockStorage,
-                           unittest.TestCase):
+                           unittest2.TestCase):
     _type = BlockStorageFile
     _type_kwds = {}
 
 class TestBlockStorageMMap(_TestBlockStorage,
-                           unittest.TestCase):
+                           unittest2.TestCase):
     _type = BlockStorageMMap
     _type_kwds = {}
 
 class TestBlockStorageS3Mock(_TestBlockStorage,
-                             unittest.TestCase):
+                             unittest2.TestCase):
     _type = BlockStorageS3
     _type_kwds = {'s3_wrapper': MockBoto3S3Wrapper,
                   'bucket_name': '.'}
@@ -418,12 +418,12 @@ class TestBlockStorageS3Mock(_TestBlockStorage,
                 data.extend(f.read())
         return data
 
-@unittest.skipIf((os.environ.get('PYORAM_AWS_TEST_BUCKET') is None) or \
-                 not has_boto3,
+@unittest2.skipIf((os.environ.get('PYORAM_AWS_TEST_BUCKET') is None) or \
+                 (not has_boto3),
                  "No PYORAM_AWS_TEST_BUCKET defined in environment or "
                  "boto3 is not available")
 class TestBlockStorageS3(_TestBlockStorage,
-                         unittest.TestCase):
+                         unittest2.TestCase):
     _type = BlockStorageS3
     _type_kwds = {'bucket_name': os.environ.get('PYORAM_AWS_TEST_BUCKET')}
 
@@ -464,4 +464,4 @@ class TestBlockStorageS3(_TestBlockStorage,
         return name
 
 if __name__ == "__main__":
-    unittest.main()                                    # pragma: no cover
+    unittest2.main()                                    # pragma: no cover

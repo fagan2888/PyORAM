@@ -53,7 +53,8 @@ class Boto3S3Wrapper(object):
             raise IOError("Can not download key: %s"
                           % (key))
 
-    def upload(self, (key, block)):
+    def upload(self, key_block):
+        key, block = key_block
         self._bucket.put_object(Key=key, Body=block)
 
     def clear(self, key):
@@ -96,7 +97,8 @@ class MockBoto3S3Wrapper(object):
         with open(os.path.join(self._bucket_name, key), 'rb') as f:
             return f.read()
 
-    def upload(self, (key, block)):
+    def upload(self, key_block):
+        key, block = key_block
         self._makedirs_if_needed(key)
         with open(os.path.join(self._bucket_name, key), 'wb') as f:
             f.write(block)

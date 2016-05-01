@@ -1,5 +1,5 @@
 import os
-import unittest
+import unittest2
 import tempfile
 
 from pyoram.oblivious_storage.tree.path_oram import PathORAM
@@ -645,74 +645,74 @@ class _TestPathORAMBase(object):
             pass
 
 class TestPathORAMB2Z1(_TestPathORAMBase,
-                       unittest.TestCase):
+                       unittest2.TestCase):
     _type_name = 'file'
     _aes_mode = 'ctr'
     _bucket_capacity = 1
     _heap_base = 2
 
 class TestPathORAMB2Z2(_TestPathORAMBase,
-                   unittest.TestCase):
+                   unittest2.TestCase):
     _type_name = 'mmap'
     _aes_mode = 'gcm'
     _bucket_capacity = 2
     _heap_base = 2
 
 class TestPathORAMB2Z3(_TestPathORAMBase,
-                   unittest.TestCase):
+                   unittest2.TestCase):
     _type_name = 'mmap'
     _aes_mode = 'ctr'
     _bucket_capacity = 3
     _heap_base = 2
 
 class TestPathORAMB2Z4(_TestPathORAMBase,
-                   unittest.TestCase):
+                   unittest2.TestCase):
     _type_name = 'file'
     _aes_mode = 'gcm'
     _bucket_capacity = 4
     _heap_base = 2
 
 class TestPathORAMB2Z5(_TestPathORAMBase,
-                   unittest.TestCase):
+                   unittest2.TestCase):
     _type_name = 'file'
     _aes_mode = 'ctr'
     _bucket_capacity = 5
     _heap_base = 2
 
 class TestPathORAMB3Z1(_TestPathORAMBase,
-                       unittest.TestCase):
+                       unittest2.TestCase):
     _type_name = 'file'
     _aes_mode = 'ctr'
     _bucket_capacity = 1
     _heap_base = 3
 
 class TestPathORAMB3Z2(_TestPathORAMBase,
-                   unittest.TestCase):
+                   unittest2.TestCase):
     _type_name = 'mmap'
     _aes_mode = 'gcm'
     _bucket_capacity = 2
     _heap_base = 3
 
 class TestPathORAMB3Z3(_TestPathORAMBase,
-                   unittest.TestCase):
+                   unittest2.TestCase):
     _type_name = 'mmap'
     _aes_mode = 'ctr'
     _bucket_capacity = 3
     _heap_base = 3
 
 class TestPathORAMB3Z4(_TestPathORAMBase,
-                   unittest.TestCase):
+                   unittest2.TestCase):
     _type_name = 'file'
     _aes_mode = 'gcm'
     _bucket_capacity = 4
     _heap_base = 3
 
 class TestPathORAMB3Z5(_TestPathORAMBase,
-                   unittest.TestCase):
+                   unittest2.TestCase):
     _type_name = 'file'
     _aes_mode = 'ctr'
     _bucket_capacity = 5
     _heap_base = 3
 
 if __name__ == "__main__":
-    unittest.main()                                    # pragma: no cover
+    unittest2.main()                                    # pragma: no cover

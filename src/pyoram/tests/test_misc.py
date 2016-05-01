@@ -1,8 +1,8 @@
-import unittest
+import unittest2
 
 import pyoram.util.misc
 
-class Test(unittest.TestCase):
+class Test(unittest2.TestCase):
 
     def test_log2floor(self):
         self.assertEqual(pyoram.util.misc.log2floor(1), 0)
@@ -54,4 +54,4 @@ class Test(unittest.TestCase):
             1)
 
 if __name__ == "__main__":
-    unittest.main()                                    # pragma: no cover
+    unittest2.main()                                    # pragma: no cover

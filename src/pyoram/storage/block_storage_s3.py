@@ -226,6 +226,10 @@ class BlockStorageS3(BlockStorageInterface):
                                  len(self.header_data),
                                  False) + \
                      self.header_data))
+        if self._pool is not None:
+            self._pool.close()
+            self._pool.join()
+            self._pool = None
 
     def read_blocks(self, indices):
         # be sure not to exhaust this if it is an iterator

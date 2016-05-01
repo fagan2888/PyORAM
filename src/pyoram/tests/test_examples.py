@@ -1,7 +1,7 @@
 import os
 import glob
 import sys
-import unittest
+import unittest2
 
 thisfile = os.path.abspath(__file__)
 thisdir = os.path.dirname(thisfile)

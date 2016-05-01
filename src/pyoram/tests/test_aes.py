@@ -1,8 +1,8 @@
-import unittest
+import unittest2
 
 from pyoram.crypto.aes import AES
 
-class TestAES(unittest.TestCase):
+class TestAES(unittest2.TestCase):
 
     def test_KeyGen(self):
         self.assertEqual(len(AES.key_sizes), 3)
@@ -105,4 +105,4 @@ class TestAES(unittest.TestCase):
                     alt_ciphertext[AES.block_size:])
 
 if __name__ == "__main__":
-    unittest.main()                                    # pragma: no cover
+    unittest2.main()                                    # pragma: no cover

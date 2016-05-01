@@ -1,5 +1,5 @@
 import os
-import unittest
+import unittest2
 import tempfile
 
 from pyoram.storage.block_storage import \
@@ -493,50 +493,50 @@ class _TestEncryptedBlockStorage(object):
             pass
 
 class TestEncryptedBlockStorageFileCTRKey(_TestEncryptedBlockStorage,
-                                          unittest.TestCase):
+                                          unittest2.TestCase):
     _type_name = 'file'
     _aes_mode = 'ctr'
     _test_key = AES.KeyGen(16)
 
 class TestEncryptedBlockStorageFileCTR32(_TestEncryptedBlockStorage,
-                                         unittest.TestCase):
+                                         unittest2.TestCase):
     _type_name = 'file'
     _aes_mode = 'ctr'
     _test_key_size = 16
 
 class TestEncryptedBlockStorageFileGCMKey(_TestEncryptedBlockStorage,
-                                          unittest.TestCase):
+                                          unittest2.TestCase):
     _type_name = 'file'
     _aes_mode = 'gcm'
     _test_key = AES.KeyGen(24)
 
 class TestEncryptedBlockStorageFileGCM32(_TestEncryptedBlockStorage,
-                                         unittest.TestCase):
+                                         unittest2.TestCase):
     _type_name = 'file'
     _aes_mode = 'gcm'
     _test_key_size = 24
 
 class TestEncryptedBlockStorageMMapFileCTRKey(_TestEncryptedBlockStorage,
-                                              unittest.TestCase):
+                                              unittest2.TestCase):
     _type_name = 'mmap'
     _aes_mode = 'ctr'
     _test_key = AES.KeyGen(32)
 
 class TestEncryptedBlockStorageMMapFileCTR32(_TestEncryptedBlockStorage,
-                                             unittest.TestCase):
+                                             unittest2.TestCase):
     _type_name = 'mmap'
     _aes_mode = 'ctr'
     _test_key_size = 32
 
 class TestEncryptedBlockStorageMMapFileGCMKey(_TestEncryptedBlockStorage,
-                                              unittest.TestCase):
+                                              unittest2.TestCase):
     _type_name = 'mmap'
     _aes_mode = 'gcm'
 
 class TestEncryptedBlockStorageMMapFileGCM32(_TestEncryptedBlockStorage,
-                                             unittest.TestCase):
+                                             unittest2.TestCase):
     _type_name = 'mmap'
     _aes_mode = 'gcm'
 
 if __name__ == "__main__":
-    unittest.main()                                    # pragma: no cover
+    unittest2.main()                                    # pragma: no cover

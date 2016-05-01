@@ -1,5 +1,5 @@
 import os
-import unittest
+import unittest2
 import tempfile
 
 from pyoram.util.virtual_heap import \
@@ -14,7 +14,7 @@ from six.moves import xrange
 
 thisdir = os.path.dirname(os.path.abspath(__file__))
 
-class TestEncryptedHeapStorage(unittest.TestCase):
+class TestEncryptedHeapStorage(unittest2.TestCase):
 
     @classmethod
     def setUpClass(cls):
@@ -470,4 +470,4 @@ class TestEncryptedHeapStorage(unittest.TestCase):
             pass
 
 if __name__ == "__main__":
-    unittest.main()                                    # pragma: no cover
+    unittest2.main()                                    # pragma: no cover

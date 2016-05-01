@@ -65,6 +65,6 @@ setup(
     cffi_modules=["src/_cffi_src/virtual_heap_helper_build.py:ffi"],
     # use MANIFEST.in
     include_package_data=True,
-    test_suite='nose.collector',
-    tests_require=['nose']
+    test_suite='nose2.collector.collector',
+    tests_require=['unittest2','nose2']
 )

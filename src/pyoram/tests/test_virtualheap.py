@@ -1,6 +1,6 @@
 import os
 import subprocess
-import unittest
+import unittest2
 
 import pyoram
 from pyoram.util.virtual_heap import \
@@ -56,7 +56,7 @@ def _do_inorder(x):
     for b in _do_inorder(x.child_node(1)):
         yield b
 
-class TestVirtualHeapNode(unittest.TestCase):
+class TestVirtualHeapNode(unittest2.TestCase):
 
     def test_init(self):
         for k in _test_bases:
@@ -627,7 +627,7 @@ class TestVirtualHeapNode(unittest.TestCase):
                 Node(8)),
             False)
 
-class TestVirtualHeap(unittest.TestCase):
+class TestVirtualHeap(unittest2.TestCase):
 
     def test_init(self):
         vh = VirtualHeap(2, blocks_per_bucket=4)
@@ -885,7 +885,7 @@ class TestVirtualHeap(unittest.TestCase):
                 self.assertEqual(root.level, 0)
                 self.assertEqual(root.parent_node(), None)
 
-class TestSizedVirtualHeap(unittest.TestCase):
+class TestSizedVirtualHeap(unittest2.TestCase):
 
     def test_init(self):
         vh = SizedVirtualHeap(2, 8, blocks_per_bucket=4)
@@ -1052,7 +1052,7 @@ class TestSizedVirtualHeap(unittest.TestCase):
                 except OSError:                        # pragma: no cover
                     pass                               # pragma: no cover
 
-class TestMisc(unittest.TestCase):
+class TestMisc(unittest2.TestCase):
 
     def test_calculate_bucket_level(self):
         self.assertEqual(calculate_bucket_level(2, 0), 0)
@@ -1159,4 +1159,4 @@ class TestMisc(unittest.TestCase):
         self.assertEqual(calculate_necessary_heap_height(3, 16), 3)
 
 if __name__ == "__main__":
-    unittest.main()                                    # pragma: no cover
+    unittest2.main()                                    # pragma: no cover

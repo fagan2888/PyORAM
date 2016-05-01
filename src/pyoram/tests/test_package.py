@@ -1,5 +1,5 @@
 import sys
-import unittest
+import unittest2
 
 import pyoram
 
@@ -10,7 +10,7 @@ try:
 except ImportError:
     is_pypy = False
 
-class Test(unittest.TestCase):
+class Test(unittest2.TestCase):
 
     # See what Python versions the combined
     # coverage report includes
@@ -35,4 +35,4 @@ class Test(unittest.TestCase):
         pyoram.__version__
 
 if __name__ == "__main__":
-    unittest.main()                                    # pragma: no cover
+    unittest2.main()                                    # pragma: no cover
