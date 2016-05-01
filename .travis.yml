@@ -17,7 +17,7 @@ install:
   - pip install -v -U pip setuptools
   - pip install -v -e .
   - pip install unittest2 nose2 codecov coverage
-script: nose2 -v --log-capture --with-coverage src/pyoram
+script: nose2 -v --log-capture --with-coverage
 after_success:
   - codecov
 branches:
