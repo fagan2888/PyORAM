@@ -1,3 +1,4 @@
+import base64
 
 def log2floor(n):
     """
@@ -30,3 +31,11 @@ def intdivceil(x, y):
     if (x % y):
         result += 1
     return result
+
+def save_private_key(filename, key):
+    with open(filename, "wb") as f:
+        f.write(base64.b64encode(key))
+
+def load_private_key(filename):
+    with open(filename, "rb") as f:
+        return base64.b64decode(f.read())
