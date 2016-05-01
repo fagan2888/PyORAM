@@ -1,4 +1,4 @@
-__all__ = ('BlockStorageFile',)
+__all__ = ('BlockStorageS3',)
 
 import struct
 import logging
@@ -39,7 +39,7 @@ class BlockStorageS3(BlockStorageInterface):
 
         self._s3 = s3_wrapper(bucket_name,
                               aws_access_key_id=aws_access_key_id,
-                              asws_secret_access_key=aws_secret_access_key,
+                              aws_secret_access_key=aws_secret_access_key,
                               region_name=region_name)
         self._storage_name = storage_name
         self._basename = self.storage_name+"/b%d"
@@ -131,7 +131,7 @@ class BlockStorageS3(BlockStorageInterface):
 
         s3 = s3_wrapper(bucket_name,
                         aws_access_key_id=aws_access_key_id,
-                        asws_secret_access_key=aws_secret_access_key,
+                        aws_secret_access_key=aws_secret_access_key,
                         region_name=region_name)
         exists = s3.exists(storage_name)
         if (not ignore_existing) and exists:
