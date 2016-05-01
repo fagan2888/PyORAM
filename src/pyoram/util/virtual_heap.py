@@ -10,8 +10,8 @@ import tempfile
 
 from six.moves import range
 
-from pyoram.storage._virtualheap_helper import lib as _clib
-from pyoram.util import log2floor
+from pyoram.util._virtual_heap_helper import lib as _clib
+from pyoram.util.misc import log2floor
 
 numerals = ''.join([c for c in string.printable \
                   if ((c not in string.whitespace) and \

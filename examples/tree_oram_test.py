@@ -2,11 +2,11 @@ import os
 import struct
 import random
 
-from pyoram.storage.virtualheap import \
+from pyoram.util.virtual_heap import \
     SizedVirtualHeap
-from pyoram.storage.encrypted_heap_storage import \
+from pyoram.encrypted_storage.encrypted_heap_storage import \
     EncryptedHeapStorage
-from pyoram.tree.tree_oram import TreeORAMStorageManagerPointerAddressing
+from pyoram.oblivious_storage.tree.tree_oram_helper import TreeORAMStorageManagerPointerAddressing
 
 def main():
     storage_name = "heap.bin"

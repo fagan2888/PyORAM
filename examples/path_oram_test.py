@@ -2,9 +2,9 @@ import os
 import struct
 import random
 
-from pyoram.storage.virtualheap import \
+from pyoram.util.virtual_heap import \
     SizedVirtualHeap
-from pyoram.tree.path_oram import PathORAM
+from pyoram.oblivious_storage.tree.path_oram import PathORAM
 
 def main():
     storage_name = "heap.bin"

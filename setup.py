@@ -62,7 +62,7 @@ setup(
     packages=['pyoram'],
     setup_requires=setup_requirements,
     install_requires=requirements,
-    cffi_modules=["src/_cffi_src/virtualheap_helper_build.py:ffi"],
+    cffi_modules=["src/_cffi_src/virtual_heap_helper_build.py:ffi"],
     # use MANIFEST.in
     include_package_data=True,
     test_suite='nose.collector',

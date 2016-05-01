@@ -2,11 +2,11 @@ import os
 import unittest
 import tempfile
 
-from pyoram.storage.virtualheap import \
+from pyoram.util.virtual_heap import \
     SizedVirtualHeap
-from pyoram.storage.encrypted_block_storage import \
+from pyoram.encrypted_storage.encrypted_block_storage import \
     EncryptedBlockStorage
-from pyoram.storage.encrypted_heap_storage import \
+from pyoram.encrypted_storage.encrypted_heap_storage import \
     EncryptedHeapStorage
 from pyoram.crypto.aes import AES
 

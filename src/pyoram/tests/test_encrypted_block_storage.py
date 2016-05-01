@@ -4,7 +4,7 @@ import tempfile
 
 from pyoram.storage.block_storage import \
     BlockStorageTypeFactory
-from pyoram.storage.encrypted_block_storage import \
+from pyoram.encrypted_storage.encrypted_block_storage import \
     EncryptedBlockStorage
 from pyoram.crypto.aes import AES
 

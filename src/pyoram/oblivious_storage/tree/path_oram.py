@@ -3,14 +3,14 @@ import struct
 import array
 import logging
 
-from pyoram.tree.tree_oram import \
+from pyoram.oblivious_storage.tree.tree_oram_helper import \
     (TreeORAMStorage,
      TreeORAMStorageManagerExplicitAddressing)
-from pyoram.storage.encrypted_block_storage import \
+from pyoram.encrypted_storage.encrypted_block_storage import \
     EncryptedBlockStorageInterface
-from pyoram.storage.encrypted_heap_storage import \
+from pyoram.encrypted_storage.encrypted_heap_storage import \
     EncryptedHeapStorage
-from pyoram.storage.virtualheap import \
+from pyoram.util.virtual_heap import \
     (SizedVirtualHeap,
      calculate_necessary_heap_height)
 

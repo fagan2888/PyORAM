@@ -2,8 +2,8 @@ import os
 import unittest
 import tempfile
 
-from pyoram.tree.path_oram import PathORAM
-from pyoram.storage.encrypted_heap_storage import \
+from pyoram.oblivious_storage.tree.path_oram import PathORAM
+from pyoram.encrypted_storage.encrypted_heap_storage import \
     EncryptedHeapStorage
 from pyoram.crypto.aes import AES
 

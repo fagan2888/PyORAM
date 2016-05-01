@@ -4,7 +4,7 @@ __all__ = ('TreeORAMStorageManagerExplicitAddressing',
 import struct
 import copy
 
-from pyoram.storage.virtualheap import \
+from pyoram.util.virtual_heap import \
     SizedVirtualHeap
 
 from six.moves import xrange

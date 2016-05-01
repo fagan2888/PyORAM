@@ -44,4 +44,5 @@ del _configure_logging
 import pyoram.util
 import pyoram.crypto
 import pyoram.storage
-import pyoram.tree
+import pyoram.encrypted_storage
+import pyoram.oblivious_storage

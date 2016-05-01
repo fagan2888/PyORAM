@@ -2,10 +2,10 @@ __all__ = ('EncryptedHeapStorage',)
 
 import struct
 
-from pyoram.storage.virtualheap import SizedVirtualHeap
+from pyoram.util.virtual_heap import SizedVirtualHeap
 from pyoram.storage.heap_storage import \
     HeapStorageInterface
-from pyoram.storage.encrypted_block_storage import \
+from pyoram.encrypted_storage.encrypted_block_storage import \
     EncryptedBlockStorage
 
 class EncryptedHeapStorageInterface(HeapStorageInterface):

@@ -3,7 +3,7 @@ import subprocess
 import unittest
 
 import pyoram
-from pyoram.storage.virtualheap import \
+from pyoram.util.virtual_heap import \
     (VirtualHeap,
      SizedVirtualHeap,
      max_k_labeled,
