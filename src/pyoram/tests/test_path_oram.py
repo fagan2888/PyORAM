@@ -383,7 +383,6 @@ class _TestPathORAMBase(object):
                           self._position_map,
                           key=self._key,
                           storage_type=self._type_name) as f:
-                f.close()
                 pass                                   # pragma: no cover
         # stash hash invalid key (negative)
         with self.assertRaises(ValueError):
@@ -392,7 +391,6 @@ class _TestPathORAMBase(object):
                           self._position_map,
                           key=self._key,
                           storage_type=self._type_name) as f:
-                f.close()
                 pass                                   # pragma: no cover
         # position map has invalid item (negative)
         with self.assertRaises(ValueError):

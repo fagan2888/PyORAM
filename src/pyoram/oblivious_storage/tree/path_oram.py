@@ -120,16 +120,13 @@ class PathORAM(EncryptedBlockStorageInterface):
             hasher = hashlib.sha1()
         id_to_bytes = lambda id_: \
             struct.pack(TreeORAMStorage.block_id_storage_string, id_)
-        if position_map is None:
-            hasher.update(b'0')
-        else:
-            assert len(position_map) > 0
-            for addr in position_map:
-                if addr < 0:
-                    raise ValueError(
-                        "Invalid position map address '%s'. Values must be "
-                        "nonnegative integers." % (addr))
-                hasher.update(id_to_bytes(addr))
+        assert len(position_map) > 0
+        for addr in position_map:
+            if addr < 0:
+                raise ValueError(
+                    "Invalid position map address '%s'. Values must be "
+                    "nonnegative integers." % (addr))
+            hasher.update(id_to_bytes(addr))
         return hasher.digest()
 
     @property
@@ -157,13 +154,6 @@ class PathORAM(EncryptedBlockStorageInterface):
         self._oram.evict_path()
         if write_block is None:
             return self._extract_virtual_block(block)
-
-    def dummy_access(self):
-        b = self._oram.storage_heap.virtual_heap.random_leaf_bucket()
-        self._oram.load_path(b)
-        self._oram.push_down_path()
-        self._oram.fill_path_from_stash()
-        self._oram.evict_path()
 
     #
     # Define EncryptedBlockStorageInterface Methods
