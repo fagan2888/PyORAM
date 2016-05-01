@@ -13,6 +13,6 @@ install:
   - "%PYTHON%\\python.exe -m pip install -U unittest2 nose2 cov-core codecov coverage"
 build: off
 test_script:
-  - "%PYTHON%\\python.exe -m nose2 -v --log-capture --with-coverage"
+  - "%PYTHON%\\python.exe -m nose2 -v --log-capture --with-coverage -s src"
 on_success:
   - "%PYTHON%\\Scripts\\codecov.exe"
