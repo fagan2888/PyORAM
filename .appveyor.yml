@@ -10,7 +10,7 @@ install:
   - "SET PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%"
   - "%PYTHON%\\python.exe -m pip install -v -U pip setuptools"
   - "%PYTHON%\\python.exe -m pip install -v -e ."
-  - "%PYTHON%\\python.exe -m pip install unittest2 nose2 codecov coverage"
+  - "%PYTHON%\\python.exe -m pip install -U unittest2 nose2 cov-core codecov coverage"
 build: off
 test_script:
   - "%PYTHON%\\python.exe -m nose2 -v --log-capture --with-coverage"
