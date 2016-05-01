@@ -1,3 +1,5 @@
+__all__ = ("Boto3S3Wrapper",
+           "MockBoto3S3Wrapper")
 import os
 import shutil
 

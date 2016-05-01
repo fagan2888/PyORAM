@@ -23,7 +23,7 @@ try:
     import boto3
     has_boto3 = True
 except:
-    has_boto3 = False
+    has_boto3 = False                                  # pragma: no cover
 
 class TestBlockStorageTypeFactory(unittest2.TestCase):
 
@@ -95,17 +95,19 @@ class _TestBlockStorage(object):
         if cls._check_exists(cls._dummy_name):
             cls._remove_storage(cls._dummy_name)
         if os.path.exists(cls._dummy_name):
-            _TestBlockStorage._remove_storage(cls._dummy_name)
+            _TestBlockStorage.\
+                _remove_storage(cls._dummy_name)       # pragma: no cover
         cls._block_size = 25
         cls._block_count = 5
         cls._testfname = cls.__name__ + "_testfile.bin"
         cls._blocks = []
-        f = cls._type.setup(cls._testfname,
-                            block_size=cls._block_size,
-                            block_count=cls._block_count,
-                            initialize=lambda i: bytes(bytearray([i])*cls._block_size),
-                            ignore_existing=True,
-                            **cls._type_kwds)
+        f = cls._type.setup(
+            cls._testfname,
+            block_size=cls._block_size,
+            block_count=cls._block_count,
+            initialize=lambda i: bytes(bytearray([i])*cls._block_size),
+            ignore_existing=True,
+            **cls._type_kwds)
         f.close()
         for i in range(cls._block_count):
             data = bytearray([i])*cls._block_size
@@ -417,6 +419,60 @@ class TestBlockStorageS3Mock(_TestBlockStorage,
             with open(os.path.join(name, "b"+str(i)), 'rb') as f:
                 data.extend(f.read())
         return data
+
+    def test_init_exists_no_bucket(self):
+        self.assertEqual(self._check_exists(self._testfname), True)
+        databefore = self._read_storage(self._testfname)
+        with self._type(self._testfname, **self._type_kwds) as f:
+            self.assertEqual(f.block_size, self._block_size)
+            self.assertEqual(f.block_count, self._block_count)
+            self.assertEqual(f.storage_name, self._testfname)
+            self.assertEqual(f.header_data, bytes())
+        self.assertEqual(self._check_exists(self._testfname), True)
+        dataafter = self._read_storage(self._testfname)
+        self.assertEqual(databefore, dataafter)
+        kwds = dict(self._type_kwds)
+        del kwds['bucket_name']
+        with self.assertRaises(ValueError):
+            with self._type(self._testfname, **kwds) as f:
+                pass
+        dataafter = self._read_storage(self._testfname)
+        self.assertEqual(databefore, dataafter)
+
+    def test_setup_fails_no_bucket(self):
+        self.assertEqual(self._check_exists(self._dummy_name), False)
+        kwds = dict(self._type_kwds)
+        del kwds['bucket_name']
+        with self.assertRaises(ValueError):
+            self._type.setup(self._dummy_name,
+                             block_size=1,
+                             block_count=1,
+                             **kwds)
+        self.assertEqual(self._check_exists(self._dummy_name), False)
+
+    def test_setup_ignore_existing(self):
+        self.assertEqual(self._check_exists(self._dummy_name), False)
+        with self._type.setup(self._dummy_name,
+                              block_size=1,
+                              block_count=1,
+                              **self._type_kwds) as f:
+            pass
+        self.assertEqual(self._check_exists(self._dummy_name), True)
+        with self.assertRaises(ValueError):
+            with self._type.setup(self._dummy_name,
+                                  block_size=1,
+                                  block_count=1,
+                                  **self._type_kwds) as f:
+                pass
+        self.assertEqual(self._check_exists(self._dummy_name), True)
+        with self._type.setup(self._dummy_name,
+                              block_size=1,
+                              block_count=1,
+                              ignore_existing=True,
+                              **self._type_kwds) as f:
+            pass
+        self.assertEqual(self._check_exists(self._dummy_name), True)
+        self._remove_storage(self._dummy_name)
 
 @unittest2.skipIf((os.environ.get('PYORAM_AWS_TEST_BUCKET') is None) or \
                  (not has_boto3),
