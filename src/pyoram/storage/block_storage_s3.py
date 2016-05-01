@@ -16,21 +16,21 @@ log = logging.getLogger("pyoram")
 
 class BlockStorageS3(BlockStorageInterface):
 
-    _index_name = "/PyORAMBlockStorageS3_index.txt"
+    _index_name = "PyORAMBlockStorageS3_index.txt"
     _index_struct_string = "!LLL?"
     _index_offset = struct.calcsize(_index_struct_string)
 
     def __init__(self,
                  storage_name,
-                 ignore_lock=False,
                  bucket_name=None,
                  aws_access_key_id=None,
                  aws_secret_access_key=None,
                  region_name=None,
+                 ignore_lock=False,
                  threadpool_size=4,
                  s3_wrapper=Boto3S3Wrapper):
 
-        self._bucket = None
+        self._s3 = None
         self._ignore_lock = ignore_lock
         self._async_write = None
 
@@ -45,7 +45,7 @@ class BlockStorageS3(BlockStorageInterface):
         self._basename = self.storage_name+"/b%d"
         self._pool = ThreadPool(processes=threadpool_size)
 
-        index_data = self._s3.download(self._storage_name+BlockStorageS3._index_name)
+        index_data = self._s3.download(self._storage_name+"/"+BlockStorageS3._index_name)
         self._block_size, self._block_count, user_header_size, locked = \
             struct.unpack(
                 BlockStorageS3._index_struct_string,
@@ -64,14 +64,13 @@ class BlockStorageS3(BlockStorageInterface):
 
         if not self._ignore_lock:
             # turn on the locked flag
-            self._s3.upload(self._storage_name+BlockStorageS3._index_name,
-                            struct.pack(BlockStorageS3._index_struct_string,
-                                        self.block_size,
-                                        self.block_count,
-                                        len(self.header_data),
-                                        True) + \
-                            self.header_data)
-
+            self._s3.upload((self._storage_name+"/"+BlockStorageS3._index_name,
+                             struct.pack(BlockStorageS3._index_struct_string,
+                                         self.block_size,
+                                         self.block_count,
+                                         len(self.header_data),
+                                         True) + \
+                             self.header_data))
     def _check_async(self):
         if self._async_write is not None:
             self._async_write.wait()
@@ -144,36 +143,41 @@ class BlockStorageS3(BlockStorageInterface):
             s3.clear(storage_name)
 
         if header_data is None:
-            s3.upload(storage_name+BlockStorageS3._index_name,
-                      struct.pack(BlockStorageS3._index_struct_string,
+            s3.upload((storage_name+"/"+BlockStorageS3._index_name,
+                       struct.pack(BlockStorageS3._index_struct_string,
                                   block_size,
                                   block_count,
                                   0,
-                                  False))
+                                  False)))
         else:
-            s3.upload(storage_name+BlockStorageS3._index_name,
-                      struct.pack(BlockStorageS3._index_struct_string,
-                                  block_size,
-                                  block_count,
-                                  len(header_data),
-                                  False) + \
-                      header_data)
+            s3.upload((storage_name+"/"+BlockStorageS3._index_name,
+                       struct.pack(BlockStorageS3._index_struct_string,
+                                   block_size,
+                                   block_count,
+                                   len(header_data),
+                                   False) + \
+                       header_data))
 
-        if initialize is None:
-            zeros = bytes(bytearray(block_size))
-            initialize = lambda i: zeros
-        basename = storage_name+"/b%d"
-        for i in xrange(block_count):
-            block = initialize(i)
-            assert len(block) == block_size
-            s3.upload(basename % i, block)
+        try:
+            if initialize is None:
+                zeros = bytes(bytearray(block_size))
+                initialize = lambda i: zeros
+            basename = storage_name+"/b%d"
+            for i in xrange(block_count):
+                block = initialize(i)
+                assert len(block) == block_size
+                s3.upload((basename % i, block))
+        except:
+            s3.clear(storage_name)
+            raise
 
         return BlockStorageS3(storage_name,
                               bucket_name=bucket_name,
-                              access_key_id=access_key_id,
-                              secret_access_key=secret_access_key,
-                              region=region,
-                              threadpool_size=threadpool_size)
+                              aws_access_key_id=aws_access_key_id,
+                              aws_secret_access_key=aws_secret_access_key,
+                              region_name=region_name,
+                              threadpool_size=threadpool_size,
+                              s3_wrapper=s3_wrapper)
 
     @property
     def header_data(self):
@@ -202,27 +206,26 @@ class BlockStorageS3(BlockStorageInterface):
         self._user_header_data = new_header_data
 
         index_data = bytearray(self._s3.download(
-            self._bucket.name,
-            self._storage_name+BlockStorageS3._index_name))
+            self._storage_name+"/"+BlockStorageS3._index_name))
         lenbefore = len(index_data)
         index_data[BlockStorageS3._index_offset:] = new_header_data
         assert lenbefore == len(index_data)
-        self._s3.upload(self._storage_name+BlockStorageS3._index_name,
-                        bytes(index_data))
+        self._s3.upload((self._storage_name+"/"+BlockStorageS3._index_name,
+                         bytes(index_data)))
 
     def close(self):
         self._check_async()
-        if self._bucket is not None:
+        if self._s3 is not None:
             if not self._ignore_lock:
                 # turn off the locked flag
-                self._s3.updload(
-                    self._storage_name+BlockStorageS3._index_name,
-                    struct.pack(BlockStorageS3._index_struct_string,
-                                self.block_size,
-                                self.block_count,
-                                len(self.header_data),
-                                False) + \
-                    self.header_data)
+                self._s3.upload(
+                    (self._storage_name+"/"+BlockStorageS3._index_name,
+                     struct.pack(BlockStorageS3._index_struct_string,
+                                 self.block_size,
+                                 self.block_count,
+                                 len(self.header_data),
+                                 False) + \
+                     self.header_data))
 
     def read_blocks(self, indices):
         # be sure not to exhaust this if it is an iterator
@@ -230,18 +233,20 @@ class BlockStorageS3(BlockStorageInterface):
         indices = list(indices)
         assert all(0 <= i <= self.block_count for i in indices)
         self._check_async()
-        return self._pool.map(self._s3.download, indices)
+        return self._pool.map(self._s3.download,
+                              (self._basename % i for i in indices))
 
     def read_block(self, i):
         assert 0 <= i < self.block_count
         self._check_async()
-        return self._s3.download(i)
+        return self._s3.download(self._basename % i)
 
     def write_blocks(self, indices, blocks):
         # be sure not to exhaust this if it is an iterator
         # or generator
         indices = list(indices)
         assert all(0 <= i <= self.block_count for i in indices)
+        indices = (self._basename % i for i in indices)
         self._check_async()
         self._async_write = \
             self._pool.map_async(self._s3.upload,
@@ -250,6 +255,6 @@ class BlockStorageS3(BlockStorageInterface):
     def write_block(self, i, block):
         assert 0 <= i < self.block_count
         self._check_async()
-        self._s3.upload((i, block))
+        self._s3.upload(((self._basename % i), block))
 
 BlockStorageTypeFactory.register_device("s3", BlockStorageS3)

@@ -1,4 +1,5 @@
 import os
+import shutil
 import unittest
 import tempfile
 
@@ -11,11 +12,18 @@ from pyoram.storage.block_storage_mmap import \
 from pyoram.storage.block_storage_s3 import \
      BlockStorageS3
 from pyoram.storage.boto3_s3_wrapper import \
-    MockBoto3S3Wrapper
+    (Boto3S3Wrapper,
+     MockBoto3S3Wrapper)
 
 from six.moves import xrange
 
 thisdir = os.path.dirname(os.path.abspath(__file__))
+
+try:
+    import boto3
+    has_boto3 = True
+except:
+    has_boto3 = False
 
 class TestBlockStorageTypeFactory(unittest.TestCase):
 
@@ -51,15 +59,43 @@ class _TestBlockStorage(object):
     _type_kwds = None
 
     @classmethod
+    def _read_storage(cls, name):
+        with open(name, 'rb') as f:
+            return f.read()
+
+    @classmethod
+    def _check_exists(cls, name):
+        return os.path.exists(name)
+
+    @classmethod
+    def _remove_storage(cls, name):
+        if os.path.exists(name):
+            if os.path.isdir(name):
+                shutil.rmtree(name, ignore_errors=True)
+            else:
+                os.remove(name)
+
+    @classmethod
+    def _get_empty_existing(cls):
+        return os.path.join(thisdir,
+                            "baselines",
+                            "exists.empty")
+
+    @classmethod
+    def _get_dummy_noexist(cls):
+        fd, name = tempfile.mkstemp(dir=os.getcwd())
+        os.close(fd)
+        return name
+
+    @classmethod
     def setUpClass(cls):
         assert cls._type is not None
         assert cls._type_kwds is not None
-        fd, cls._dummy_name = tempfile.mkstemp()
-        os.close(fd)
-        try:
-            os.remove(cls._dummy_name)
-        except OSError:                                # pragma: no cover
-            pass                                       # pragma: no cover
+        cls._dummy_name = cls._get_dummy_noexist()
+        if cls._check_exists(cls._dummy_name):
+            cls._remove_storage(cls._dummy_name)
+        if os.path.exists(cls._dummy_name):
+            _TestBlockStorage._remove_storage(cls._dummy_name)
         cls._block_size = 25
         cls._block_count = 5
         cls._testfname = cls.__name__ + "_testfile.bin"
@@ -77,55 +113,45 @@ class _TestBlockStorage(object):
 
     @classmethod
     def tearDownClass(cls):
-        try:
-            os.remove(cls._testfname)
-        except OSError:                                # pragma: no cover
-            pass                                       # pragma: no cover
-        try:
-            os.remove(cls._dummy_name)
-        except OSError:                                # pragma: no cover
-            pass                                       # pragma: no cover
+        cls._remove_storage(cls._testfname)
+        cls._remove_storage(cls._dummy_name)
 
     def test_setup_fails(self):
-        self.assertEqual(os.path.exists(self._dummy_name), False)
+        self.assertEqual(self._check_exists(self._dummy_name), False)
         with self.assertRaises(ValueError):
             self._type.setup(
-                os.path.join(thisdir,
-                             "baselines",
-                             "exists.empty"),
+                self._get_empty_existing(),
                 block_size=10,
                 block_count=10,
                 **self._type_kwds)
-        self.assertEqual(os.path.exists(self._dummy_name), False)
+        self.assertEqual(self._check_exists(self._dummy_name), False)
         with self.assertRaises(ValueError):
             self._type.setup(
-                os.path.join(thisdir,
-                             "baselines",
-                             "exists.empty"),
+                self._get_empty_existing(),
                 block_size=10,
                 block_count=10,
                 ignore_existing=False,
                 **self._type_kwds)
-        self.assertEqual(os.path.exists(self._dummy_name), False)
+        self.assertEqual(self._check_exists(self._dummy_name), False)
         with self.assertRaises(ValueError):
             self._type.setup(self._dummy_name,
                              block_size=0,
                              block_count=1,
                              **self._type_kwds)
-        self.assertEqual(os.path.exists(self._dummy_name), False)
+        self.assertEqual(self._check_exists(self._dummy_name), False)
         with self.assertRaises(ValueError):
             self._type.setup(self._dummy_name,
                              block_size=1,
                              block_count=0,
                              **self._type_kwds)
-        self.assertEqual(os.path.exists(self._dummy_name), False)
+        self.assertEqual(self._check_exists(self._dummy_name), False)
         with self.assertRaises(TypeError):
             self._type.setup(self._dummy_name,
                              block_size=1,
                              block_count=1,
                              header_data=2,
                              **self._type_kwds)
-        self.assertEqual(os.path.exists(self._dummy_name), False)
+        self.assertEqual(self._check_exists(self._dummy_name), False)
         with self.assertRaises(ValueError):
             def _init(i):
                 raise ValueError
@@ -134,30 +160,28 @@ class _TestBlockStorage(object):
                              block_count=1,
                              initialize=_init,
                              **self._type_kwds)
-        self.assertEqual(os.path.exists(self._dummy_name), False)
+        self.assertEqual(self._check_exists(self._dummy_name), False)
 
     def test_setup(self):
         fname = ".".join(self.id().split(".")[1:])
         fname += ".bin"
         fname = os.path.join(thisdir, fname)
-        if os.path.exists(fname):
-            os.remove(fname)                           # pragma: no cover
+        self._remove_storage(fname)
         bsize = 10
         bcount = 11
         fsetup = self._type.setup(fname, bsize, bcount, **self._type_kwds)
         fsetup.close()
-        with open(fname, 'rb') as f:
-            flen = len(f.read())
-            self.assertEqual(
-                flen,
-                self._type.compute_storage_size(bsize,
-                                                bcount))
-            self.assertEqual(
-                flen >
-                self._type.compute_storage_size(bsize,
-                                                bcount,
-                                                ignore_header=True),
-                True)
+        flen = len(self._read_storage(fname))
+        self.assertEqual(
+            flen,
+            self._type.compute_storage_size(bsize,
+                                            bcount))
+        self.assertEqual(
+            flen >
+            self._type.compute_storage_size(bsize,
+                                            bcount,
+                                            ignore_header=True),
+            True)
         with self._type(fname, **self._type_kwds) as f:
             self.assertEqual(f.header_data, bytes())
             self.assertEqual(fsetup.header_data, bytes())
@@ -167,14 +191,13 @@ class _TestBlockStorage(object):
             self.assertEqual(fsetup.block_count, bcount)
             self.assertEqual(f.storage_name, fname)
             self.assertEqual(fsetup.storage_name, fname)
-        os.remove(fname)
+        self._remove_storage(fname)
 
     def test_setup_withdata(self):
         fname = ".".join(self.id().split(".")[1:])
         fname += ".bin"
         fname = os.path.join(thisdir, fname)
-        if os.path.exists(fname):
-            os.remove(fname)                           # pragma: no cover
+        self._remove_storage(fname)
         bsize = 10
         bcount = 11
         header_data = bytes(bytearray([0,1,2]))
@@ -184,28 +207,29 @@ class _TestBlockStorage(object):
                                   header_data=header_data,
                                   **self._type_kwds)
         fsetup.close()
-        with open(fname, 'rb') as f:
-            flen = len(f.read())
-            self.assertEqual(
-                flen,
-                self._type.compute_storage_size(bsize,
-                                                bcount,
-                                                header_data=header_data))
-            self.assertTrue(len(header_data) > 0)
-            self.assertEqual(
-                self._type.compute_storage_size(bsize,
-                                                bcount) <
-                self._type.compute_storage_size(bsize,
-                                                bcount,
-                                                header_data=header_data),
-                True)
-            self.assertEqual(
-                flen >
-                self._type.compute_storage_size(bsize,
-                                                bcount,
-                                                header_data=header_data,
-                                                ignore_header=True),
-                True)
+
+        flen = len(self._read_storage(fname))
+        self.assertEqual(
+            flen,
+            self._type.compute_storage_size(bsize,
+                                            bcount,
+                                            header_data=header_data))
+        self.assertTrue(len(header_data) > 0)
+        self.assertEqual(
+            self._type.compute_storage_size(bsize,
+                                            bcount) <
+            self._type.compute_storage_size(bsize,
+                                            bcount,
+                                            header_data=header_data),
+            True)
+        self.assertEqual(
+            flen >
+            self._type.compute_storage_size(bsize,
+                                            bcount,
+                                            header_data=header_data,
+                                            ignore_header=True),
+            True)
+
         with self._type(fname, **self._type_kwds) as f:
             self.assertEqual(f.header_data, header_data)
             self.assertEqual(fsetup.header_data, header_data)
@@ -215,26 +239,24 @@ class _TestBlockStorage(object):
             self.assertEqual(fsetup.block_count, bcount)
             self.assertEqual(f.storage_name, fname)
             self.assertEqual(fsetup.storage_name, fname)
-        os.remove(fname)
+        self._remove_storage(fname)
 
     def test_init_noexists(self):
-        self.assertEqual(os.path.exists(self._dummy_name), False)
+        self.assertEqual(self._check_exists(self._dummy_name), False)
         with self.assertRaises(IOError):
             with self._type(self._dummy_name, **self._type_kwds) as f:
                 pass                                   # pragma: no cover
 
     def test_init_exists(self):
-        self.assertEqual(os.path.exists(self._testfname), True)
-        with open(self._testfname, 'rb') as f:
-            databefore = f.read()
+        self.assertEqual(self._check_exists(self._testfname), True)
+        databefore = self._read_storage(self._testfname)
         with self._type(self._testfname, **self._type_kwds) as f:
             self.assertEqual(f.block_size, self._block_size)
             self.assertEqual(f.block_count, self._block_count)
             self.assertEqual(f.storage_name, self._testfname)
             self.assertEqual(f.header_data, bytes())
-        self.assertEqual(os.path.exists(self._testfname), True)
-        with open(self._testfname, 'rb') as f:
-            dataafter = f.read()
+        self.assertEqual(self._check_exists(self._testfname), True)
+        dataafter = self._read_storage(self._testfname)
         self.assertEqual(databefore, dataafter)
 
     def test_read_block(self):
@@ -320,8 +342,7 @@ class _TestBlockStorage(object):
         fname = ".".join(self.id().split(".")[1:])
         fname += ".bin"
         fname = os.path.join(thisdir, fname)
-        if os.path.exists(fname):
-            os.remove(fname)                           # pragma: no cover
+        self._remove_storage(fname)
         bsize = 10
         bcount = 11
         header_data = bytes(bytearray([0,1,2]))
@@ -346,7 +367,7 @@ class _TestBlockStorage(object):
                 f.update_header_data(bytes(bytearray([1,1,1,1])))
         with self._type(fname, **self._type_kwds) as f:
             self.assertEqual(f.header_data, new_header_data)
-        os.remove(fname)
+        self._remove_storage(fname)
 
     def test_locked_flag(self):
         with self._type(self._testfname, **self._type_kwds) as f:
@@ -378,12 +399,69 @@ class TestBlockStorageMMap(_TestBlockStorage,
     _type = BlockStorageMMap
     _type_kwds = {}
 
-class TestBlockStorageS3(_TestBlockStorage,
-                         unittest.TestCase):
+class TestBlockStorageS3Mock(_TestBlockStorage,
+                             unittest.TestCase):
     _type = BlockStorageS3
     _type_kwds = {'s3_wrapper': MockBoto3S3Wrapper,
                   'bucket_name': '.'}
 
+    @classmethod
+    def _read_storage(cls, name):
+        import glob
+        data = bytearray()
+        prefix_len = len(os.path.join(name,"b"))
+        nblocks = max(int(bfile[prefix_len:]) for bfile in glob.glob(name+"/b*")) + 1
+        with open(os.path.join(name, BlockStorageS3._index_name), 'rb') as f:
+            data.extend(f.read())
+        for i in range(nblocks):
+            with open(os.path.join(name, "b"+str(i)), 'rb') as f:
+                data.extend(f.read())
+        return data
+
+@unittest.skipIf((os.environ.get('PYORAM_AWS_TEST_BUCKET') is None) or \
+                 not has_boto3,
+                 "No PYORAM_AWS_TEST_BUCKET defined in environment or "
+                 "boto3 is not available")
+class TestBlockStorageS3(_TestBlockStorage,
+                         unittest.TestCase):
+    _type = BlockStorageS3
+    _type_kwds = {'bucket_name': os.environ.get('PYORAM_AWS_TEST_BUCKET')}
+
+    @classmethod
+    def _read_storage(cls, name):
+        data = bytearray()
+        s3 = Boto3S3Wrapper(cls._type_kwds['bucket_name'])
+        prefix_len = len(name+"/b")
+        nblocks = 1 + max(int(obj.key[prefix_len:]) for obj
+                          in s3._bucket.objects.filter(Prefix=name+"/b"))
+        data.extend(s3.download(name+"/"+BlockStorageS3._index_name))
+        for i in range(nblocks):
+            data.extend(s3.download(name+"/b"+str(i)))
+        return data
+
+    @classmethod
+    def _check_exists(cls, name):
+        return Boto3S3Wrapper(cls._type_kwds['bucket_name']).exists(name)
+
+    @classmethod
+    def _remove_storage(cls, name):
+        Boto3S3Wrapper(cls._type_kwds['bucket_name']).clear(name)
+
+    @classmethod
+    def _get_empty_existing(cls):
+        return "exists.empty"
+
+    @classmethod
+    def _get_dummy_noexist(cls):
+        s3 = Boto3S3Wrapper(cls._type_kwds['bucket_name'])
+        fd, name = tempfile.mkstemp(dir=os.getcwd())
+        os.close(fd)
+        os.remove(name)
+        while s3.exists(name):
+            fd, name = tempfile.mkstemp(dir=os.getcwd())
+            os.close(fd)
+            os.remove(name)
+        return name
+
 if __name__ == "__main__":
     unittest.main()                                    # pragma: no cover
-
