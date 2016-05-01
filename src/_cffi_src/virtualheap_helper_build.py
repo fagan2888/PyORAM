@@ -16,7 +16,7 @@ int calculate_last_common_level(unsigned int k,
                                 unsigned long long b2);
 """)
 
-ffi.set_source("pyoram.storage._virtualheap",
+ffi.set_source("pyoram.storage._virtualheap_helper",
 """
 #include <stdio.h>
 #include <stdlib.h>

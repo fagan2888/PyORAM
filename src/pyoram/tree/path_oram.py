@@ -17,7 +17,7 @@ from pyoram.storage.virtualheap import \
 import six
 from six.moves import xrange
 
-log = logging.getLogger("PyORAM")
+log = logging.getLogger("pyoram")
 
 class PathORAM(EncryptedBlockStorageInterface):
 

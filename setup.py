@@ -7,7 +7,7 @@ from codecs import open
 here = os.path.abspath(os.path.dirname(__file__))
 
 about = {}
-with open(os.path.join("pyoram", "__about__.py")) as f:
+with open(os.path.join("src", "pyoram", "__about__.py")) as f:
     exec(f.read(), about)
 
 # Get the long description from the README file
@@ -58,17 +58,13 @@ setup(
         'Programming Language :: Python :: Implementation :: PyPy',
     ],
     keywords='oram privacy cryptography',
+    package_dir={'': 'src'},
     packages=['pyoram'],
     setup_requires=setup_requirements,
     install_requires=requirements,
-    cffi_modules=["pyoram/storage/virtualheap_build.py:ffi"],
+    cffi_modules=["src/_cffi_src/virtualheap_helper_build.py:ffi"],
     # use MANIFEST.in
     include_package_data=True,
-    #entry_points={
-    #    'console_scripts': [
-    #        'sample=sample:main',
-    #    ],
-    #},
     test_suite='nose.collector',
     tests_require=['nose']
 )

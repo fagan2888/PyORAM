@@ -30,12 +30,12 @@ def _configure_logging():
                     format=("[%(asctime)s.%(msecs)03d,"
                             "%(name)s,%(levelname)s] %(message)s")
                 )
-            log = logging.getLogger("PyORAM")
+            log = logging.getLogger("pyoram")
             log.info("PyORAM log configured using built-in "
                      "defaults, level=%s", level)
     else:
         # logging is disabled
-        log = logging.getLogger("PyORAM")
+        log = logging.getLogger("pyoram")
         log.setLevel(9999)
 
 _configure_logging()

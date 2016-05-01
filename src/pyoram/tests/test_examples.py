@@ -6,7 +6,8 @@ import unittest
 thisfile = os.path.abspath(__file__)
 thisdir = os.path.dirname(thisfile)
 topdir = os.path.dirname(
-    os.path.dirname(thisdir))
+    os.path.dirname(
+        os.path.dirname(thisdir)))
 exdir = os.path.join(topdir, 'examples')
 examples = glob.glob(os.path.join(exdir,"*.py"))
 
