@@ -234,10 +234,14 @@ class _TestTopCachedEncryptedHeapStorage(object):
             self.assertEqual(f.storage_name, self._testfname)
             self.assertEqual(f.header_data, bytes())
         self.assertEqual(os.path.exists(self._testfname), True)
-        with EncryptedBlockStorage(self._testfname,
-                                   key=self._key,
-                                   storage_type=self._storage_type) as f:
-            dataafter = f.read_blocks(list(range(f.block_count)))
+        with TopCachedEncryptedHeapStorage(
+                EncryptedHeapStorage(
+                    self._testfname,
+                    key=self._key,
+                    storage_type=self._storage_type),
+                **self._init_kwds) as f:
+            dataafter = f.block_storage.read_blocks(
+                list(range(f.block_storage.block_count)))
         self.assertEqual(databefore, dataafter)
 
     def test_read_path(self):

@@ -33,8 +33,8 @@ class TopCachedEncryptedHeapStorage(EncryptedHeapStorageInterface):
     #
 
     def clone_device(self, *args, **kwds):
-        raise NotImplementedError(
-            "This class is not designed for cloning")
+        raise NotImplementedError(                     # pragma: no cover
+            "Class is not designed for cloning")       # pragma: no cover
 
     @classmethod
     def compute_storage_size(cls, *args, **kwds):
@@ -42,8 +42,8 @@ class TopCachedEncryptedHeapStorage(EncryptedHeapStorageInterface):
 
     @classmethod
     def setup(cls, *args, **kwds):
-        raise NotImplementedError(
-            "This class is not designed to be directly setup")
+        raise NotImplementedError(                     # pragma: no cover
+            "Class is not designed to setup storage")  # pragma: no cover
 
     @property
     def header_data(self):
