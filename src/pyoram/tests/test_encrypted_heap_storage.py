@@ -55,7 +55,6 @@ class TestEncryptedHeapStorage(unittest2.TestCase):
                    cls._blocks_per_bucket
             cls._buckets.append(data)
 
-
     @classmethod
     def tearDownClass(cls):
         try:
@@ -468,6 +467,72 @@ class TestEncryptedHeapStorage(unittest2.TestCase):
                                   key=self._key,
                                   storage_type=self._type_name) as f:
             pass
+
+    def test_read_path_cloned(self):
+
+        with EncryptedHeapStorage(
+                self._testfname,
+                key=self._key,
+                storage_type=self._type_name) as forig:
+            with forig.clone_device() as f:
+                self.assertEqual(
+                    f.virtual_heap.first_bucket_at_level(0), 0)
+                self.assertNotEqual(
+                    f.virtual_heap.last_leaf_bucket(), 0)
+                for b in range(f.virtual_heap.first_bucket_at_level(0),
+                               f.virtual_heap.last_leaf_bucket()+1):
+                    data = f.read_path(b)
+                    bucket_path = f.virtual_heap.Node(b).\
+                                  bucket_path_from_root()
+                    self.assertEqual(f.virtual_heap.Node(b).level+1,
+                                     len(bucket_path))
+                    for i, bucket in zip(bucket_path, data):
+                        self.assertEqual(list(bytearray(bucket)),
+                                         list(self._buckets[i]))
+
+    def test_write_path_cloned(self):
+        data = [bytearray([self._bucket_count]) * \
+                self._block_size * \
+                self._blocks_per_bucket
+                for i in xrange(self._block_count)]
+        with EncryptedHeapStorage(
+                self._testfname,
+                key=self._key,
+                storage_type=self._type_name) as forig:
+            with forig.clone_device() as f:
+                self.assertEqual(
+                    f.virtual_heap.first_bucket_at_level(0), 0)
+                self.assertNotEqual(
+                    f.virtual_heap.last_leaf_bucket(), 0)
+                for b in range(f.virtual_heap.first_bucket_at_level(0),
+                               f.virtual_heap.last_leaf_bucket()+1):
+                    orig = f.read_path(b)
+                    bucket_path = f.virtual_heap.Node(b).\
+                                  bucket_path_from_root()
+                    self.assertNotEqual(len(bucket_path), 0)
+                    self.assertEqual(f.virtual_heap.Node(b).level+1,
+                                     len(bucket_path))
+                    self.assertEqual(len(orig), len(bucket_path))
+                    for i, bucket in zip(bucket_path, orig):
+                        self.assertEqual(list(bytearray(bucket)),
+                                         list(self._buckets[i]))
+                    f.write_path(b, [bytes(data[i])
+                                     for i in bucket_path])
+
+                    new = f.read_path(b)
+                    self.assertEqual(len(new), len(bucket_path))
+                    for i, bucket in zip(bucket_path, new):
+                        self.assertEqual(list(bytearray(bucket)),
+                                         list(data[i]))
+
+                    f.write_path(b, [bytes(self._buckets[i])
+                                     for i in bucket_path])
+
+                    orig = f.read_path(b)
+                    self.assertEqual(len(orig), len(bucket_path))
+                    for i, bucket in zip(bucket_path, orig):
+                        self.assertEqual(list(bytearray(bucket)),
+                                         list(self._buckets[i]))
 
 if __name__ == "__main__":
     unittest2.main()                                    # pragma: no cover

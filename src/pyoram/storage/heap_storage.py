@@ -11,12 +11,16 @@ class HeapStorageInterface(object):
     # Abstract Interface
     #
 
+    def clone_device(self, *args, **kwds):
+        raise NotImplementedError                      # pragma: no cover
+
     @classmethod
     def compute_storage_size(cls, *args, **kwds):
         raise NotImplementedError                      # pragma: no cover
     @classmethod
     def setup(cls, *args, **kwds):
         raise NotImplementedError                      # pragma: no cover
+
     @property
     def header_data(self, *args, **kwds):
         raise NotImplementedError                      # pragma: no cover
@@ -35,6 +39,10 @@ class HeapStorageInterface(object):
     @property
     def virtual_heap(self, *args, **kwds):
         raise NotImplementedError                      # pragma: no cover
+    @property
+    def block_storage(self, *args, **kwds):
+        raise NotImplementedError                      # pragma: no cover
+
     def update_header_data(self, *args, **kwds):
         raise NotImplementedError                      # pragma: no cover
     def close(self, *args, **kwds):

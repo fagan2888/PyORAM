@@ -61,6 +61,10 @@ class BlockStorageFile(BlockStorageInterface):
     #
     # Define BlockStorageInterface Methods
     #
+
+    def clone_device(self):
+        return BlockStorageFile(self.storage_name, ignore_lock=True)
+
     @classmethod
     def compute_storage_size(cls,
                              block_size,

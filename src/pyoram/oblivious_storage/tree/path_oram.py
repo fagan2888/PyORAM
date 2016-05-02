@@ -10,6 +10,8 @@ from pyoram.encrypted_storage.encrypted_block_storage import \
     EncryptedBlockStorageInterface
 from pyoram.encrypted_storage.encrypted_heap_storage import \
     EncryptedHeapStorage
+from pyoram.encrypted_storage.top_cached_encrypted_heap_storage import \
+    TopCachedEncryptedHeapStorage
 from pyoram.util.virtual_heap import \
     (SizedVirtualHeap,
      calculate_necessary_heap_height)

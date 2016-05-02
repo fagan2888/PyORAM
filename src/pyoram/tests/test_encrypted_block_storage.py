@@ -492,6 +492,97 @@ class _TestEncryptedBlockStorage(object):
                                    storage_type=self._type_name) as f:
             pass
 
+    def test_read_block_cloned(self):
+        with EncryptedBlockStorage(self._testfname,
+                                   key=self._key,
+                                   storage_type=self._type_name) as forig:
+            with forig.clone_device() as f:
+                for i, data in enumerate(self._blocks):
+                    self.assertEqual(list(bytearray(f.read_block(i))),
+                                     list(self._blocks[i]))
+                for i, data in enumerate(self._blocks):
+                    self.assertEqual(list(bytearray(f.read_block(i))),
+                                     list(self._blocks[i]))
+                for i, data in reversed(list(enumerate(self._blocks))):
+                    self.assertEqual(list(bytearray(f.read_block(i))),
+                                     list(self._blocks[i]))
+                for i, data in reversed(list(enumerate(self._blocks))):
+                    self.assertEqual(list(bytearray(f.read_block(i))),
+                                     list(self._blocks[i]))
+            with forig.clone_device() as f:
+                self.assertEqual(list(bytearray(f.read_block(0))),
+                                 list(self._blocks[0]))
+                self.assertEqual(list(bytearray(f.read_block(self._block_count-1))),
+                                 list(self._blocks[-1]))
+
+    def test_write_block_cloned(self):
+        data = bytearray([self._block_count])*self._block_size
+        self.assertEqual(len(data) > 0, True)
+        with EncryptedBlockStorage(self._testfname,
+                                   key=self._key,
+                                   storage_type=self._type_name) as forig:
+            with forig.clone_device() as f:
+                for i in xrange(self._block_count):
+                    self.assertNotEqual(list(bytearray(f.read_block(i))),
+                                        list(data))
+                for i in xrange(self._block_count):
+                    f.write_block(i, bytes(data))
+                for i in xrange(self._block_count):
+                    self.assertEqual(list(bytearray(f.read_block(i))),
+                                     list(data))
+                for i, block in enumerate(self._blocks):
+                    f.write_block(i, bytes(block))
+
+    def test_read_blocks_cloned(self):
+        with EncryptedBlockStorage(self._testfname,
+                                   key=self._key,
+                                   storage_type=self._type_name) as forig:
+            with forig.clone_device() as f:
+                data = f.read_blocks(list(xrange(self._block_count)))
+                self.assertEqual(len(data), self._block_count)
+                for i, block in enumerate(data):
+                    self.assertEqual(list(bytearray(block)),
+                                     list(self._blocks[i]))
+                data = f.read_blocks([0])
+                self.assertEqual(len(data), 1)
+                self.assertEqual(list(bytearray(data[0])),
+                                 list(self._blocks[0]))
+                self.assertEqual(len(self._blocks) > 1, True)
+                data = f.read_blocks(list(xrange(1, self._block_count)) + [0])
+                self.assertEqual(len(data), self._block_count)
+                for i, block in enumerate(data[:-1], 1):
+                    self.assertEqual(list(bytearray(block)),
+                                     list(self._blocks[i]))
+                self.assertEqual(list(bytearray(data[-1])),
+                                 list(self._blocks[0]))
+
+    def test_write_blocks_cloned(self):
+        data = [bytearray([self._block_count])*self._block_size
+                for i in xrange(self._block_count)]
+        with EncryptedBlockStorage(self._testfname,
+                                   key=self._key,
+                                   storage_type=self._type_name) as forig:
+            with forig.clone_device() as f:
+                orig = f.read_blocks(list(xrange(self._block_count)))
+                self.assertEqual(len(orig), self._block_count)
+                for i, block in enumerate(orig):
+                    self.assertEqual(list(bytearray(block)),
+                                     list(self._blocks[i]))
+                f.write_blocks(list(xrange(self._block_count)),
+                               [bytes(b) for b in data])
+                new = f.read_blocks(list(xrange(self._block_count)))
+                self.assertEqual(len(new), self._block_count)
+                for i, block in enumerate(new):
+                    self.assertEqual(list(bytearray(block)),
+                                     list(data[i]))
+                f.write_blocks(list(xrange(self._block_count)),
+                               [bytes(b) for b in self._blocks])
+                orig = f.read_blocks(list(xrange(self._block_count)))
+                self.assertEqual(len(orig), self._block_count)
+                for i, block in enumerate(orig):
+                    self.assertEqual(list(bytearray(block)),
+                                     list(self._blocks[i]))
+
 class TestEncryptedBlockStorageFileCTRKey(_TestEncryptedBlockStorage,
                                           unittest2.TestCase):
     _type_name = 'file'

@@ -30,6 +30,13 @@ class BlockStorageS3(BlockStorageInterface):
                  threadpool_size=4,
                  s3_wrapper=Boto3S3Wrapper):
 
+        self._storage_name = storage_name
+        self._bucket_name = bucket_name
+        self._aws_access_key_id = aws_access_key_id
+        self._aws_secret_access_key = aws_secret_access_key
+        self._region_name = region_name
+        self._threadpool_size = threadpool_size
+
         self._s3 = None
         self._ignore_lock = ignore_lock
         self._async_write = None
@@ -41,9 +48,11 @@ class BlockStorageS3(BlockStorageInterface):
                               aws_access_key_id=aws_access_key_id,
                               aws_secret_access_key=aws_secret_access_key,
                               region_name=region_name)
-        self._storage_name = storage_name
         self._basename = self.storage_name+"/b%d"
-        self._pool = ThreadPool(processes=threadpool_size)
+        if threadpool_size == 0:
+            self._pool = None
+        else:
+            self._pool = ThreadPool(processes=threadpool_size)
 
         index_data = self._s3.download(self._storage_name+"/"+BlockStorageS3._index_name)
         self._block_size, self._block_count, user_header_size, locked = \
@@ -79,6 +88,16 @@ class BlockStorageS3(BlockStorageInterface):
     #
     # Define BlockStorageInterface Methods
     #
+
+    def clone_device(self):
+        return BlockStorageS3(self.storage_name,
+                              bucket_name=self._bucket_name,
+                              aws_access_key_id=self._aws_access_key_id,
+                              aws_secret_access_key=self._aws_secret_access_key,
+                              region_name=self._region_name,
+                              threadpool_size=self._threadpool_size,
+                              s3_wrapper=type(self._s3),
+                              ignore_lock=True)
 
     @classmethod
     def compute_storage_size(cls,
@@ -237,8 +256,12 @@ class BlockStorageS3(BlockStorageInterface):
         indices = list(indices)
         assert all(0 <= i <= self.block_count for i in indices)
         self._check_async()
-        return self._pool.map(self._s3.download,
-                              (self._basename % i for i in indices))
+        if self._pool is not None:
+            return self._pool.map(self._s3.download,
+                                  (self._basename % i for i in indices))
+        else:
+            return map(self._s3.download,
+                       (self._basename % i for i in indices))
 
     def read_block(self, i):
         assert 0 <= i < self.block_count
@@ -252,9 +275,13 @@ class BlockStorageS3(BlockStorageInterface):
         assert all(0 <= i <= self.block_count for i in indices)
         indices = (self._basename % i for i in indices)
         self._check_async()
-        self._async_write = \
-            self._pool.map_async(self._s3.upload,
-                                 zip(indices, blocks))
+        if self._pool is not None:
+            self._async_write = \
+                self._pool.map_async(self._s3.upload,
+                                     zip(indices, blocks))
+        else:
+            map(self._s3.upload,
+                zip(indices, blocks))
 
     def write_block(self, i, block):
         assert 0 <= i < self.block_count

@@ -37,6 +37,9 @@ class BlockStorageInterface(object):
     # Abstract Interface
     #
 
+    def clone_device(self, *args, **kwds):
+        raise NotImplementedError                      # pragma: no cover
+
     @classmethod
     def compute_storage_size(cls, *args, **kwds):
         raise NotImplementedError                      # pragma: no cover

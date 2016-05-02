@@ -65,6 +65,10 @@ class EncryptedBlockStorage(EncryptedBlockStorageInterface):
     # Define BlockStorageInterface Methods
     #
 
+    def clone_device(self):
+        return EncryptedBlockStorage(self._storage.clone_device(),
+                                     key=self.key)
+
     @classmethod
     def compute_storage_size(cls,
                              block_size,

@@ -54,6 +54,9 @@ class EncryptedHeapStorage(EncryptedHeapStorageInterface):
     # Define HeapStorageInterface Methods
     #
 
+    def clone_device(self):
+        return EncryptedHeapStorage(self._storage.clone_device())
+
     @classmethod
     def compute_storage_size(cls,
                              block_size,
@@ -155,6 +158,10 @@ class EncryptedHeapStorage(EncryptedHeapStorageInterface):
     def virtual_heap(self):
         return self._vheap
 
+    @property
+    def block_storage(self):
+        return self._storage
+
     def update_header_data(self, new_header_data):
         self._storage.update_header_data(
             self._storage.header_data[:self._header_offset] + \
@@ -163,13 +170,15 @@ class EncryptedHeapStorage(EncryptedHeapStorageInterface):
     def close(self):
         self._storage.close()
 
-    def read_path(self, b):
+    def read_path(self, b, level_start=0):
         assert 0 <= b < self._vheap.bucket_count()
-        return self._storage.read_blocks(
-            self._vheap.Node(b).bucket_path_from_root())
+        bucket_list = self._vheap.Node(b).bucket_path_from_root()
+        assert 0 <= level_start < len(bucket_list)
+        return self._storage.read_blocks(bucket_list[level_start:])
 
-    def write_path(self, b, buckets):
+    def write_path(self, b, buckets, level_start=0):
         assert 0 <= b < self._vheap.bucket_count()
-        self._storage.write_blocks(
-            self._vheap.Node(b).bucket_path_from_root(),
-            buckets)
+        bucket_list = self._vheap.Node(b).bucket_path_from_root()
+        assert 0 <= level_start < len(bucket_list)
+        self._storage.write_blocks(bucket_list[level_start:],
+                                   buckets)
