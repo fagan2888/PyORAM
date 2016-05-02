@@ -12,11 +12,11 @@ PyORAM
 
 Python-based Oblivious RAM (PyORAM) is a collection of
 Oblivious RAM algorithms implemented in Python. This package
-serves to enable rapid prototyping and testing new Oblivious
-RAM algorithms tailored for the cloud-storage
-setting. PyORAM is written to support as many Python
-versions as possible, including Python 2.7+, Python 3.3+,
-and PyPy 2.6+.
+serves to enable rapid prototyping and testing of new ORAM
+algorithms and ORAM-based applications tailored for the
+cloud-storage setting. PyORAM is written to support as many
+Python versions as possible, including Python 2.7+, Python
+3.3+, and PyPy 2.6+.
 
 This software is copyright (c) by Gabriel A. Hackebeil (gabe.hackebeil@gmail.com).
 
