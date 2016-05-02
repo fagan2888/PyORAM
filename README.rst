@@ -33,6 +33,7 @@ Algorithms Available (So Far)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 * `Path ORAM <http://arxiv.org/abs/1202.5150v3>`_
+
   - Generalized to work over k-kary storage heaps in order
     to study stash-size behavior in this setting. Default
     settings will use a binary storage heap.
