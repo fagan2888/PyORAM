@@ -87,16 +87,12 @@ class TopCachedEncryptedHeapStorage(EncryptedHeapStorageInterface):
     def read_path(self, b, level_start=0):
         assert 0 <= b < self.virtual_heap.bucket_count()
         bucket_list = self.virtual_heap.Node(b).bucket_path_from_root()
-#        print("R", str(bucket_list), level_start)
         if len(bucket_list) <= self._external_level_start:
-#            print("\nA")
             return [self._cached_buckets[bb] for bb in bucket_list[level_start:]]
         elif level_start >= self._external_level_start:
-#            print("\nB")
             return self._subheap_storage[bucket_list[self._external_level_start]].\
-                  block_storage.read_blocks(bucket_list[level_start:])
+                block_storage.read_blocks(bucket_list[level_start:])
         else:
-#            print("\nC")
             local_buckets = bucket_list[:self._external_level_start]
             external_buckets = bucket_list[self._external_level_start:]
             buckets = []
@@ -107,24 +103,18 @@ class TopCachedEncryptedHeapStorage(EncryptedHeapStorageInterface):
                     self._subheap_storage[external_buckets[0]].\
                     block_storage.read_blocks(external_buckets))
             assert len(buckets) == len(bucket_list[level_start:])
-#            import base64
-#            print(str([base64.b64encode(b_) for b_ in buckets]))
             return buckets
 
     def write_path(self, b, buckets, level_start=0):
         assert 0 <= b < self.virtual_heap.bucket_count()
         bucket_list = self.virtual_heap.Node(b).bucket_path_from_root()
-#        print("W", str(bucket_list), level_start)
         if len(bucket_list) <= self._external_level_start:
-#            print("\nA")
             for bb, bucket in zip(bucket_list[level_start:], buckets):
                 self._cached_buckets[bb] = bucket
         elif level_start >= self._external_level_start:
-#            print("\nB")
             self._subheap_storage[bucket_list[self._external_level_start]].\
                 block_storage.write_blocks(bucket_list[level_start:], buckets)
         else:
-#            print("\nC")
             buckets = list(buckets)
             assert len(buckets) == len(bucket_list[level_start:])
             local_buckets = bucket_list[:self._external_level_start]
