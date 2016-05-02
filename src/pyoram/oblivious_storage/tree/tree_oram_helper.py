@@ -68,13 +68,23 @@ class TreeORAMStorage(object):
         lcl = vheap.clib.calculate_last_common_level
         k = vheap.k
 
+        read_level_start = 0
+        if self.path_stop_bucket is not None:
+            # don't download the root and any other buckets
+            # that are common between the previous bucket path
+            # and the new one
+            read_level_start = lcl(k, self.path_stop_bucket, b)
+
         assert 0 <= b < vheap.bucket_count()
         self.path_stop_bucket = b
-        new_buckets = self.storage_heap.read_path(self.path_stop_bucket)
-        self.path_bucket_count = len(new_buckets)
+        new_buckets = self.storage_heap.read_path(self.path_stop_bucket,
+                                                  level_start=read_level_start)
+        self.path_bucket_count = read_level_start + len(new_buckets)
         pos = 0
-        for i, bucket in enumerate(new_buckets):
-            self.path_bucket_dataview[i][:] = bucket[:]
+        for i in xrange(self.path_bucket_count):
+            if i >= read_level_start:
+                self.path_bucket_dataview[i][:] = \
+                    new_buckets[i-read_level_start][:]
             for j in xrange(Z):
                 block_id, block_addr = \
                     self.get_block_info(self.path_block_dataview[pos])
