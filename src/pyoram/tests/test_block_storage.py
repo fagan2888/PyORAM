@@ -484,11 +484,9 @@ class TestBlockStorageMMap(_TestBlockStorage,
     _type = BlockStorageMMap
     _type_kwds = {}
 
-class TestBlockStorageS3Mock(_TestBlockStorage,
-                             unittest2.TestCase):
+class _TestBlockStorageS3Mock(_TestBlockStorage):
     _type = BlockStorageS3
-    _type_kwds = {'s3_wrapper': MockBoto3S3Wrapper,
-                  'bucket_name': '.'}
+    _type_kwds = {}
 
     @classmethod
     def _read_storage(cls, name):
@@ -556,6 +554,18 @@ class TestBlockStorageS3Mock(_TestBlockStorage,
             pass
         self.assertEqual(self._check_exists(self._dummy_name), True)
         self._remove_storage(self._dummy_name)
+
+class TestBlockStorageS3MockNoThreads(_TestBlockStorageS3Mock,
+                                      unittest2.TestCase):
+    _type_kwds = {'s3_wrapper': MockBoto3S3Wrapper,
+                  'bucket_name': '.',
+                  'threadpool_size': 0}
+
+class TestBlockStorageS3Mock(_TestBlockStorageS3Mock,
+                             unittest2.TestCase):
+    _type_kwds = {'s3_wrapper': MockBoto3S3Wrapper,
+                  'bucket_name': '.',
+                  'threadpool_size': 4}
 
 @unittest2.skipIf((os.environ.get('PYORAM_AWS_TEST_BUCKET') is None) or \
                  (not has_boto3),

@@ -260,8 +260,11 @@ class BlockStorageS3(BlockStorageInterface):
             return self._pool.map(self._s3.download,
                                   (self._basename % i for i in indices))
         else:
-            return map(self._s3.download,
-                       (self._basename % i for i in indices))
+            blocks = map(self._s3.download,
+                         (self._basename % i for i in indices))
+            if six.PY3:
+                blocks = list(blocks)
+            return blocks
 
     def read_block(self, i):
         assert 0 <= i < self.block_count
@@ -280,8 +283,10 @@ class BlockStorageS3(BlockStorageInterface):
                 self._pool.map_async(self._s3.upload,
                                      zip(indices, blocks))
         else:
-            map(self._s3.upload,
-                zip(indices, blocks))
+            result = map(self._s3.upload,
+                         zip(indices, blocks))
+            if six.PY3:
+                list(result)
 
     def write_block(self, i, block):
         assert 0 <= i < self.block_count
