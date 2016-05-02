@@ -9,7 +9,8 @@ from pyoram.oblivious_storage.tree.tree_oram_helper import \
 from pyoram.encrypted_storage.encrypted_block_storage import \
     EncryptedBlockStorageInterface
 from pyoram.encrypted_storage.encrypted_heap_storage import \
-    EncryptedHeapStorage
+    (EncryptedHeapStorage,
+     EncryptedHeapStorageInterface)
 from pyoram.encrypted_storage.top_cached_encrypted_heap_storage import \
     TopCachedEncryptedHeapStorage
 from pyoram.util.virtual_heap import \
@@ -35,7 +36,7 @@ class PathORAM(EncryptedBlockStorageInterface):
         self._oram = None
         self._block_count = None
 
-        if isinstance(storage, EncryptedHeapStorage):
+        if isinstance(storage, EncryptedHeapStorageInterface):
             storage_heap = storage
             close_storage_heap = False
             if len(kwds):
@@ -44,8 +45,13 @@ class PathORAM(EncryptedBlockStorageInterface):
                     "with a storage device: %s"
                     % (str(kwds)))
         else:
+            cached_levels = kwds.pop('cached_levels', 0)
             storage_heap = EncryptedHeapStorage(storage, **kwds)
             close_storage_heap = True
+            if cached_levels > 0:
+                storage_heap = TopCachedEncryptedHeapStorage(
+                    storage_heap,
+                    cached_levels=cached_levels)
 
         self._block_count, = struct.unpack(
             self._header_struct_string,
@@ -211,6 +217,7 @@ class PathORAM(EncryptedBlockStorageInterface):
               block_count,
               bucket_capacity=4,
               heap_base=2,
+              cached_levels=0,
               **kwds):
         if 'heap_height' in kwds:
             raise ValueError("'heap_height' keyword is not accepted")
@@ -274,6 +281,8 @@ class PathORAM(EncryptedBlockStorageInterface):
                                            heap_base=heap_base,
                                            blocks_per_bucket=bucket_capacity,
                                            **kwds)
+            if cached_levels > 0:
+                f = TopCachedEncryptedHeapStorage(f, cached_levels=cached_levels)
 
             oram = TreeORAMStorageManagerExplicitAddressing(
                 f, stash, position_map)
