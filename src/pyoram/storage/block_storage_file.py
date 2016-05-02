@@ -200,11 +200,13 @@ class BlockStorageFile(BlockStorageInterface):
             assert len(block) == self.block_size, \
                 ("%s != %s" % (len(block), self.block_size))
             self._f.write(block)
+        self._f.flush()
 
     def write_block(self, i, block):
         assert 0 <= i < self.block_count
         self._f.seek(self._header_offset + i * self.block_size)
         assert len(block) == self.block_size
         self._f.write(block)
+        self._f.flush()
 
 BlockStorageTypeFactory.register_device("file", BlockStorageFile)
