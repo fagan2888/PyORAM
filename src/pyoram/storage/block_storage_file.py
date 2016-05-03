@@ -48,6 +48,19 @@ class BlockStorageFile(BlockStorageInterface):
                 self._f.read(user_header_size)
         self._header_offset = BlockStorageFile._index_offset + \
                               len(self._user_header_data)
+
+        # TODO: Figure out why this is required for Python3
+        #       in order to prevent issues with the
+        #       TopCachedEncryptedHeapStorage class. The
+        #       problem has something to do with bufferedio,
+        #       but it makes no sense why this fixes it (all
+        #       we've done is read above these lines). As
+        #       part of this, investigate whethor or not we
+        #       need the call to flush after write_block(s),
+        #       or if its simply connected to some Python3
+        #       bug in bufferedio.
+        self._f.flush()
+
         if not self._ignore_lock:
             # turn on the locked flag
             self._f.seek(0)
