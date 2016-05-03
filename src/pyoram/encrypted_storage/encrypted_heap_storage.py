@@ -43,7 +43,7 @@ class EncryptedHeapStorage(EncryptedHeapStorageInterface):
             blocks_per_bucket=blocks_per_bucket)
 
     #
-    # Add some new methods
+    # Define EncryptedHeapStorageInterface Methods
     #
 
     @property
@@ -159,7 +159,7 @@ class EncryptedHeapStorage(EncryptedHeapStorageInterface):
         return self._vheap
 
     @property
-    def block_storage(self):
+    def bucket_storage(self):
         return self._storage
 
     def update_header_data(self, new_header_data):

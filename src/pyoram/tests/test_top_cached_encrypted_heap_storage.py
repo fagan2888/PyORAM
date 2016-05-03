@@ -240,8 +240,8 @@ class _TestTopCachedEncryptedHeapStorage(object):
                     key=self._key,
                     storage_type=self._storage_type),
                 **self._init_kwds) as f:
-            dataafter = f.block_storage.read_blocks(
-                list(range(f.block_storage.block_count)))
+            dataafter = f.bucket_storage.read_blocks(
+                list(range(f.bucket_storage.block_count)))
         self.assertEqual(databefore, dataafter)
 
     def test_read_path(self):

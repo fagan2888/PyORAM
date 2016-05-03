@@ -40,7 +40,7 @@ class HeapStorageInterface(object):
     def virtual_heap(self, *args, **kwds):
         raise NotImplementedError                      # pragma: no cover
     @property
-    def block_storage(self, *args, **kwds):
+    def bucket_storage(self, *args, **kwds):
         raise NotImplementedError                      # pragma: no cover
 
     def update_header_data(self, *args, **kwds):

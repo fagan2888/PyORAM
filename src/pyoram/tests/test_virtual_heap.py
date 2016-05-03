@@ -897,17 +897,33 @@ class TestSizedVirtualHeap(unittest2.TestCase):
         self.assertEqual(vh.Node.k, 5)
         self.assertEqual(vh.blocks_per_bucket, 7)
 
+    def test_height(self):
+        vh = SizedVirtualHeap(2, 3, blocks_per_bucket=4)
+        self.assertEqual(vh.height, 3)
+        vh = SizedVirtualHeap(5, 6, blocks_per_bucket=7)
+        self.assertEqual(vh.height, 6)
+
     def test_levels(self):
         vh = SizedVirtualHeap(2, 3, blocks_per_bucket=4)
         self.assertEqual(vh.levels, 4)
         vh = SizedVirtualHeap(5, 6, blocks_per_bucket=7)
         self.assertEqual(vh.levels, 7)
 
-    def test_height(self):
+    def test_first_level(self):
         vh = SizedVirtualHeap(2, 3, blocks_per_bucket=4)
-        self.assertEqual(vh.height, 3)
+        self.assertEqual(vh.first_level, 0)
         vh = SizedVirtualHeap(5, 6, blocks_per_bucket=7)
-        self.assertEqual(vh.height, 6)
+        self.assertEqual(vh.first_level, 0)
+
+    def test_last_level(self):
+        vh = SizedVirtualHeap(2, 3, blocks_per_bucket=4)
+        self.assertEqual(vh.last_level, 3)
+        self.assertEqual(vh.last_level, vh.levels-1)
+        self.assertEqual(vh.last_level, vh.height)
+        vh = SizedVirtualHeap(5, 6, blocks_per_bucket=7)
+        self.assertEqual(vh.last_level, 6)
+        self.assertEqual(vh.last_level, vh.levels-1)
+        self.assertEqual(vh.last_level, vh.height)
 
     def test_ObjectCount(self):
         for k in _test_bases:
