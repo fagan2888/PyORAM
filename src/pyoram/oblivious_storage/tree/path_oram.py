@@ -120,7 +120,7 @@ class PathORAM(EncryptedBlockStorageInterface):
         if len(stash) == 0:
             hasher.update(b'0')
         else:
-            for id_ in stash:
+            for id_ in sorted(stash):
                 if id_ < 0:
                     raise ValueError(
                         "Invalid stash id '%s'. Values must be "
@@ -299,10 +299,8 @@ class PathORAM(EncryptedBlockStorageInterface):
                     "'concurrency_level' keyword is "  # pragma: no cover
                     "not used when no heap levels "    # pragma: no cover
                     "are cached")                      # pragma: no cover
-
             oram = TreeORAMStorageManagerExplicitAddressing(
                 f, stash, position_map)
-
             if initialize is None:
                 zeros = bytes(bytearray(block_size))
                 initialize = lambda i: zeros
