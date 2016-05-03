@@ -46,12 +46,19 @@ class PathORAM(EncryptedBlockStorageInterface):
                     % (str(kwds)))
         else:
             cached_levels = kwds.pop('cached_levels', 0)
+            concurrency_level = kwds.pop('concurrency_level', None)
+            if (cached_levels == 0) and (concurrency_level is not None):
+                raise ValueError(                      # pragma: no cover
+                    "'concurrency_level' keyword is "  # pragma: no cover
+                    "not used when no heap levels "    # pragma: no cover
+                    "are cached")                      # pragma: no cover
             storage_heap = EncryptedHeapStorage(storage, **kwds)
             close_storage_heap = True
-            if cached_levels > 0:
+            if cached_levels != 0:
                 storage_heap = TopCachedEncryptedHeapStorage(
                     storage_heap,
-                    cached_levels=cached_levels)
+                    cached_levels=cached_levels,
+                    concurrency_level=concurrency_level)
 
         self._block_count, = struct.unpack(
             self._header_struct_string,
@@ -218,6 +225,7 @@ class PathORAM(EncryptedBlockStorageInterface):
               bucket_capacity=4,
               heap_base=2,
               cached_levels=0,
+              concurrency_level=None,
               **kwds):
         if 'heap_height' in kwds:
             raise ValueError("'heap_height' keyword is not accepted")
@@ -281,8 +289,16 @@ class PathORAM(EncryptedBlockStorageInterface):
                                            heap_base=heap_base,
                                            blocks_per_bucket=bucket_capacity,
                                            **kwds)
-            if cached_levels > 0:
-                f = TopCachedEncryptedHeapStorage(f, cached_levels=cached_levels)
+            if cached_levels != 0:
+                f = TopCachedEncryptedHeapStorage(
+                    f,
+                    cached_levels=cached_levels,
+                    concurrency_level=concurrency_level)
+            elif concurrency_level is not None:
+                raise ValueError(                      # pragma: no cover
+                    "'concurrency_level' keyword is "  # pragma: no cover
+                    "not used when no heap levels "    # pragma: no cover
+                    "are cached")                      # pragma: no cover
 
             oram = TreeORAMStorageManagerExplicitAddressing(
                 f, stash, position_map)

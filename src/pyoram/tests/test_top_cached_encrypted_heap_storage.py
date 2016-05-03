@@ -456,6 +456,21 @@ class _TestTopCachedEncryptedHeapStorage(object):
                 **self._init_kwds) as f:
             pass
 
+    def test_cache_size(self):
+        with TopCachedEncryptedHeapStorage(
+                EncryptedHeapStorage(self._testfname,
+                                     key=self._key,
+                                     storage_type=self._storage_type),
+                **self._init_kwds) as f:
+            num_cached_levels = self._init_kwds.get('cached_levels', 1)
+            cache_bucket_count = 0
+            for l in xrange(num_cached_levels):
+                if l <= f.virtual_heap.last_level:
+                    cache_bucket_count += f.virtual_heap.bucket_count_at_level(l)
+            self.assertEqual(cache_bucket_count > 0, True)
+            self.assertEqual(len(f.cached_buckets), cache_bucket_count)
+
+
 class TestTopCachedEncryptedHeapStorageCacheMMapDefault(
         _TestTopCachedEncryptedHeapStorage,
         unittest2.TestCase):
@@ -551,6 +566,42 @@ class TestTopCachedEncryptedHeapStorageFileCache5(
     _storage_type = 'file'
     _heap_base = 2
     _heap_height = 7
+
+class TestTopCachedEncryptedHeapStorageFileCacheBigConcurrency0(
+        _TestTopCachedEncryptedHeapStorage,
+        unittest2.TestCase):
+    _init_kwds = {'cached_levels': 20,
+                  'concurrency_level': 0}
+    _storage_type = 'file'
+    _heap_base = 2
+    _heap_height = 7
+
+class TestTopCachedEncryptedHeapStorageFileCache6Concurrency1(
+        _TestTopCachedEncryptedHeapStorage,
+        unittest2.TestCase):
+    _init_kwds = {'cached_levels': 6,
+                  'concurrency_level': 1}
+    _storage_type = 'file'
+    _heap_base = 2
+    _heap_height = 7
+
+class TestTopCachedEncryptedHeapStorageFileCache3ConcurrencyBig(
+        _TestTopCachedEncryptedHeapStorage,
+        unittest2.TestCase):
+    _init_kwds = {'cached_levels': 3,
+                  'concurrency_level': 20}
+    _storage_type = 'file'
+    _heap_base = 2
+    _heap_height = 7
+
+class TestTopCachedEncryptedHeapStorageFileCache3Concurrency1Base3(
+        _TestTopCachedEncryptedHeapStorage,
+        unittest2.TestCase):
+    _init_kwds = {'cached_levels': 3,
+                  'concurrency_level': 3}
+    _storage_type = 'file'
+    _heap_base = 3
+    _heap_height = 4
 
 if __name__ == "__main__":
     unittest2.main()                                    # pragma: no cover

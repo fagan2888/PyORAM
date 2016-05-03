@@ -19,6 +19,7 @@ class _TestPathORAMBase(object):
     _test_key_size = None
     _bucket_capacity = None
     _heap_base = None
+    _kwds = None
 
     @classmethod
     def setUpClass(cls):
@@ -28,6 +29,7 @@ class _TestPathORAMBase(object):
                     (cls._test_key_size is not None))
         assert cls._bucket_capacity is not None
         assert cls._heap_base is not None
+        assert cls._kwds is not None
         fd, cls._dummy_name = tempfile.mkstemp()
         os.close(fd)
         try:
@@ -49,7 +51,8 @@ class _TestPathORAMBase(object):
             storage_type=cls._type_name,
             aes_mode=cls._aes_mode,
             initialize=lambda i: bytes(bytearray([i])*cls._block_size),
-            ignore_existing=True)
+            ignore_existing=True,
+            **cls._kwds)
         f.close()
         cls._key = f.key
         cls._stash = f.stash
@@ -83,7 +86,8 @@ class _TestPathORAMBase(object):
                 key=self._test_key,
                 key_size=self._test_key_size,
                 aes_mode=self._aes_mode,
-                storage_type=self._type_name)
+                storage_type=self._type_name,
+                **self._kwds)
         self.assertEqual(os.path.exists(self._dummy_name), False)
         with self.assertRaises(ValueError):
             PathORAM.setup(
@@ -98,7 +102,8 @@ class _TestPathORAMBase(object):
                 key_size=self._test_key_size,
                 storage_type=self._type_name,
                 aes_mode=self._aes_mode,
-                ignore_existing=False)
+                ignore_existing=False,
+                **self._kwds)
         self.assertEqual(os.path.exists(self._dummy_name), False)
         with self.assertRaises(ValueError):
             PathORAM.setup(
@@ -110,7 +115,8 @@ class _TestPathORAMBase(object):
                 key=self._test_key,
                 key_size=self._test_key_size,
                 aes_mode=self._aes_mode,
-                storage_type=self._type_name)
+                storage_type=self._type_name,
+                **self._kwds)
         self.assertEqual(os.path.exists(self._dummy_name), False)
         with self.assertRaises(ValueError):
             PathORAM.setup(
@@ -122,7 +128,8 @@ class _TestPathORAMBase(object):
                 key=self._test_key,
                 key_size=self._test_key_size,
                 aes_mode=self._aes_mode,
-                storage_type=self._type_name)
+                storage_type=self._type_name,
+                **self._kwds)
         self.assertEqual(os.path.exists(self._dummy_name), False)
         with self.assertRaises(TypeError):
             PathORAM.setup(
@@ -135,7 +142,8 @@ class _TestPathORAMBase(object):
                 key_size=self._test_key_size,
                 aes_mode=self._aes_mode,
                 storage_type=self._type_name,
-                header_data=2)
+                header_data=2,
+                **self._kwds)
         self.assertEqual(os.path.exists(self._dummy_name), False)
         with self.assertRaises(ValueError):
             PathORAM.setup(
@@ -147,7 +155,8 @@ class _TestPathORAMBase(object):
                 key=self._test_key,
                 key_size=self._test_key_size,
                 aes_mode=None,
-                storage_type=self._type_name)
+                storage_type=self._type_name,
+                **self._kwds)
         self.assertEqual(os.path.exists(self._dummy_name), False)
         with self.assertRaises(ValueError):
             PathORAM.setup(
@@ -159,7 +168,8 @@ class _TestPathORAMBase(object):
                 key=self._test_key,
                 key_size=self._test_key_size,
                 aes_mode=self._aes_mode,
-                storage_type=self._type_name)
+                storage_type=self._type_name,
+                **self._kwds)
         self.assertEqual(os.path.exists(self._dummy_name), False)
         with self.assertRaises(ValueError):
             PathORAM.setup(
@@ -171,7 +181,8 @@ class _TestPathORAMBase(object):
                 key=self._test_key,
                 key_size=self._test_key_size,
                 aes_mode=self._aes_mode,
-                storage_type=self._type_name)
+                storage_type=self._type_name,
+                **self._kwds)
         self.assertEqual(os.path.exists(self._dummy_name), False)
         with self.assertRaises(ValueError):
             PathORAM.setup(
@@ -182,7 +193,8 @@ class _TestPathORAMBase(object):
                 heap_base=self._heap_base,
                 key_size=-1,
                 aes_mode=self._aes_mode,
-                storage_type=self._type_name)
+                storage_type=self._type_name,
+                **self._kwds)
         self.assertEqual(os.path.exists(self._dummy_name), False)
         with self.assertRaises(TypeError):
             PathORAM.setup(
@@ -193,7 +205,8 @@ class _TestPathORAMBase(object):
                 heap_base=self._heap_base,
                 key=-1,
                 aes_mode=self._aes_mode,
-                storage_type=self._type_name)
+                storage_type=self._type_name,
+                **self._kwds)
         self.assertEqual(os.path.exists(self._dummy_name), False)
         with self.assertRaises(ValueError):
             PathORAM.setup(
@@ -205,7 +218,8 @@ class _TestPathORAMBase(object):
                 key=AES.KeyGen(AES.key_sizes[-1]),
                 key_size=AES.key_sizes[-1],
                 aes_mode=self._aes_mode,
-                storage_type=self._type_name)
+                storage_type=self._type_name,
+                **self._kwds)
         self.assertEqual(os.path.exists(self._dummy_name), False)
         with self.assertRaises(ValueError):
             PathORAM.setup(
@@ -216,7 +230,8 @@ class _TestPathORAMBase(object):
                 heap_base=self._heap_base,
                 key=os.urandom(AES.key_sizes[-1]+100),
                 aes_mode=self._aes_mode,
-                storage_type=self._type_name)
+                storage_type=self._type_name,
+                **self._kwds)
         with self.assertRaises(ValueError):
             PathORAM.setup(
                 self._dummy_name,
@@ -227,7 +242,8 @@ class _TestPathORAMBase(object):
                 heap_base=self._heap_base,
                 key=self._key,
                 aes_mode=self._aes_mode,
-                storage_type=self._type_name)
+                storage_type=self._type_name,
+                **self._kwds)
 
     def test_setup(self):
         fname = ".".join(self.id().split(".")[1:])
@@ -246,7 +262,8 @@ class _TestPathORAMBase(object):
             key=self._test_key,
             key_size=self._test_key_size,
             aes_mode=self._aes_mode,
-            storage_type=self._type_name)
+            storage_type=self._type_name,
+            **self._kwds)
         fsetup.close()
         with open(fname, 'rb') as f:
             flen = len(f.read())
@@ -274,7 +291,8 @@ class _TestPathORAMBase(object):
                       fsetup.stash,
                       fsetup.position_map,
                       key=fsetup.key,
-                      storage_type=self._type_name) as f:
+                      storage_type=self._type_name,
+                      **self._kwds) as f:
             self.assertEqual(f.header_data, bytes())
             self.assertEqual(fsetup.header_data, bytes())
             self.assertEqual(f.key, fsetup.key)
@@ -305,7 +323,8 @@ class _TestPathORAMBase(object):
             key_size=self._test_key_size,
             aes_mode=self._aes_mode,
             storage_type=self._type_name,
-            header_data=header_data)
+            header_data=header_data,
+            **self._kwds)
         fsetup.close()
         with open(fname, 'rb') as f:
             flen = len(f.read())
@@ -353,7 +372,8 @@ class _TestPathORAMBase(object):
                       fsetup.stash,
                       fsetup.position_map,
                       key=fsetup.key,
-                      storage_type=self._type_name) as f:
+                      storage_type=self._type_name,
+                      **self._kwds) as f:
             self.assertEqual(f.header_data, header_data)
             self.assertEqual(fsetup.header_data, header_data)
             self.assertEqual(f.key, fsetup.key)
@@ -373,7 +393,8 @@ class _TestPathORAMBase(object):
                     self._stash,
                     self._position_map,
                     key=self._key,
-                    storage_type=self._type_name) as f:
+                    storage_type=self._type_name,
+                    **self._kwds) as f:
                 pass                                   # pragma: no cover
 
     def test_init_exists(self):
@@ -385,7 +406,8 @@ class _TestPathORAMBase(object):
             with PathORAM(self._testfname,
                           self._stash,
                           self._position_map,
-                          storage_type=self._type_name) as f:
+                          storage_type=self._type_name,
+                          **self._kwds) as f:
                 pass                                   # pragma: no cover
         # stash does not match digest
         with self.assertRaises(ValueError):
@@ -393,7 +415,8 @@ class _TestPathORAMBase(object):
                           {1: bytes()},
                           self._position_map,
                           key=self._key,
-                          storage_type=self._type_name) as f:
+                          storage_type=self._type_name,
+                          **self._kwds) as f:
                 pass                                   # pragma: no cover
         # stash hash invalid key (negative)
         with self.assertRaises(ValueError):
@@ -401,7 +424,8 @@ class _TestPathORAMBase(object):
                           {-1: bytes()},
                           self._position_map,
                           key=self._key,
-                          storage_type=self._type_name) as f:
+                          storage_type=self._type_name,
+                          **self._kwds) as f:
                 pass                                   # pragma: no cover
         # position map has invalid item (negative)
         with self.assertRaises(ValueError):
@@ -409,7 +433,8 @@ class _TestPathORAMBase(object):
                           self._stash,
                           [-1],
                           key=self._key,
-                          storage_type=self._type_name) as f:
+                          storage_type=self._type_name,
+                          **self._kwds) as f:
                 pass                                   # pragma: no cover
         # position map does not match digest
         with self.assertRaises(ValueError):
@@ -417,7 +442,8 @@ class _TestPathORAMBase(object):
                           self._stash,
                           [1],
                           key=self._key,
-                          storage_type=self._type_name) as f:
+                          storage_type=self._type_name,
+                          **self._kwds) as f:
                 pass                                   # pragma: no cover
         with self.assertRaises(ValueError):
             with EncryptedHeapStorage(self._testfname,
@@ -427,13 +453,15 @@ class _TestPathORAMBase(object):
                               self._stash,
                               self._position_map,
                               key=self._key,
-                              storage_type=self._type_name) as f:
+                              storage_type=self._type_name,
+                              **self._kwds) as f:
                     pass                               # pragma: no cover
         with PathORAM(self._testfname,
                       self._stash,
                       self._position_map,
                       key=self._key,
-                      storage_type=self._type_name) as f:
+                      storage_type=self._type_name,
+                      **self._kwds) as f:
             self.assertEqual(f.key, self._key)
             self.assertEqual(f.block_size, self._block_size)
             self.assertEqual(f.block_count, self._block_count)
@@ -450,7 +478,8 @@ class _TestPathORAMBase(object):
                       self._stash,
                       self._position_map,
                       key=self._key,
-                      storage_type=self._type_name) as f:
+                      storage_type=self._type_name,
+                      **self._kwds) as f:
             for i, data in enumerate(self._blocks):
                 self.assertEqual(list(bytearray(f.read_block(i))),
                                  list(self._blocks[i]))
@@ -467,7 +496,8 @@ class _TestPathORAMBase(object):
                       self._stash,
                       self._position_map,
                       key=self._key,
-                      storage_type=self._type_name) as f:
+                      storage_type=self._type_name,
+                      **self._kwds) as f:
             self.assertEqual(list(bytearray(f.read_block(0))),
                              list(self._blocks[0]))
             self.assertEqual(list(bytearray(f.read_block(self._block_count-1))),
@@ -480,7 +510,8 @@ class _TestPathORAMBase(object):
                       self._stash,
                       self._position_map,
                       key=self._key,
-                      storage_type=self._type_name) as f:
+                      storage_type=self._type_name,
+                      **self._kwds) as f:
             for i in xrange(self._block_count):
                 self.assertNotEqual(list(bytearray(f.read_block(i))),
                                     list(data))
@@ -497,7 +528,8 @@ class _TestPathORAMBase(object):
                       self._stash,
                       self._position_map,
                       key=self._key,
-                      storage_type=self._type_name) as f:
+                      storage_type=self._type_name,
+                      **self._kwds) as f:
             data = f.read_blocks(list(xrange(self._block_count)))
             self.assertEqual(len(data), self._block_count)
             for i, block in enumerate(data):
@@ -523,7 +555,8 @@ class _TestPathORAMBase(object):
                       self._stash,
                       self._position_map,
                       key=self._key,
-                      storage_type=self._type_name) as f:
+                      storage_type=self._type_name,
+                      **self._kwds) as f:
             orig = f.read_blocks(list(xrange(self._block_count)))
             self.assertEqual(len(orig), self._block_count)
             for i, block in enumerate(orig):
@@ -561,14 +594,16 @@ class _TestPathORAMBase(object):
             heap_base=self._heap_base,
             key=self._test_key,
             key_size=self._test_key_size,
-            header_data=header_data)
+            header_data=header_data,
+            **self._kwds)
         fsetup.close()
         new_header_data = bytes(bytearray([1,1,1]))
         with PathORAM(fname,
                       fsetup.stash,
                       fsetup.position_map,
                       key=fsetup.key,
-                      storage_type=self._type_name) as f:
+                      storage_type=self._type_name,
+                      **self._kwds) as f:
             self.assertEqual(f.header_data, header_data)
             f.update_header_data(new_header_data)
             self.assertEqual(f.header_data, new_header_data)
@@ -576,27 +611,31 @@ class _TestPathORAMBase(object):
                       fsetup.stash,
                       fsetup.position_map,
                       key=fsetup.key,
-                      storage_type=self._type_name) as f:
+                      storage_type=self._type_name,
+                      **self._kwds) as f:
             self.assertEqual(f.header_data, new_header_data)
         with self.assertRaises(ValueError):
             with PathORAM(fname,
                           fsetup.stash,
                           fsetup.position_map,
                           key=fsetup.key,
-                          storage_type=self._type_name) as f:
+                          storage_type=self._type_name,
+                          **self._kwds) as f:
                 f.update_header_data(bytes(bytearray([1,1])))
         with self.assertRaises(ValueError):
             with PathORAM(fname,
                           fsetup.stash,
                           fsetup.position_map,
                           key=fsetup.key,
-                          storage_type=self._type_name) as f:
+                          storage_type=self._type_name,
+                          **self._kwds) as f:
                 f.update_header_data(bytes(bytearray([1,1,1,1])))
         with PathORAM(fname,
                       fsetup.stash,
                       fsetup.position_map,
                       key=fsetup.key,
-                      storage_type=self._type_name) as f:
+                      storage_type=self._type_name,
+                      **self._kwds) as f:
             self.assertEqual(f.header_data, new_header_data)
         os.remove(fname)
 
@@ -605,54 +644,62 @@ class _TestPathORAMBase(object):
                       self._stash,
                       self._position_map,
                       key=self._key,
-                      storage_type=self._type_name) as f:
+                      storage_type=self._type_name,
+                      **self._kwds) as f:
             with self.assertRaises(IOError):
                 with PathORAM(self._testfname,
                               self._stash,
                               self._position_map,
                               key=self._key,
-                              storage_type=self._type_name) as f1:
+                              storage_type=self._type_name,
+                              **self._kwds) as f1:
                     pass                               # pragma: no cover
             with self.assertRaises(IOError):
                 with PathORAM(self._testfname,
                               self._stash,
                               self._position_map,
                               key=self._key,
-                              storage_type=self._type_name) as f1:
+                              storage_type=self._type_name,
+                              **self._kwds) as f1:
                     pass                               # pragma: no cover
             with PathORAM(self._testfname,
                           self._stash,
                           self._position_map,
                           key=self._key,
                           storage_type=self._type_name,
-                          ignore_lock=True) as f1:
+                          ignore_lock=True,
+                          **self._kwds) as f1:
                 pass
             with self.assertRaises(IOError):
                 with PathORAM(self._testfname,
                               self._stash,
                               self._position_map,
                               key=self._key,
-                              storage_type=self._type_name) as f1:
+                              storage_type=self._type_name,
+                              **self._kwds) as f1:
                     pass                               # pragma: no cover
             with PathORAM(self._testfname,
                           self._stash,
                           self._position_map,
                           key=self._key,
                           storage_type=self._type_name,
-                          ignore_lock=True) as f1:
+                          ignore_lock=True,
+                          **self._kwds) as f1:
                 pass
             with PathORAM(self._testfname,
                           self._stash,
                           self._position_map,
                           key=self._key,
                           storage_type=self._type_name,
-                          ignore_lock=True) as f1:
+                          ignore_lock=True,
+                          **self._kwds) as f1:
                 pass
         with PathORAM(self._testfname,
                       self._stash,
                       self._position_map,
                       key=self._key,
-                      storage_type=self._type_name) as f:
+                      storage_type=self._type_name,
+                      **self._kwds) as f:
             pass
 
 class TestPathORAMB2Z1(_TestPathORAMBase,
@@ -661,34 +708,40 @@ class TestPathORAMB2Z1(_TestPathORAMBase,
     _aes_mode = 'ctr'
     _bucket_capacity = 1
     _heap_base = 2
+    _kwds = {'cached_levels': 0}
 
 class TestPathORAMB2Z2(_TestPathORAMBase,
-                   unittest2.TestCase):
+                       unittest2.TestCase):
     _type_name = 'mmap'
     _aes_mode = 'gcm'
     _bucket_capacity = 2
     _heap_base = 2
+    _kwds = {'cached_levels': 0}
 
 class TestPathORAMB2Z3(_TestPathORAMBase,
-                   unittest2.TestCase):
+                       unittest2.TestCase):
     _type_name = 'mmap'
     _aes_mode = 'ctr'
     _bucket_capacity = 3
     _heap_base = 2
+    _kwds = {'cached_levels': 1}
 
 class TestPathORAMB2Z4(_TestPathORAMBase,
-                   unittest2.TestCase):
+                       unittest2.TestCase):
     _type_name = 'file'
     _aes_mode = 'gcm'
     _bucket_capacity = 4
     _heap_base = 2
+    _kwds = {'cached_levels': 1}
 
 class TestPathORAMB2Z5(_TestPathORAMBase,
-                   unittest2.TestCase):
+                       unittest2.TestCase):
     _type_name = 'file'
     _aes_mode = 'ctr'
     _bucket_capacity = 5
     _heap_base = 2
+    _kwds = {'cached_levels': 2,
+             'concurrency_level': 0}
 
 class TestPathORAMB3Z1(_TestPathORAMBase,
                        unittest2.TestCase):
@@ -696,34 +749,40 @@ class TestPathORAMB3Z1(_TestPathORAMBase,
     _aes_mode = 'ctr'
     _bucket_capacity = 1
     _heap_base = 3
+    _kwds = {'cached_levels': 2,
+             'concurrency_level': 1}
 
 class TestPathORAMB3Z2(_TestPathORAMBase,
-                   unittest2.TestCase):
+                       unittest2.TestCase):
     _type_name = 'mmap'
     _aes_mode = 'gcm'
     _bucket_capacity = 2
     _heap_base = 3
+    _kwds = {}
 
 class TestPathORAMB3Z3(_TestPathORAMBase,
-                   unittest2.TestCase):
+                       unittest2.TestCase):
     _type_name = 'mmap'
     _aes_mode = 'ctr'
     _bucket_capacity = 3
     _heap_base = 3
+    _kwds = {}
 
 class TestPathORAMB3Z4(_TestPathORAMBase,
-                   unittest2.TestCase):
+                       unittest2.TestCase):
     _type_name = 'file'
     _aes_mode = 'gcm'
     _bucket_capacity = 4
     _heap_base = 3
+    _kwds = {}
 
 class TestPathORAMB3Z5(_TestPathORAMBase,
-                   unittest2.TestCase):
+                       unittest2.TestCase):
     _type_name = 'file'
     _aes_mode = 'ctr'
     _bucket_capacity = 5
     _heap_base = 3
+    _kwds = {}
 
 if __name__ == "__main__":
     unittest2.main()                                    # pragma: no cover
