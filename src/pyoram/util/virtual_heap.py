@@ -296,13 +296,18 @@ class SizedVirtualHeap(VirtualHeap):
     #
     # Size properties
     #
-
-    @property
-    def levels(self):
-        return self._height + 1
     @property
     def height(self):
         return self._height
+    @property
+    def levels(self):
+        return self.height + 1
+    @property
+    def first_level(self):
+        return 0
+    @property
+    def last_level(self):
+        return self.height
 
     #
     # Buckets (0-based integer, equivalent to block for heap
