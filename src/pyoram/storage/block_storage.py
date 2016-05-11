@@ -16,11 +16,11 @@ BlockStorageTypeFactory._registered_devices = {}
 
 def _register_device(name, type_):
     if name in BlockStorageTypeFactory._registered_devices:
-        raise ValueError("Can not register block storage device type"
+        raise ValueError("Can not register block storage device type "
                          "with name '%s'. A device type is already "
                          "registered with that name." % (name))
     if not issubclass(type_, BlockStorageInterface):
-        raise TypeError("Can not registered block storage device type"
+        raise TypeError("Can not register block storage device type "
                         "'%s'. The device must be a subclass of "
                         "BlockStorageInterface" % (type_))
     BlockStorageTypeFactory._registered_devices[name] = type_
