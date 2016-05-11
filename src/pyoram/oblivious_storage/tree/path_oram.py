@@ -17,6 +17,7 @@ from pyoram.util.virtual_heap import \
     (SizedVirtualHeap,
      calculate_necessary_heap_height)
 
+import tqdm
 import six
 from six.moves import xrange
 
@@ -226,6 +227,7 @@ class PathORAM(EncryptedBlockStorageInterface):
               heap_base=2,
               cached_levels=0,
               concurrency_level=None,
+              show_status_bar=False,
               **kwds):
         if 'heap_height' in kwds:
             raise ValueError("'heap_height' keyword is not accepted")
@@ -283,6 +285,7 @@ class PathORAM(EncryptedBlockStorageInterface):
         kwds['initialize'] = lambda i: empty_bucket
         f = None
         try:
+            log.info("Path ORAM is setting up encrypted heap storage")
             f = EncryptedHeapStorage.setup(storage_name,
                                            oram_block_size,
                                            heap_height,
@@ -293,7 +296,8 @@ class PathORAM(EncryptedBlockStorageInterface):
                 f = TopCachedEncryptedHeapStorage(
                     f,
                     cached_levels=cached_levels,
-                    concurrency_level=concurrency_level)
+                    concurrency_level=concurrency_level,
+                    show_status_bar=show_status_bar)
             elif concurrency_level is not None:
                 raise ValueError(                      # pragma: no cover
                     "'concurrency_level' keyword is "  # pragma: no cover
@@ -305,7 +309,10 @@ class PathORAM(EncryptedBlockStorageInterface):
                 zeros = bytes(bytearray(block_size))
                 initialize = lambda i: zeros
             initial_oram_block = bytearray(oram_block_size)
-            for i in xrange(block_count):
+            for i in tqdm.tqdm(xrange(block_count),
+                               desc="Initializing Path ORAM Blocks",
+                               total=block_count,
+                               disable=not show_status_bar):
                 oram.tag_block_with_id(initial_oram_block, i)
                 initial_oram_block[oram.block_info_storage_size:] = \
                     initialize(i)[:]

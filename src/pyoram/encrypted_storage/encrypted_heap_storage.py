@@ -127,6 +127,7 @@ class EncryptedHeapStorage(EncryptedHeapStorageInterface):
                         heap_height,
                         blocks_per_bucket) + \
             user_header_data
+
         return EncryptedHeapStorage(
             EncryptedBlockStorage.setup(
                 storage_name,

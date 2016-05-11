@@ -5,6 +5,7 @@ from pyoram.encrypted_storage.encrypted_heap_storage import \
     (EncryptedHeapStorageInterface,
      EncryptedHeapStorage)
 
+import tqdm
 import six
 from six.moves import xrange
 
@@ -51,7 +52,8 @@ class TopCachedEncryptedHeapStorage(EncryptedHeapStorageInterface):
     def __init__(self,
                  heap_storage,
                  cached_levels=1,
-                 concurrency_level=None):
+                 concurrency_level=None,
+                 show_status_bar=False):
         assert isinstance(heap_storage, EncryptedHeapStorage)
         assert cached_levels >= 1
         if concurrency_level is None:
@@ -61,8 +63,17 @@ class TopCachedEncryptedHeapStorage(EncryptedHeapStorageInterface):
         cached_levels = min(vheap.levels, cached_levels)
         concurrency_level = min(cached_levels, concurrency_level)
         self._external_level = cached_levels
-        self._cached_buckets = heap_storage.bucket_storage.read_blocks(
-            list(xrange(vheap.first_bucket_at_level(cached_levels))))
+        total_buckets = sum(vheap.bucket_count_at_level(l)
+                            for l in xrange(cached_levels))
+        self._cached_buckets = [None]*total_buckets
+        for b, bucket in enumerate(
+                tqdm.tqdm(heap_storage.bucket_storage.yield_blocks(
+                    xrange(vheap.first_bucket_at_level(cached_levels))),
+                          desc=("Downloading %s Cached Heap Buckets"
+                                % (total_buckets)),
+                          total=total_buckets,
+                          disable=not show_status_bar)):
+            self._cached_buckets[b] = bucket
 
         self._concurrent_devices = \
             {vheap.first_bucket_at_level(0): heap_storage}

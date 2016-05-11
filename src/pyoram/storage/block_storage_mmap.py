@@ -65,6 +65,12 @@ class BlockStorageMMap(BlockStorageFile):
             blocks.append(self._mm.read(self.block_size))
         return blocks
 
+    def yield_blocks(self, indices):
+        for i in indices:
+            assert 0 <= i < self.block_count
+            self._mm.seek(self._header_offset + i * self.block_size)
+            yield self._mm.read(self.block_size)
+
     def read_block(self, i):
         assert 0 <= i < self.block_count
         return self._mm[self._header_offset + i*self.block_size : \

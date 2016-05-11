@@ -175,6 +175,7 @@ class EncryptedBlockStorage(EncryptedBlockStorageInterface):
                                   ismodegcm) + \
                         user_header_data
         kwds['header_data'] = AES.GCMEnc(key, header_data)
+
         return EncryptedBlockStorage(
             storage_type.setup(storage_name,
                                encrypted_block_size,
@@ -223,6 +224,10 @@ class EncryptedBlockStorage(EncryptedBlockStorageInterface):
     def read_blocks(self, indices):
         return [self._decrypt_block_func(self._key, b)
                 for b in self._storage.read_blocks(indices)]
+
+    def yield_blocks(self, indices):
+        for b in self._storage.yield_blocks(indices):
+            yield self._decrypt_block_func(self._key, b)
 
     def write_block(self, i, block):
         self._storage.write_block(

@@ -66,6 +66,8 @@ class BlockStorageInterface(object):
         raise NotImplementedError                      # pragma: no cover
     def read_blocks(self, *args, **kwds):
         raise NotImplementedError                      # pragma: no cover
+    def yield_blocks(self, *args, **kwds):
+        raise NotImplementedError                      # pragma: no cover
     def read_block(self, *args, **kwds):
         raise NotImplementedError                      # pragma: no cover
     def write_blocks(self, *args, **kwds):

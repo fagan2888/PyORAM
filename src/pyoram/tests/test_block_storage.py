@@ -316,6 +316,26 @@ class _TestBlockStorage(object):
             self.assertEqual(list(bytearray(data[-1])),
                              list(self._blocks[0]))
 
+    def test_yield_blocks(self):
+        with self._type(self._testfname, **self._type_kwds) as f:
+            data = list(f.yield_blocks(list(xrange(self._block_count))))
+            self.assertEqual(len(data), self._block_count)
+            for i, block in enumerate(data):
+                self.assertEqual(list(bytearray(block)),
+                                 list(self._blocks[i]))
+            data = list(f.yield_blocks([0]))
+            self.assertEqual(len(data), 1)
+            self.assertEqual(list(bytearray(data[0])),
+                             list(self._blocks[0]))
+            self.assertEqual(len(self._blocks) > 1, True)
+            data = list(f.yield_blocks(list(xrange(1, self._block_count)) + [0]))
+            self.assertEqual(len(data), self._block_count)
+            for i, block in enumerate(data[:-1], 1):
+                self.assertEqual(list(bytearray(block)),
+                                 list(self._blocks[i]))
+            self.assertEqual(list(bytearray(data[-1])),
+                             list(self._blocks[0]))
+
     def test_write_blocks(self):
         data = [bytearray([self._block_count])*self._block_size
                 for i in xrange(self._block_count)]

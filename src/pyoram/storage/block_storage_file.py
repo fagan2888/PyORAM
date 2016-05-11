@@ -8,6 +8,7 @@ from pyoram.storage.block_storage import \
     (BlockStorageInterface,
      BlockStorageTypeFactory)
 
+import tqdm
 import six
 from six.moves import xrange
 
@@ -102,7 +103,8 @@ class BlockStorageFile(BlockStorageInterface):
               block_count,
               initialize=None,
               header_data=None,
-              ignore_existing=False):
+              ignore_existing=False,
+              show_status_bar=False):
         if (not ignore_existing) and \
            os.path.exists(storage_name):
             raise ValueError(
@@ -141,7 +143,10 @@ class BlockStorageFile(BlockStorageInterface):
                                         len(header_data),
                                         False))
                     f.write(header_data)
-                for i in xrange(block_count):
+                for i in tqdm.tqdm(xrange(block_count),
+                                   desc="Initializing File Storage Space",
+                                   total=block_count,
+                                   disable=not show_status_bar):
                     block = initialize(i)
                     assert len(block) == block_size, \
                         ("%s != %s" % (len(block), block_size))
@@ -204,6 +209,12 @@ class BlockStorageFile(BlockStorageInterface):
             self._f.seek(self._header_offset + i * self.block_size)
             blocks.append(self._f.read(self.block_size))
         return blocks
+
+    def yield_blocks(self, indices):
+        for i in indices:
+            assert 0 <= i < self.block_count
+            self._f.seek(self._header_offset + i * self.block_size)
+            yield self._f.read(self.block_size)
 
     def read_block(self, i):
         assert 0 <= i < self.block_count

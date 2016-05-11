@@ -9,12 +9,17 @@ from pyoram.storage.block_storage import \
      BlockStorageTypeFactory)
 from pyoram.storage.boto3_s3_wrapper import Boto3S3Wrapper
 
+import tqdm
 import six
-from six.moves import xrange
+from six.moves import xrange, map
 
 log = logging.getLogger("pyoram")
 
 class BlockStorageS3(BlockStorageInterface):
+    """
+    A block storage device for Amazon Simple
+    Storage Service (S3).
+    """
 
     _index_name = "PyORAMBlockStorageS3_index.txt"
     _index_struct_string = "!LLL?"
@@ -29,7 +34,6 @@ class BlockStorageS3(BlockStorageInterface):
                  ignore_lock=False,
                  threadpool_size=4,
                  s3_wrapper=Boto3S3Wrapper):
-
         self._storage_name = storage_name
         self._bucket_name = bucket_name
         self._aws_access_key_id = aws_access_key_id
@@ -80,10 +84,23 @@ class BlockStorageS3(BlockStorageInterface):
                                          len(self.header_data),
                                          True) + \
                              self.header_data))
+
     def _check_async(self):
         if self._async_write is not None:
-            self._async_write.wait()
+            for i in self._async_write:
+                pass
             self._async_write = None
+
+    def _schedule_async(self, target, arglist):
+        self._check_async()
+        if self._pool is not None:
+            self._async_write = \
+                self._pool.imap_unordered(target, arglist)
+        else:
+            # Note: we are using six.map which always
+            #       behaves like imap
+            for _ in map(target, arglist):
+                pass
 
     #
     # Define BlockStorageInterface Methods
@@ -129,7 +146,8 @@ class BlockStorageS3(BlockStorageInterface):
               initialize=None,
               threadpool_size=4,
               ignore_existing=False,
-              s3_wrapper=Boto3S3Wrapper):
+              s3_wrapper=Boto3S3Wrapper,
+              show_status_bar=False):
 
         if bucket_name is None:
             raise ValueError("'bucket_name' is required")
@@ -177,18 +195,66 @@ class BlockStorageS3(BlockStorageInterface):
                                    False) + \
                        header_data))
 
-        try:
-            if initialize is None:
-                zeros = bytes(bytearray(block_size))
-                initialize = lambda i: zeros
-            basename = storage_name+"/b%d"
+        if initialize is None:
+            zeros = bytes(bytearray(block_size))
+            initialize = lambda i: zeros
+        basename = storage_name+"/b%d"
+        # NOTE: We will not be informed when a thread
+        #       encounters an exception (e.g., when
+        #       calling initialize(i). We must ensure
+        #       that all iterations were processed
+        #       by counting the results.
+        def init_blocks():
             for i in xrange(block_count):
-                block = initialize(i)
-                assert len(block) == block_size
-                s3.upload((basename % i, block))
-        except:
+                yield (basename % i, initialize(i))
+        def _do_upload(arg):
+            try:
+                s3.upload(arg)
+            except Exception as e:
+                log.error("An exception occured during S3 setup when "
+                          "calling the block initialization function: %s"
+                          % (str(e)))
+                raise
+        total = None
+        pool = None
+        if threadpool_size > 0:
+            pool = ThreadPool(processes=threadpool_size)
+            try:
+                for i,_ in enumerate(
+                        tqdm.tqdm(
+                            pool.imap_unordered(_do_upload, init_blocks()),
+                            desc=("Initializing S3 Storage Space (using "
+                                  "%s threads)" % (threadpool_size)),
+                            total=block_count,
+                            disable=not show_status_bar)):
+                    total = i
+            except Exception as e:
+                s3.clear(storage_name)
+                raise
+            finally:
+                pool.close()
+                pool.join()
+        else:
+            try:
+                for i,_ in enumerate(
+                        tqdm.tqdm(map(s3.upload, init_blocks()),
+                                  desc="Initializing S3 Storage Space "
+                                  "(using no threads)",
+                                  total=block_count,
+                                  disable=not show_status_bar)):
+                    total = i
+            except Exception as e:
+                s3.clear(storage_name)
+                raise
+
+        if total != block_count - 1:
             s3.clear(storage_name)
-            raise
+            if pool is not None:
+                pool.close()
+                pool.join()
+            raise ValueError(
+                "Something went wrong during S3 block initialization. "
+                "Check the logger output for more information.")
 
         return BlockStorageS3(storage_name,
                               bucket_name=bucket_name,
@@ -250,21 +316,25 @@ class BlockStorageS3(BlockStorageInterface):
             self._pool.join()
             self._pool = None
 
+    def _check_and_download(self, i):
+        assert 0 <= i < self.block_count
+        return self._s3.download(self._basename % i)
+
     def read_blocks(self, indices):
         # be sure not to exhaust this if it is an iterator
         # or generator
-        indices = list(indices)
-        assert all(0 <= i <= self.block_count for i in indices)
         self._check_async()
         if self._pool is not None:
-            return self._pool.map(self._s3.download,
-                                  (self._basename % i for i in indices))
+            return self._pool.map(self._check_and_download, indices)
         else:
-            blocks = map(self._s3.download,
-                         (self._basename % i for i in indices))
-            if six.PY3:
-                blocks = list(blocks)
-            return blocks
+            return list(map(self._check_and_download, indices))
+
+    def yield_blocks(self, indices):
+        self._check_async()
+        if self._pool is not None:
+            return self._pool.imap(self._check_and_download, indices)
+        else:
+            return map(self._check_and_download, indices)
 
     def read_block(self, i):
         assert 0 <= i < self.block_count
@@ -277,16 +347,7 @@ class BlockStorageS3(BlockStorageInterface):
         indices = list(indices)
         assert all(0 <= i <= self.block_count for i in indices)
         indices = (self._basename % i for i in indices)
-        self._check_async()
-        if self._pool is not None:
-            self._async_write = \
-                self._pool.map_async(self._s3.upload,
-                                     zip(indices, blocks))
-        else:
-            result = map(self._s3.upload,
-                         zip(indices, blocks))
-            if six.PY3:
-                list(result)
+        self._schedule_async(self._s3.upload, zip(indices, blocks))
 
     def write_block(self, i, block):
         assert 0 <= i < self.block_count
