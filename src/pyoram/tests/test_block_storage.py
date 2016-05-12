@@ -2,6 +2,7 @@ import os
 import shutil
 import unittest2
 import tempfile
+from multiprocessing.pool import ThreadPool
 
 from pyoram.storage.block_storage import \
     BlockStorageTypeFactory
@@ -11,6 +12,8 @@ from pyoram.storage.block_storage_mmap import \
      BlockStorageMMap
 from pyoram.storage.block_storage_s3 import \
      BlockStorageS3
+from pyoram.storage.block_storage_sftp import \
+     BlockStorageSFTP
 from pyoram.storage.boto3_s3_wrapper import \
     (Boto3S3Wrapper,
      MockBoto3S3Wrapper)
@@ -502,10 +505,81 @@ class TestBlockStorageFile(_TestBlockStorage,
     _type = BlockStorageFile
     _type_kwds = {}
 
+class TestBlockStorageFileThreadPool(_TestBlockStorage,
+                                     unittest2.TestCase):
+    _type = BlockStorageFile
+    _type_kwds = {'threadpool_size': 1}
+
 class TestBlockStorageMMap(_TestBlockStorage,
                            unittest2.TestCase):
     _type = BlockStorageMMap
     _type_kwds = {}
+
+class _dummy_sftp_file(object):
+    def __init__(self, *args, **kwds):
+        self._f = open(*args, **kwds)
+    def __enter__(self):
+        return self
+    def __exit__(self, *args):
+        self._f.close()
+    def readv(self, chunks):
+        data = []
+        for offset, size in chunks:
+            self._f.seek(offset)
+            data.append(self._f.read(size))
+        return data
+    def __getattr__(self, key):
+        return getattr(self._f, key)
+
+class dummy_sftp(object):
+    remove = os.remove
+    stat = os.stat
+    @staticmethod
+    def open(*args, **kwds):
+        return _dummy_sftp_file(*args, **kwds)
+    @staticmethod
+    def close():
+        pass
+
+class dummy_sshclient(object):
+    @staticmethod
+    def open_sftp():
+        return dummy_sftp
+
+class TestBlockStorageSFTP(_TestBlockStorage,
+                           unittest2.TestCase):
+    _type = BlockStorageSFTP
+    _type_kwds = {'sshclient': dummy_sshclient}
+
+    def test_setup_fails_no_sshclient(self):
+        self.assertEqual(self._check_exists(self._dummy_name), False)
+        kwds = dict(self._type_kwds)
+        del kwds['sshclient']
+        with self.assertRaises(ValueError):
+            self._type.setup(self._dummy_name,
+                             block_size=1,
+                             block_count=1,
+                             **kwds)
+        self.assertEqual(self._check_exists(self._dummy_name), False)
+
+    def test_init_exists_no_sshclient(self):
+        self.assertEqual(self._check_exists(self._testfname), True)
+        kwds = dict(self._type_kwds)
+        del kwds['sshclient']
+        with self.assertRaises(ValueError):
+            with self._type(self._testfname, **kwds) as f:
+                pass                                   # pragma: no cover
+
+        databefore = self._read_storage(self._testfname)
+        with self._type(self._testfname, **self._type_kwds) as f:
+            self.assertEqual(f.block_size, self._block_size)
+            self.assertEqual(f.block_count, self._block_count)
+            self.assertEqual(f.storage_name, self._testfname)
+            self.assertEqual(f.header_data, bytes())
+        self.assertEqual(self._check_exists(self._testfname), True)
+        dataafter = self._read_storage(self._testfname)
+        self.assertEqual(databefore, dataafter)
+
 
 class _TestBlockStorageS3Mock(_TestBlockStorage):
     _type = BlockStorageS3
@@ -578,14 +652,13 @@ class _TestBlockStorageS3Mock(_TestBlockStorage):
         self.assertEqual(self._check_exists(self._dummy_name), True)
         self._remove_storage(self._dummy_name)
 
-class TestBlockStorageS3MockNoThreads(_TestBlockStorageS3Mock,
-                                      unittest2.TestCase):
-    _type_kwds = {'s3_wrapper': MockBoto3S3Wrapper,
-                  'bucket_name': '.',
-                  'threadpool_size': 0}
-
 class TestBlockStorageS3Mock(_TestBlockStorageS3Mock,
                              unittest2.TestCase):
+    _type_kwds = {'s3_wrapper': MockBoto3S3Wrapper,
+                  'bucket_name': '.'}
+
+class TestBlockStorageS3MockThreadPool(_TestBlockStorageS3Mock,
+                                       unittest2.TestCase):
     _type_kwds = {'s3_wrapper': MockBoto3S3Wrapper,
                   'bucket_name': '.',
                   'threadpool_size': 4}

@@ -22,7 +22,8 @@ class BlockStorageMMap(BlockStorageFile):
     # (override what is defined on BlockStorageFile)
 
     def clone_device(self):
-        return BlockStorageMMap(self.storage_name, ignore_lock=True)
+        return BlockStorageMMap(self.storage_name,
+                                ignore_lock=True)
 
     @classmethod
     def setup(cls,

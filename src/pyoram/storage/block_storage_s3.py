@@ -32,15 +32,17 @@ class BlockStorageS3(BlockStorageInterface):
                  aws_secret_access_key=None,
                  region_name=None,
                  ignore_lock=False,
-                 threadpool_size=4,
+                 threadpool_size=0,
                  s3_wrapper=Boto3S3Wrapper):
+
+        self._threadpool_size = threadpool_size
         self._storage_name = storage_name
         self._bucket_name = bucket_name
         self._aws_access_key_id = aws_access_key_id
         self._aws_secret_access_key = aws_secret_access_key
         self._region_name = region_name
-        self._threadpool_size = threadpool_size
-
+        self._pool = None
+        self._close_pool = True
         self._s3 = None
         self._ignore_lock = ignore_lock
         self._async_write = None
@@ -48,17 +50,17 @@ class BlockStorageS3(BlockStorageInterface):
         if bucket_name is None:
             raise ValueError("'bucket_name' keyword is required")
 
+        if threadpool_size != 0:
+            self._pool = ThreadPool(threadpool_size)
+
         self._s3 = s3_wrapper(bucket_name,
                               aws_access_key_id=aws_access_key_id,
                               aws_secret_access_key=aws_secret_access_key,
                               region_name=region_name)
         self._basename = self.storage_name+"/b%d"
-        if threadpool_size == 0:
-            self._pool = None
-        else:
-            self._pool = ThreadPool(processes=threadpool_size)
 
-        index_data = self._s3.download(self._storage_name+"/"+BlockStorageS3._index_name)
+        index_data = self._s3.download(
+            self._storage_name+"/"+BlockStorageS3._index_name)
         self._block_size, self._block_count, user_header_size, locked = \
             struct.unpack(
                 BlockStorageS3._index_struct_string,
@@ -91,15 +93,15 @@ class BlockStorageS3(BlockStorageInterface):
                 pass
             self._async_write = None
 
-    def _schedule_async_write(self, target, arglist):
+    def _schedule_async_write(self, arglist):
         assert self._async_write is None
         if self._pool is not None:
             self._async_write = \
-                self._pool.imap_unordered(target, arglist)
+                self._pool.imap_unordered(self._s3.upload, arglist)
         else:
             # Note: we are using six.map which always
             #       behaves like imap
-            for _ in map(target, arglist):
+            for _ in map(self._s3.upload, arglist):
                 pass
 
     #
@@ -107,14 +109,17 @@ class BlockStorageS3(BlockStorageInterface):
     #
 
     def clone_device(self):
-        return BlockStorageS3(self.storage_name,
-                              bucket_name=self._bucket_name,
-                              aws_access_key_id=self._aws_access_key_id,
-                              aws_secret_access_key=self._aws_secret_access_key,
-                              region_name=self._region_name,
-                              threadpool_size=self._threadpool_size,
-                              s3_wrapper=type(self._s3),
-                              ignore_lock=True)
+        f =  BlockStorageS3(self.storage_name,
+                            bucket_name=self._bucket_name,
+                            aws_access_key_id=self._aws_access_key_id,
+                            aws_secret_access_key=self._aws_secret_access_key,
+                            region_name=self._region_name,
+                            threadpool_size=0,
+                            s3_wrapper=type(self._s3),
+                            ignore_lock=True)
+        f._pool = self._pool
+        f._close_pool = False
+        return f
 
     @classmethod
     def compute_storage_size(cls,
@@ -144,7 +149,7 @@ class BlockStorageS3(BlockStorageInterface):
               region_name=None,
               header_data=None,
               initialize=None,
-              threadpool_size=4,
+              threadpool_size=0,
               ignore_existing=False,
               s3_wrapper=Boto3S3Wrapper,
               show_status_bar=False):
@@ -217,14 +222,13 @@ class BlockStorageS3(BlockStorageInterface):
                 raise
         total = None
         pool = None
-        if threadpool_size > 0:
-            pool = ThreadPool(processes=threadpool_size)
+        if (threadpool_size != 0):
+            _threadpool = ThreadPool(threadpool_size)
             try:
                 for i,_ in enumerate(
                         tqdm.tqdm(
-                            pool.imap_unordered(_do_upload, init_blocks()),
-                            desc=("Initializing S3 Storage Space (using "
-                                  "%s threads)" % (threadpool_size)),
+                            _threadpool.imap_unordered(_do_upload, init_blocks()),
+                            desc="Initializing S3 Storage Space (with threadpool)",
                             total=block_count,
                             disable=not show_status_bar)):
                     total = i
@@ -232,16 +236,16 @@ class BlockStorageS3(BlockStorageInterface):
                 s3.clear(storage_name)
                 raise
             finally:
-                pool.close()
-                pool.join()
+                _threadpool.close()
+                _threadpool.join()
         else:
             try:
                 for i,_ in enumerate(
-                        tqdm.tqdm(map(s3.upload, init_blocks()),
-                                  desc="Initializing S3 Storage Space "
-                                  "(using no threads)",
-                                  total=block_count,
-                                  disable=not show_status_bar)):
+                        tqdm.tqdm(
+                            map(s3.upload, init_blocks()),
+                            desc="Initializing S3 Storage Space (no threadpool)",
+                            total=block_count,
+                            disable=not show_status_bar)):
                     total = i
             except Exception as e:
                 s3.clear(storage_name)
@@ -311,7 +315,7 @@ class BlockStorageS3(BlockStorageInterface):
                                  len(self.header_data),
                                  False) + \
                      self.header_data))
-        if self._pool is not None:
+        if self._close_pool and (self._pool is not None):
             self._pool.close()
             self._pool.join()
             self._pool = None
@@ -346,13 +350,11 @@ class BlockStorageS3(BlockStorageInterface):
         indices = list(indices)
         assert all(0 <= i <= self.block_count for i in indices)
         indices = (self._basename % i for i in indices)
-        self._schedule_async_write(self._s3.upload,
-                                   zip(indices, blocks))
+        self._schedule_async_write(zip(indices, blocks))
 
     def write_block(self, i, block):
         self._check_async()
         assert 0 <= i < self.block_count
-        self._schedule_async_write(self._s3.upload,
-                                   (((self._basename % i), block),))
+        self._schedule_async_write((((self._basename % i), block),))
 
 BlockStorageTypeFactory.register_device("s3", BlockStorageS3)

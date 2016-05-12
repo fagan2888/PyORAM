@@ -16,9 +16,10 @@ def _readme():
         return f.read()
 
 setup_requirements = []
-requirements = ['boto3',
+requirements = ['cryptography',
+                'paramiko',
+                'boto3',
                 'six',
-                'cryptography',
                 'tqdm']
 
 if platform.python_implementation() == "PyPy":

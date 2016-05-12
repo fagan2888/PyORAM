@@ -1,4 +1,6 @@
 cryptography
+paramiko
+boto3
 cffi>=1.0.0
 six
 tqdm

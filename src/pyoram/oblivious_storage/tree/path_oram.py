@@ -291,6 +291,7 @@ class PathORAM(EncryptedBlockStorageInterface):
                                            heap_height,
                                            heap_base=heap_base,
                                            blocks_per_bucket=bucket_capacity,
+                                           show_status_bar=show_status_bar,
                                            **kwds)
             if cached_levels != 0:
                 f = TopCachedEncryptedHeapStorage(

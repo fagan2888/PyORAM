@@ -4,6 +4,7 @@ import os
 import struct
 import logging
 import errno
+from multiprocessing.pool import ThreadPool
 
 from pyoram.storage.block_storage import \
     (BlockStorageInterface,
@@ -27,12 +28,19 @@ class BlockStorageFile(BlockStorageInterface):
 
     def __init__(self,
                  storage_name,
-                 filesystem=default_filesystem,
-                 ignore_lock=False):
+                 threadpool_size=0,
+                 ignore_lock=False,
+                 _filesystem=default_filesystem):
+
+        self._threadpool_size = threadpool_size
+        self._filesystem = _filesystem
         self._ignore_lock = ignore_lock
         self._f = None
+        self._pool = None
+        self._close_pool = True
+        self._async_write = None
         self._storage_name = storage_name
-        self._f = filesystem.open(self.storage_name, "r+b")
+        self._f = self._filesystem.open(self.storage_name, "r+b")
         self._f.seek(0)
         self._block_size, self._block_count, user_header_size, locked = \
             struct.unpack(
@@ -76,12 +84,45 @@ class BlockStorageFile(BlockStorageInterface):
                                       True))
             self._f.flush()
 
+        if threadpool_size != 0:
+            self._pool = ThreadPool(threadpool_size)
+
+    def _check_async(self):
+        if self._async_write is not None:
+            self._async_write.get()
+            self._async_write = None
+
+    def _schedule_async_write(self, args):
+        assert self._async_write is None
+        if self._pool is not None:
+            self._async_write = \
+                self._pool.apply_async(self._writev, (args,))
+        else:
+            self._writev(args)
+
+    # This method is usually executed in another thread, so
+    # do not attempt to handle exceptions because it will
+    # not work.
+    def _writev(self, chunks):
+        for i, block in chunks:
+            self._f.seek(self._header_offset + i * self.block_size)
+            self._f.write(block)
+
+        # TODO: Figure out why tests fail on Python3 without this
+        if six.PY3:
+            self._f.flush()
+
     #
     # Define BlockStorageInterface Methods
     #
 
     def clone_device(self):
-        return BlockStorageFile(self.storage_name, ignore_lock=True)
+        f = BlockStorageFile(self.storage_name,
+                             threadpool_size=0,
+                             ignore_lock=True)
+        f._pool = self._pool
+        f._close_pool = False
+        return f
 
     @classmethod
     def compute_storage_size(cls,
@@ -108,13 +149,14 @@ class BlockStorageFile(BlockStorageInterface):
               initialize=None,
               header_data=None,
               ignore_existing=False,
-              filesystem=default_filesystem,
-              show_status_bar=False):
+              threadpool_size=0,
+              show_status_bar=False,
+              _filesystem=default_filesystem):
 
         if (not ignore_existing):
             _exists = True
             try:
-                filesystem.stat(storage_name)
+                _filesystem.stat(storage_name)
             except OSError as e:
                 if e.errno == errno.ENOENT:
                     _exists = False
@@ -140,7 +182,7 @@ class BlockStorageFile(BlockStorageInterface):
             zeros = bytes(bytearray(block_size))
             initialize = lambda i: zeros
         try:
-            with filesystem.open(storage_name, "wb") as f:
+            with _filesystem.open(storage_name, "wb") as f:
                 # create_index
                 if header_data is None:
                     f.write(struct.pack(BlockStorageFile._index_struct_string,
@@ -163,12 +205,13 @@ class BlockStorageFile(BlockStorageInterface):
                     assert len(block) == block_size, \
                         ("%s != %s" % (len(block), block_size))
                     f.write(block)
-        except:
-            filesystem.remove(storage_name)
-            raise
+        except:                                        # pragma: no cover
+            _filesystem.remove(storage_name)           # pragma: no cover
+            raise                                      # pragma: no cover
 
         return BlockStorageFile(storage_name,
-                                filesystem=filesystem)
+                                threadpool_size=threadpool_size,
+                                _filesystem=_filesystem)
 
     @property
     def header_data(self):
@@ -187,6 +230,7 @@ class BlockStorageFile(BlockStorageInterface):
         return self._storage_name
 
     def update_header_data(self, new_header_data):
+        self._check_async()
         if len(new_header_data) != len(self.header_data):
             raise ValueError(
                 "The size of header data can not change.\n"
@@ -198,6 +242,11 @@ class BlockStorageFile(BlockStorageInterface):
         self._f.write(self._user_header_data)
 
     def close(self):
+        self._check_async()
+        if self._close_pool and (self._pool is not None):
+            self._pool.close()
+            self._pool.join()
+            self._pool = None
         if self._f is not None:
             if not self._ignore_lock:
                 # turn off the locked flag
@@ -216,6 +265,7 @@ class BlockStorageFile(BlockStorageInterface):
             self._f = None
 
     def read_blocks(self, indices):
+        self._check_async()
         blocks = []
         for i in indices:
             assert 0 <= i < self.block_count
@@ -224,30 +274,32 @@ class BlockStorageFile(BlockStorageInterface):
         return blocks
 
     def yield_blocks(self, indices):
+        self._check_async()
         for i in indices:
             assert 0 <= i < self.block_count
             self._f.seek(self._header_offset + i * self.block_size)
             yield self._f.read(self.block_size)
 
     def read_block(self, i):
+        self._check_async()
         assert 0 <= i < self.block_count
         self._f.seek(self._header_offset + i * self.block_size)
         return self._f.read(self.block_size)
 
     def write_blocks(self, indices, blocks):
+        self._check_async()
+        chunks = []
         for i, block in zip(indices, blocks):
             assert 0 <= i < self.block_count
             assert len(block) == self.block_size, \
                 ("%s != %s" % (len(block), self.block_size))
-            self._f.seek(self._header_offset + i * self.block_size)
-            self._f.write(block)
-        self._f.flush()
+            chunks.append((i, block))
+        self._schedule_async_write(chunks)
 
     def write_block(self, i, block):
+        self._check_async()
         assert 0 <= i < self.block_count
         assert len(block) == self.block_size
-        self._f.seek(self._header_offset + i * self.block_size)
-        self._f.write(block)
-        self._f.flush()
+        self._schedule_async_write(((i, block),))
 
 BlockStorageTypeFactory.register_device("file", BlockStorageFile)
