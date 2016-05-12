@@ -28,6 +28,9 @@ Installation Tips
 
 * If you have trouble installing the cryptography package
   on OS X with PyPy: `stackoverflow <https://stackoverflow.com/questions/36662704/fatal-error-openssl-e-os2-h-file-not-found-in-pypy/36706513#36706513>`_.
+* If you encounter the dreaded "unable to find
+  vcvarsall.bat" error when installing packages with C
+  extensions through pip in Windows: `blog post <https://blogs.msdn.microsoft.com/pythonengineering/2016/04/11/unable-to-find-vcvarsall-bat>`_.
 
 Algorithms Available (So Far)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -37,19 +40,19 @@ Algorithms Available (So Far)
   - Generalized to work over k-kary storage heaps in order
     to study stash-size behavior in this setting. Default
     settings will use a binary storage heap.
-  - Includes interfaces for local storage as well as Amazon
-    S3 storage.
+  - Includes interfaces for local storage, SFTP storage (using paramiko),
+    and Amazon S3 storage (using boto3).
 
 Why Python?
 ~~~~~~~~~~~
 
 This project is meant for research. It is provided mainly as
 a tool for other researchers studying the applicability of
-ORAM to the cloud storage setting. In such a setting, we
+ORAM to the cloud-storage setting. In such a setting, we
 observe that network latency far outweighs any overhead
 introduced from switching to an interpreted language such as
 Python (as opposed to C++ or Java). Thus, our hope is that
 by providing a Python-based library of ORAM tools, we will
 enable researchers to spend more time prototyping new and
 interesting ORAM applications and less time fighting with a
-compiler / chasing down segmentation faults.
+compiler or chasing down segmentation faults.
