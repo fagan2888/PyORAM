@@ -91,8 +91,8 @@ class BlockStorageS3(BlockStorageInterface):
                 pass
             self._async_write = None
 
-    def _schedule_async(self, target, arglist):
-        self._check_async()
+    def _schedule_async_write(self, target, arglist):
+        assert self._async_write is None
         if self._pool is not None:
             self._async_write = \
                 self._pool.imap_unordered(target, arglist)
@@ -321,8 +321,6 @@ class BlockStorageS3(BlockStorageInterface):
         return self._s3.download(self._basename % i)
 
     def read_blocks(self, indices):
-        # be sure not to exhaust this if it is an iterator
-        # or generator
         self._check_async()
         if self._pool is not None:
             return self._pool.map(self._check_and_download, indices)
@@ -337,21 +335,24 @@ class BlockStorageS3(BlockStorageInterface):
             return map(self._check_and_download, indices)
 
     def read_block(self, i):
-        assert 0 <= i < self.block_count
         self._check_async()
+        assert 0 <= i < self.block_count
         return self._s3.download(self._basename % i)
 
     def write_blocks(self, indices, blocks):
+        self._check_async()
         # be sure not to exhaust this if it is an iterator
         # or generator
         indices = list(indices)
         assert all(0 <= i <= self.block_count for i in indices)
         indices = (self._basename % i for i in indices)
-        self._schedule_async(self._s3.upload, zip(indices, blocks))
+        self._schedule_async_write(self._s3.upload,
+                                   zip(indices, blocks))
 
     def write_block(self, i, block):
-        assert 0 <= i < self.block_count
         self._check_async()
-        self._s3.upload(((self._basename % i), block))
+        assert 0 <= i < self.block_count
+        self._schedule_async_write(self._s3.upload,
+                                   (((self._basename % i), block),))
 
 BlockStorageTypeFactory.register_device("s3", BlockStorageS3)
