@@ -120,14 +120,14 @@ class _TestBlockStorage(object):
 
     def test_setup_fails(self):
         self.assertEqual(self._check_exists(self._dummy_name), False)
-        with self.assertRaises(ValueError):
+        with self.assertRaises(IOError):
             self._type.setup(
                 self._get_empty_existing(),
                 block_size=10,
                 block_count=10,
                 **self._type_kwds)
         self.assertEqual(self._check_exists(self._dummy_name), False)
-        with self.assertRaises(ValueError):
+        with self.assertRaises(IOError):
             self._type.setup(
                 self._get_empty_existing(),
                 block_size=10,
@@ -562,7 +562,7 @@ class _TestBlockStorageS3Mock(_TestBlockStorage):
                               **self._type_kwds) as f:
             pass
         self.assertEqual(self._check_exists(self._dummy_name), True)
-        with self.assertRaises(ValueError):
+        with self.assertRaises(IOError):
             with self._type.setup(self._dummy_name,
                                   block_size=1,
                                   block_count=1,

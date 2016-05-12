@@ -74,7 +74,7 @@ class _TestPathORAMBase(object):
 
     def test_setup_fails(self):
         self.assertEqual(os.path.exists(self._dummy_name), False)
-        with self.assertRaises(ValueError):
+        with self.assertRaises(IOError):
             PathORAM.setup(
                 os.path.join(thisdir,
                              "baselines",
@@ -89,7 +89,7 @@ class _TestPathORAMBase(object):
                 storage_type=self._type_name,
                 **self._kwds)
         self.assertEqual(os.path.exists(self._dummy_name), False)
-        with self.assertRaises(ValueError):
+        with self.assertRaises(IOError):
             PathORAM.setup(
                 os.path.join(thisdir,
                              "baselines",

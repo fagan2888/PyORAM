@@ -3,6 +3,7 @@ __all__ = ('BlockStorageFile',)
 import os
 import struct
 import logging
+import errno
 
 from pyoram.storage.block_storage import \
     (BlockStorageInterface,
@@ -14,6 +15,11 @@ from six.moves import xrange
 
 log = logging.getLogger("pyoram")
 
+class default_filesystem(object):
+    open = open
+    remove = os.remove
+    stat = os.stat
+
 class BlockStorageFile(BlockStorageInterface):
 
     _index_struct_string = "!LLL?"
@@ -21,14 +27,12 @@ class BlockStorageFile(BlockStorageInterface):
 
     def __init__(self,
                  storage_name,
+                 filesystem=default_filesystem,
                  ignore_lock=False):
         self._ignore_lock = ignore_lock
         self._f = None
-        if not os.path.exists(storage_name):
-            raise IOError("Storage location does not exist: %s"
-                          % (storage_name))
         self._storage_name = storage_name
-        self._f = open(self.storage_name, "r+b")
+        self._f = filesystem.open(self.storage_name, "r+b")
         self._f.seek(0)
         self._block_size, self._block_count, user_header_size, locked = \
             struct.unpack(
@@ -104,12 +108,20 @@ class BlockStorageFile(BlockStorageInterface):
               initialize=None,
               header_data=None,
               ignore_existing=False,
+              filesystem=default_filesystem,
               show_status_bar=False):
-        if (not ignore_existing) and \
-           os.path.exists(storage_name):
-            raise ValueError(
-                "Storage location already exists: %s"
-                % (storage_name))
+
+        if (not ignore_existing):
+            _exists = True
+            try:
+                filesystem.stat(storage_name)
+            except OSError as e:
+                if e.errno == errno.ENOENT:
+                    _exists = False
+            if _exists:
+                raise IOError(
+                    "Storage location already exists: %s"
+                    % (storage_name))
         if (block_size <= 0) or (block_size != int(block_size)):
             raise ValueError(
                 "Block size (bytes) must be a positive integer: %s"
@@ -128,7 +140,7 @@ class BlockStorageFile(BlockStorageInterface):
             zeros = bytes(bytearray(block_size))
             initialize = lambda i: zeros
         try:
-            with open(storage_name, "wb") as f:
+            with filesystem.open(storage_name, "wb") as f:
                 # create_index
                 if header_data is None:
                     f.write(struct.pack(BlockStorageFile._index_struct_string,
@@ -151,11 +163,12 @@ class BlockStorageFile(BlockStorageInterface):
                     assert len(block) == block_size, \
                         ("%s != %s" % (len(block), block_size))
                     f.write(block)
-                f.flush()
         except:
-            os.remove(storage_name)
+            filesystem.remove(storage_name)
             raise
-        return BlockStorageFile(storage_name)
+
+        return BlockStorageFile(storage_name,
+                                filesystem=filesystem)
 
     @property
     def header_data(self):
@@ -224,16 +237,16 @@ class BlockStorageFile(BlockStorageInterface):
     def write_blocks(self, indices, blocks):
         for i, block in zip(indices, blocks):
             assert 0 <= i < self.block_count
-            self._f.seek(self._header_offset + i * self.block_size)
             assert len(block) == self.block_size, \
                 ("%s != %s" % (len(block), self.block_size))
+            self._f.seek(self._header_offset + i * self.block_size)
             self._f.write(block)
         self._f.flush()
 
     def write_block(self, i, block):
         assert 0 <= i < self.block_count
-        self._f.seek(self._header_offset + i * self.block_size)
         assert len(block) == self.block_size
+        self._f.seek(self._header_offset + i * self.block_size)
         self._f.write(block)
         self._f.flush()
 

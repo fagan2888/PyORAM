@@ -68,7 +68,7 @@ class TestEncryptedHeapStorage(unittest2.TestCase):
 
     def test_setup_fails(self):
         self.assertEqual(os.path.exists(self._dummy_name), False)
-        with self.assertRaises(ValueError):
+        with self.assertRaises(IOError):
             EncryptedHeapStorage.setup(
                 os.path.join(thisdir,
                              "baselines",
@@ -79,7 +79,7 @@ class TestEncryptedHeapStorage(unittest2.TestCase):
                 blocks_per_bucket=1,
                 storage_type=self._type_name)
         self.assertEqual(os.path.exists(self._dummy_name), False)
-        with self.assertRaises(ValueError):
+        with self.assertRaises(IOError):
             EncryptedHeapStorage.setup(
                 os.path.join(thisdir,
                              "baselines",

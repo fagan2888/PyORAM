@@ -65,7 +65,7 @@ class _TestEncryptedBlockStorage(object):
 
     def test_setup_fails(self):
         self.assertEqual(os.path.exists(self._dummy_name), False)
-        with self.assertRaises(ValueError):
+        with self.assertRaises(IOError):
             EncryptedBlockStorage.setup(
                 os.path.join(thisdir,
                              "baselines",
@@ -77,7 +77,7 @@ class _TestEncryptedBlockStorage(object):
                 aes_mode=self._aes_mode,
                 storage_type=self._type_name)
         self.assertEqual(os.path.exists(self._dummy_name), False)
-        with self.assertRaises(ValueError):
+        with self.assertRaises(IOError):
             EncryptedBlockStorage.setup(
                 os.path.join(thisdir,
                              "baselines",

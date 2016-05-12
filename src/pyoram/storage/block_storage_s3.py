@@ -171,7 +171,7 @@ class BlockStorageS3(BlockStorageInterface):
                         region_name=region_name)
         exists = s3.exists(storage_name)
         if (not ignore_existing) and exists:
-            raise ValueError(
+            raise IOError(
                 "Storage location already exists in bucket %s: %s"
                 % (bucket_name, storage_name))
         if exists:
