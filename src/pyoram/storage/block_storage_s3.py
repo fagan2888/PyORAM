@@ -223,11 +223,11 @@ class BlockStorageS3(BlockStorageInterface):
         total = None
         pool = None
         if (threadpool_size != 0):
-            _threadpool = ThreadPool(threadpool_size)
+            pool = ThreadPool(threadpool_size)
             try:
                 for i,_ in enumerate(
                         tqdm.tqdm(
-                            _threadpool.imap_unordered(_do_upload, init_blocks()),
+                            pool.imap_unordered(_do_upload, init_blocks()),
                             desc="Initializing S3 Storage Space (with threadpool)",
                             total=block_count,
                             disable=not show_status_bar)):
@@ -236,8 +236,8 @@ class BlockStorageS3(BlockStorageInterface):
                 s3.clear(storage_name)
                 raise
             finally:
-                _threadpool.close()
-                _threadpool.join()
+                pool.close()
+                pool.join()
         else:
             try:
                 for i,_ in enumerate(
