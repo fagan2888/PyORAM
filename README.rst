@@ -23,6 +23,22 @@ This software is copyright (c) by Gabriel A. Hackebeil (gabe.hackebeil@gmail.com
 This software is released under the MIT software license.
 This license, including disclaimer, is available in the 'LICENSE' file.
 
+Installation
+~~~~~~~~~~~~
+
+To install PyORAM, first clone the repository::
+
+  $ git clone https://github.com/ghackebeil/PyORAM.git
+
+Next, enter the directory where PyORAM has been cloned and run setup::
+
+  $ python setup.py install
+
+If you are a developer, you should instead install using::
+
+  $ pip install -e .
+  $ pip install nose2 unittest2
+
 Installation Tips
 ~~~~~~~~~~~~~~~~~
 
@@ -37,11 +53,17 @@ Algorithms Available (So Far)
 
 * `Path ORAM <http://arxiv.org/abs/1202.5150v3>`_
 
-  - Generalized to work over k-kary storage heaps in order
-    to study stash-size behavior in this setting. Default
-    settings will use a binary storage heap.
-  - Includes interfaces for local storage, SFTP storage (using paramiko),
-    and Amazon S3 storage (using boto3).
+ - Generalized to work over k-kary storage heaps in order
+   to study stash-size behavior in this setting. Default
+   settings will use a binary storage heap.
+ - Includes interfaces for local storage, SFTP storage
+   (using paramiko), and Amazon S3 storage (using
+   boto3). See examples:
+
+  - examples/path_oram_mmap.py
+  - examples/path_oram_file.py
+  - examples/path_oram_sftp.py
+  - examples/path_oram_s3.py
 
 Why Python?
 ~~~~~~~~~~~
