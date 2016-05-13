@@ -53,21 +53,21 @@ Algorithms Available (So Far)
 
 * `Path ORAM <http://arxiv.org/abs/1202.5150v3>`_
 
- - Generalized to work over k-kary storage heaps in order
-   to study stash-size behavior in this setting. Default
-   settings will use a binary storage heap.
+  - Generalized to work over k-kary storage heaps in order
+    to study stash-size behavior in this setting. Default
+    settings will use a binary storage heap.
 
- - Includes interfaces for local storage, SFTP storage
-   (using paramiko), and Amazon S3 storage (using
-   boto3). See examples:
+  - Includes interfaces for local storage, SFTP storage
+    (using paramiko), and Amazon S3 storage (using
+    boto3). See examples:
 
-  + examples/path_oram_mmap.py
+    + examples/path_oram_mmap.py
 
-  + examples/path_oram_file.py
+    + examples/path_oram_file.py
 
-  + examples/path_oram_sftp.py
+    + examples/path_oram_sftp.py
 
-  + examples/path_oram_s3.py
+    + examples/path_oram_s3.py
 
 Why Python?
 ~~~~~~~~~~~
