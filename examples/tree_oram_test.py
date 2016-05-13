@@ -6,7 +6,8 @@ from pyoram.util.virtual_heap import \
     SizedVirtualHeap
 from pyoram.encrypted_storage.encrypted_heap_storage import \
     EncryptedHeapStorage
-from pyoram.oblivious_storage.tree.tree_oram_helper import TreeORAMStorageManagerPointerAddressing
+from pyoram.oblivious_storage.tree.tree_oram_helper import \
+    TreeORAMStorageManagerPointerAddressing
 
 def main():
     storage_name = "heap.bin"
