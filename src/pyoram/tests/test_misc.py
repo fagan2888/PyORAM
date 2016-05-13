@@ -1,4 +1,6 @@
+import os
 import unittest2
+import tempfile
 
 import pyoram.util.misc
 
@@ -52,6 +54,29 @@ class Test(unittest2.TestCase):
             (2 * 123123123123123123123123123123123123123123123123 - 1) // \
             123123123123123123123123123123123123123123123123,
             1)
+
+    def test_MemorySize(self):
+        self.assertTrue("b" in str(pyoram.util.misc.MemorySize(0.1)))
+        self.assertTrue("B" in str(pyoram.util.misc.MemorySize(1)))
+        self.assertTrue("B" in str(pyoram.util.misc.MemorySize(999)))
+        self.assertTrue("KB" in str(pyoram.util.misc.MemorySize(1000)))
+        self.assertTrue("KB" in str(pyoram.util.misc.MemorySize(999999)))
+        self.assertTrue("MB" in str(pyoram.util.misc.MemorySize(1000000)))
+        self.assertTrue("MB" in str(pyoram.util.misc.MemorySize(999999999)))
+        self.assertTrue("GB" in str(pyoram.util.misc.MemorySize(1000000000)))
+        self.assertTrue("GB" in str(pyoram.util.misc.MemorySize(9999999999)))
+        self.assertTrue("TB" in str(pyoram.util.misc.MemorySize(1000000000000)))
+
+    def test_saveload_private_key(self):
+        with tempfile.NamedTemporaryFile(delete=False) as f:
+            filename = f.name
+        try:
+            key = os.urandom(32)
+            pyoram.util.misc.save_private_key(filename, key)
+            loaded_key = pyoram.util.misc.load_private_key(filename)
+            self.assertEqual(key, loaded_key)
+        finally:
+            os.remove(filename)
 
 if __name__ == "__main__":
     unittest2.main()                                    # pragma: no cover

@@ -674,7 +674,7 @@ class _TestEncryptedBlockStorage(object):
             self.assertEqual(forig.bytes_sent, 0)
             self.assertEqual(forig.bytes_received, 0)
 
-    def test_read_blocks_cloned(self):
+    def test_yield_blocks_cloned(self):
         with EncryptedBlockStorage(self._testfname,
                                    key=self._key,
                                    storage_type=self._type_name) as forig:

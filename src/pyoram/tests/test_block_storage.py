@@ -804,6 +804,12 @@ class TestBlockStorageS3Mock(_TestBlockStorageS3Mock,
     _type_kwds = {'s3_wrapper': MockBoto3S3Wrapper,
                   'bucket_name': '.'}
 
+class TestBlockStorageS3MockNoThreadPool(_TestBlockStorageS3Mock,
+                             unittest2.TestCase):
+    _type_kwds = {'s3_wrapper': MockBoto3S3Wrapper,
+                  'bucket_name': '.',
+                  'threadpool_size': 0}
+
 class TestBlockStorageS3MockThreadPool(_TestBlockStorageS3Mock,
                                        unittest2.TestCase):
     _type_kwds = {'s3_wrapper': MockBoto3S3Wrapper,

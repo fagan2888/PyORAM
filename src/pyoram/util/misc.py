@@ -47,15 +47,15 @@ class MemorySize(object):
         self.numbytes = numbytes
 
     def __str__(self):
-        if self.B <= 1:
+        if self.B < 1:
             return "%.3f b" % (self.b)
-        if self.KB <= 1:
+        if self.KB < 1:
             return "%.3f B" % (self.B)
-        if self.MB <= 1:
+        if self.MB < 1:
             return "%.3f KB" % (self.KB)
-        if self.GB <= 1:
+        if self.GB < 1:
             return "%.3f MB" % (self.MB)
-        if self.TB <= 1:
+        if self.TB < 1:
             return "%.3f GB" % (self.GB)
         return "%.3f TB" % (self.TB)
 
