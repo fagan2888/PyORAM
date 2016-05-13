@@ -62,6 +62,7 @@ class BlockStorageMMap(BlockStorageFile):
         blocks = []
         for i in indices:
             assert 0 <= i < self.block_count
+            self._bytes_received += self.block_size
             self._mm.seek(self._header_offset + i * self.block_size)
             blocks.append(self._mm.read(self.block_size))
         return blocks
@@ -69,23 +70,35 @@ class BlockStorageMMap(BlockStorageFile):
     def yield_blocks(self, indices):
         for i in indices:
             assert 0 <= i < self.block_count
+            self._bytes_received += self.block_size
             self._mm.seek(self._header_offset + i * self.block_size)
             yield self._mm.read(self.block_size)
 
     def read_block(self, i):
         assert 0 <= i < self.block_count
+        self._bytes_received += self.block_size
         return self._mm[self._header_offset + i*self.block_size : \
                         self._header_offset + (i+1)*self.block_size]
 
     def write_blocks(self, indices, blocks):
         for i, block in zip(indices, blocks):
             assert 0 <= i < self.block_count
+            self._bytes_sent += self.block_size
             self._mm[self._header_offset + i*self.block_size : \
                      self._header_offset + (i+1)*self.block_size] = block
 
     def write_block(self, i, block):
         assert 0 <= i < self.block_count
+        self._bytes_sent += self.block_size
         self._mm[self._header_offset + i*self.block_size : \
                  self._header_offset + (i+1)*self.block_size] = block
+
+    @property
+    def bytes_sent(self):
+        return self._bytes_sent
+
+    @property
+    def bytes_received(self):
+        return self._bytes_received
 
 BlockStorageTypeFactory.register_device("mmap", BlockStorageMMap)

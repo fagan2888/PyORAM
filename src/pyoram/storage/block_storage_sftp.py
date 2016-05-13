@@ -51,7 +51,7 @@ class BlockStorageSFTP(BlockStorageFile):
               block_size,
               block_count,
               sshclient=None,
-              threadpool_size=0,
+              threadpool_size=None,
               **kwds):
         if sshclient is None:
             raise ValueError(
@@ -94,6 +94,7 @@ class BlockStorageSFTP(BlockStorageFile):
         args = []
         for i in indices:
             assert 0 <= i < self.block_count
+            self._bytes_received += self.block_size
             args.append((self._header_offset + i * self.block_size,
                          self.block_size))
         return self._f.readv(args)
@@ -105,5 +106,11 @@ class BlockStorageSFTP(BlockStorageFile):
     #def write_blocks(...)
 
     #def write_block(...)
+
+    #@property
+    #def bytes_sent(...)
+
+    #@property
+    #def bytes_received(...)
 
 BlockStorageTypeFactory.register_device("sftp", BlockStorageSFTP)

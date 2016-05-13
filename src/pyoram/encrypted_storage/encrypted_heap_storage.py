@@ -183,3 +183,11 @@ class EncryptedHeapStorage(EncryptedHeapStorageInterface):
         assert 0 <= level_start < len(bucket_list)
         self._storage.write_blocks(bucket_list[level_start:],
                                    buckets)
+
+    @property
+    def bytes_sent(self):
+        return self._storage.bytes_sent
+
+    @property
+    def bytes_received(self):
+        return self._storage.bytes_received

@@ -28,11 +28,12 @@ class BlockStorageFile(BlockStorageInterface):
 
     def __init__(self,
                  storage_name,
-                 threadpool_size=0,
+                 threadpool_size=None,
                  ignore_lock=False,
                  _filesystem=default_filesystem):
 
-        self._threadpool_size = threadpool_size
+        self._bytes_sent = 0
+        self._bytes_received = 0
         self._filesystem = _filesystem
         self._ignore_lock = ignore_lock
         self._f = None
@@ -77,11 +78,12 @@ class BlockStorageFile(BlockStorageInterface):
         if not self._ignore_lock:
             # turn on the locked flag
             self._f.seek(0)
-            self._f.write(struct.pack(BlockStorageFile._index_struct_string,
-                                      self.block_size,
-                                      self.block_count,
-                                      len(self._user_header_data),
-                                      True))
+            self._f.write(
+                struct.pack(BlockStorageFile._index_struct_string,
+                            self.block_size,
+                            self.block_count,
+                            len(self._user_header_data),
+                            True))
             self._f.flush()
 
         if threadpool_size != 0:
@@ -149,7 +151,7 @@ class BlockStorageFile(BlockStorageInterface):
               initialize=None,
               header_data=None,
               ignore_existing=False,
-              threadpool_size=0,
+              threadpool_size=None,
               show_status_bar=False,
               _filesystem=default_filesystem):
 
@@ -198,7 +200,7 @@ class BlockStorageFile(BlockStorageInterface):
                                         False))
                     f.write(header_data)
                 for i in tqdm.tqdm(xrange(block_count),
-                                   desc="Initializing File Storage Space",
+                                   desc="Initializing File Block Storage Space",
                                    total=block_count,
                                    disable=not show_status_bar):
                     block = initialize(i)
@@ -269,6 +271,7 @@ class BlockStorageFile(BlockStorageInterface):
         blocks = []
         for i in indices:
             assert 0 <= i < self.block_count
+            self._bytes_received += self.block_size
             self._f.seek(self._header_offset + i * self.block_size)
             blocks.append(self._f.read(self.block_size))
         return blocks
@@ -277,12 +280,14 @@ class BlockStorageFile(BlockStorageInterface):
         self._check_async()
         for i in indices:
             assert 0 <= i < self.block_count
+            self._bytes_received += self.block_size
             self._f.seek(self._header_offset + i * self.block_size)
             yield self._f.read(self.block_size)
 
     def read_block(self, i):
         self._check_async()
         assert 0 <= i < self.block_count
+        self._bytes_received += self.block_size
         self._f.seek(self._header_offset + i * self.block_size)
         return self._f.read(self.block_size)
 
@@ -293,6 +298,7 @@ class BlockStorageFile(BlockStorageInterface):
             assert 0 <= i < self.block_count
             assert len(block) == self.block_size, \
                 ("%s != %s" % (len(block), self.block_size))
+            self._bytes_sent += self.block_size
             chunks.append((i, block))
         self._schedule_async_write(chunks)
 
@@ -300,6 +306,15 @@ class BlockStorageFile(BlockStorageInterface):
         self._check_async()
         assert 0 <= i < self.block_count
         assert len(block) == self.block_size
+        self._bytes_sent += self.block_size
         self._schedule_async_write(((i, block),))
+
+    @property
+    def bytes_sent(self):
+        return self._bytes_sent
+
+    @property
+    def bytes_received(self):
+        return self._bytes_received
 
 BlockStorageTypeFactory.register_device("file", BlockStorageFile)

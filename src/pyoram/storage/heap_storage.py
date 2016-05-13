@@ -51,3 +51,10 @@ class HeapStorageInterface(object):
         raise NotImplementedError                      # pragma: no cover
     def write_path(self, *args, **kwds):
         raise NotImplementedError                      # pragma: no cover
+
+    @property
+    def bytes_sent(self):
+        raise NotImplementedError                      # pragma: no cover
+    @property
+    def bytes_received(self):
+        raise NotImplementedError                      # pragma: no cover

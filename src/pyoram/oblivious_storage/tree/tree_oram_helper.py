@@ -79,6 +79,7 @@ class TreeORAMStorage(object):
         self.path_stop_bucket = b
         new_buckets = self.storage_heap.read_path(self.path_stop_bucket,
                                                   level_start=read_level_start)
+
         self.path_bucket_count = read_level_start + len(new_buckets)
         pos = 0
         for i in xrange(self.path_bucket_count):

@@ -66,8 +66,15 @@ class TopCachedEncryptedHeapStorage(EncryptedHeapStorageInterface):
         total_buckets = sum(vheap.bucket_count_at_level(l)
                             for l in xrange(cached_levels))
         self._cached_buckets = [None]*total_buckets
+
+        self._root_device = heap_storage
+        # clone before we download the cache so that we can
+        # track bytes transferred during read/write requests
+        # (separate from the cached download)
+        self._concurrent_devices = \
+            {vheap.first_bucket_at_level(0): self._root_device.clone_device()}
         for b, bucket in enumerate(
-                tqdm.tqdm(heap_storage.bucket_storage.yield_blocks(
+                tqdm.tqdm(self._root_device.bucket_storage.yield_blocks(
                     xrange(vheap.first_bucket_at_level(cached_levels))),
                           desc=("Downloading %s Cached Heap Buckets"
                                 % (total_buckets)),
@@ -75,15 +82,13 @@ class TopCachedEncryptedHeapStorage(EncryptedHeapStorageInterface):
                           disable=not show_status_bar)):
             self._cached_buckets[b] = bucket
 
-        self._concurrent_devices = \
-            {vheap.first_bucket_at_level(0): heap_storage}
         # Avoid cloning devices when the cache line is at the root
         # bucket or when the entire heap is cached
         if (concurrency_level > 0) and \
            (concurrency_level <= vheap.last_level):
             for b in xrange(vheap.first_bucket_at_level(concurrency_level),
                             vheap.first_bucket_at_level(concurrency_level+1)):
-                self._concurrent_devices[b] = heap_storage.clone_device()
+                self._concurrent_devices[b] = self._root_device.clone_device()
 
         self._subheap_storage = {}
         # Avoid populating this dictionary when the entire
@@ -112,7 +117,7 @@ class TopCachedEncryptedHeapStorage(EncryptedHeapStorageInterface):
 
     @property
     def key(self):
-        return self._concurrent_devices[0].key
+        return self._root_device.key
 
     #
     # Define HeapStorageInterface Methods
@@ -133,43 +138,42 @@ class TopCachedEncryptedHeapStorage(EncryptedHeapStorageInterface):
 
     @property
     def header_data(self):
-        return self._concurrent_devices[0].header_data
+        return self._root_device.header_data
 
     @property
     def bucket_count(self):
-        return self._concurrent_devices[0].bucket_count
+        return self._root_device.bucket_count
 
     @property
     def bucket_size(self):
-        return self._concurrent_devices[0].bucket_size
+        return self._root_device.bucket_size
 
     @property
     def blocks_per_bucket(self):
-        return self._concurrent_devices[0].blocks_per_bucket
+        return self._root_device.blocks_per_bucket
 
     @property
     def storage_name(self):
-        return self._concurrent_devices[0].storage_name
+        return self._root_device.storage_name
 
     @property
     def virtual_heap(self):
-        return self._concurrent_devices[0].virtual_heap
+        return self._root_device.virtual_heap
 
     @property
     def bucket_storage(self):
-        return self._concurrent_devices[0].bucket_storage
+        return self._root_device.bucket_storage
 
     def update_header_data(self, new_header_data):
-        self._concurrent_devices[0].update_header_data(new_header_data)
+        self._root_device.update_header_data(new_header_data)
 
     def close(self):
         self.bucket_storage.\
             write_blocks(list(xrange(len(self._cached_buckets))),
                          self._cached_buckets)
         for b in self._concurrent_devices:
-            if b != 0:
-                self._concurrent_devices[b].close()
-        self._concurrent_devices[0].close()
+            self._concurrent_devices[b].close()
+        self._root_device.close()
 
     def read_path(self, b, level_start=0):
         assert 0 <= b < self.virtual_heap.bucket_count()
@@ -213,3 +217,12 @@ class TopCachedEncryptedHeapStorage(EncryptedHeapStorageInterface):
                 self._subheap_storage[external_buckets[0]].\
                     bucket_storage.write_blocks(external_buckets,
                                                 buckets[(ndx+1):])
+    @property
+    def bytes_sent(self):
+        return sum(device.bytes_sent for device
+                   in self._concurrent_devices.values())
+
+    @property
+    def bytes_received(self):
+        return sum(device.bytes_received for device
+                   in self._concurrent_devices.values())

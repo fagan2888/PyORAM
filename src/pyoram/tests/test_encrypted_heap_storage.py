@@ -321,20 +321,29 @@ class TestEncryptedHeapStorage(unittest2.TestCase):
                 self._testfname,
                 key=self._key,
                 storage_type=self._type_name) as f:
+            self.assertEqual(f.bytes_sent, 0)
+            self.assertEqual(f.bytes_received, 0)
+
             self.assertEqual(
                 f.virtual_heap.first_bucket_at_level(0), 0)
             self.assertNotEqual(
                 f.virtual_heap.last_leaf_bucket(), 0)
+            total_buckets = 0
             for b in range(f.virtual_heap.first_bucket_at_level(0),
                            f.virtual_heap.last_leaf_bucket()+1):
                 data = f.read_path(b)
                 bucket_path = f.virtual_heap.Node(b).\
                               bucket_path_from_root()
+                total_buckets += len(bucket_path)
                 self.assertEqual(f.virtual_heap.Node(b).level+1,
                                  len(bucket_path))
                 for i, bucket in zip(bucket_path, data):
                     self.assertEqual(list(bytearray(bucket)),
                                      list(self._buckets[i]))
+
+            self.assertEqual(f.bytes_sent, 0)
+            self.assertEqual(f.bytes_received,
+                             total_buckets*f.bucket_storage._storage.block_size)
 
     def test_write_path(self):
         data = [bytearray([self._bucket_count]) * \
@@ -345,15 +354,20 @@ class TestEncryptedHeapStorage(unittest2.TestCase):
                 self._testfname,
                 key=self._key,
                 storage_type=self._type_name) as f:
+            self.assertEqual(f.bytes_sent, 0)
+            self.assertEqual(f.bytes_received, 0)
+
             self.assertEqual(
                 f.virtual_heap.first_bucket_at_level(0), 0)
             self.assertNotEqual(
                 f.virtual_heap.last_leaf_bucket(), 0)
+            total_buckets = 0
             for b in range(f.virtual_heap.first_bucket_at_level(0),
                            f.virtual_heap.last_leaf_bucket()+1):
                 orig = f.read_path(b)
                 bucket_path = f.virtual_heap.Node(b).\
                               bucket_path_from_root()
+                total_buckets += len(bucket_path)
                 self.assertNotEqual(len(bucket_path), 0)
                 self.assertEqual(f.virtual_heap.Node(b).level+1,
                                  len(bucket_path))
@@ -378,6 +392,11 @@ class TestEncryptedHeapStorage(unittest2.TestCase):
                 for i, bucket in zip(bucket_path, orig):
                     self.assertEqual(list(bytearray(bucket)),
                                      list(self._buckets[i]))
+
+            self.assertEqual(f.bytes_sent,
+                             total_buckets*f.bucket_storage._storage.block_size*2)
+            self.assertEqual(f.bytes_received,
+                             total_buckets*f.bucket_storage._storage.block_size*3)
 
     def test_update_header_data(self):
         fname = ".".join(self.id().split(".")[1:])
@@ -474,21 +493,36 @@ class TestEncryptedHeapStorage(unittest2.TestCase):
                 self._testfname,
                 key=self._key,
                 storage_type=self._type_name) as forig:
+            self.assertEqual(forig.bytes_sent, 0)
+            self.assertEqual(forig.bytes_received, 0)
             with forig.clone_device() as f:
+                self.assertEqual(forig.bytes_sent, 0)
+                self.assertEqual(forig.bytes_received, 0)
+                self.assertEqual(f.bytes_sent, 0)
+                self.assertEqual(f.bytes_received, 0)
+
                 self.assertEqual(
                     f.virtual_heap.first_bucket_at_level(0), 0)
                 self.assertNotEqual(
                     f.virtual_heap.last_leaf_bucket(), 0)
+                total_buckets = 0
                 for b in range(f.virtual_heap.first_bucket_at_level(0),
                                f.virtual_heap.last_leaf_bucket()+1):
                     data = f.read_path(b)
                     bucket_path = f.virtual_heap.Node(b).\
                                   bucket_path_from_root()
+                    total_buckets += len(bucket_path)
                     self.assertEqual(f.virtual_heap.Node(b).level+1,
                                      len(bucket_path))
                     for i, bucket in zip(bucket_path, data):
                         self.assertEqual(list(bytearray(bucket)),
                                          list(self._buckets[i]))
+
+                self.assertEqual(f.bytes_sent, 0)
+                self.assertEqual(f.bytes_received,
+                                 total_buckets*f.bucket_storage._storage.block_size)
+            self.assertEqual(forig.bytes_sent, 0)
+            self.assertEqual(forig.bytes_received, 0)
 
     def test_write_path_cloned(self):
         data = [bytearray([self._bucket_count]) * \
@@ -499,16 +533,25 @@ class TestEncryptedHeapStorage(unittest2.TestCase):
                 self._testfname,
                 key=self._key,
                 storage_type=self._type_name) as forig:
+            self.assertEqual(forig.bytes_sent, 0)
+            self.assertEqual(forig.bytes_received, 0)
             with forig.clone_device() as f:
+                self.assertEqual(forig.bytes_sent, 0)
+                self.assertEqual(forig.bytes_received, 0)
+                self.assertEqual(f.bytes_sent, 0)
+                self.assertEqual(f.bytes_received, 0)
+
                 self.assertEqual(
                     f.virtual_heap.first_bucket_at_level(0), 0)
                 self.assertNotEqual(
                     f.virtual_heap.last_leaf_bucket(), 0)
+                total_buckets = 0
                 for b in range(f.virtual_heap.first_bucket_at_level(0),
                                f.virtual_heap.last_leaf_bucket()+1):
                     orig = f.read_path(b)
                     bucket_path = f.virtual_heap.Node(b).\
                                   bucket_path_from_root()
+                    total_buckets += len(bucket_path)
                     self.assertNotEqual(len(bucket_path), 0)
                     self.assertEqual(f.virtual_heap.Node(b).level+1,
                                      len(bucket_path))
@@ -533,6 +576,13 @@ class TestEncryptedHeapStorage(unittest2.TestCase):
                     for i, bucket in zip(bucket_path, orig):
                         self.assertEqual(list(bytearray(bucket)),
                                          list(self._buckets[i]))
+
+                self.assertEqual(f.bytes_sent,
+                                 total_buckets*f.bucket_storage._storage.block_size*2)
+                self.assertEqual(f.bytes_received,
+                                 total_buckets*f.bucket_storage._storage.block_size*3)
+            self.assertEqual(forig.bytes_sent, 0)
+            self.assertEqual(forig.bytes_received, 0)
 
 if __name__ == "__main__":
     unittest2.main()                                    # pragma: no cover

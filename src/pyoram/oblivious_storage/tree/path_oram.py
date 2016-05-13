@@ -46,7 +46,7 @@ class PathORAM(EncryptedBlockStorageInterface):
                     "with a storage device: %s"
                     % (str(kwds)))
         else:
-            cached_levels = kwds.pop('cached_levels', 0)
+            cached_levels = kwds.pop('cached_levels', 3)
             concurrency_level = kwds.pop('concurrency_level', None)
             if (cached_levels == 0) and (concurrency_level is not None):
                 raise ValueError(                      # pragma: no cover
@@ -225,7 +225,7 @@ class PathORAM(EncryptedBlockStorageInterface):
               block_count,
               bucket_capacity=4,
               heap_base=2,
-              cached_levels=0,
+              cached_levels=3,
               concurrency_level=None,
               show_status_bar=False,
               **kwds):
@@ -403,3 +403,11 @@ class PathORAM(EncryptedBlockStorageInterface):
 
     def write_block(self, i, block):
         self.access(i, write_block=block)
+
+    @property
+    def bytes_sent(self):
+        return self._oram.storage_heap.bytes_sent
+
+    @property
+    def bytes_received(self):
+        return self._oram.storage_heap.bytes_received

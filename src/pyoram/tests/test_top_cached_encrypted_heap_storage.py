@@ -245,17 +245,20 @@ class _TestTopCachedEncryptedHeapStorage(object):
         self.assertEqual(databefore, dataafter)
 
     def test_read_path(self):
-
         with TopCachedEncryptedHeapStorage(
                 EncryptedHeapStorage(
                     self._testfname,
                     key=self._key,
                     storage_type=self._storage_type),
                 **self._init_kwds) as f:
+            self.assertEqual(f.bytes_sent, 0)
+            self.assertEqual(f.bytes_received, 0)
+
             self.assertEqual(
                 f.virtual_heap.first_bucket_at_level(0), 0)
             self.assertNotEqual(
                 f.virtual_heap.last_leaf_bucket(), 0)
+            total_buckets = 0
             for b in range(f.virtual_heap.first_bucket_at_level(0),
                            f.virtual_heap.last_leaf_bucket()+1):
                 full_bucket_path = f.virtual_heap.Node(b).\
@@ -264,11 +267,23 @@ class _TestTopCachedEncryptedHeapStorage(object):
                 for level_start in all_level_starts:
                     data = f.read_path(b, level_start=level_start)
                     bucket_path = full_bucket_path[level_start:]
+
+                    if len(full_bucket_path) <= f._external_level:
+                        pass
+                    elif level_start >= f._external_level:
+                        total_buckets += len(bucket_path)
+                    else:
+                        total_buckets += len(full_bucket_path[f._external_level:])
+
                     self.assertEqual(f.virtual_heap.Node(b).level+1-level_start,
                                      len(bucket_path))
                     for i, bucket in zip(bucket_path, data):
                         self.assertEqual(list(bytearray(bucket)),
                                          list(self._buckets[i]))
+
+            self.assertEqual(f.bytes_sent, 0)
+            self.assertEqual(f.bytes_received,
+                             total_buckets*f.bucket_storage._storage.block_size)
 
     def test_write_path(self):
         data = [bytearray([self._bucket_count]) * \
@@ -281,6 +296,9 @@ class _TestTopCachedEncryptedHeapStorage(object):
                     key=self._key,
                     storage_type=self._storage_type),
                 **self._init_kwds) as f:
+            self.assertEqual(f.bytes_sent, 0)
+            self.assertEqual(f.bytes_received, 0)
+
             self.assertEqual(
                 f.virtual_heap.first_bucket_at_level(0), 0)
             self.assertNotEqual(
@@ -288,6 +306,8 @@ class _TestTopCachedEncryptedHeapStorage(object):
             all_buckets = list(range(f.virtual_heap.first_bucket_at_level(0),
                                      f.virtual_heap.last_leaf_bucket()+1))
             random.shuffle(all_buckets)
+            total_read_buckets = 0
+            total_write_buckets = 0
             for b in all_buckets:
                 full_bucket_path = f.virtual_heap.Node(b).\
                                    bucket_path_from_root()
@@ -296,6 +316,14 @@ class _TestTopCachedEncryptedHeapStorage(object):
                 for level_start in all_level_starts:
                     orig = f.read_path(b, level_start=level_start)
                     bucket_path = full_bucket_path[level_start:]
+
+                    if len(full_bucket_path) <= f._external_level:
+                        pass
+                    elif level_start >= f._external_level:
+                        total_read_buckets += len(bucket_path)
+                    else:
+                        total_read_buckets += len(full_bucket_path[f._external_level:])
+
                     if level_start != len(full_bucket_path):
                         self.assertNotEqual(len(bucket_path), 0)
                     self.assertEqual(f.virtual_heap.Node(b).level+1-level_start,
@@ -309,8 +337,21 @@ class _TestTopCachedEncryptedHeapStorage(object):
                     f.write_path(b, [bytes(data[i])
                                      for i in bucket_path],
                                  level_start=level_start)
+                    if len(full_bucket_path) <= f._external_level:
+                        pass
+                    elif level_start >= f._external_level:
+                        total_write_buckets += len(bucket_path)
+                    else:
+                        total_write_buckets += len(full_bucket_path[f._external_level:])
 
                     new = f.read_path(b, level_start=level_start)
+                    if len(full_bucket_path) <= f._external_level:
+                        pass
+                    elif level_start >= f._external_level:
+                        total_read_buckets += len(bucket_path)
+                    else:
+                        total_read_buckets += len(full_bucket_path[f._external_level:])
+
                     self.assertEqual(len(new), len(bucket_path))
                     for i, bucket in zip(bucket_path, new):
                         self.assertEqual(list(bytearray(bucket)),
@@ -319,14 +360,33 @@ class _TestTopCachedEncryptedHeapStorage(object):
                     f.write_path(b, [bytes(self._buckets[i])
                                      for i in bucket_path],
                                  level_start=level_start)
+                    if len(full_bucket_path) <= f._external_level:
+                        pass
+                    elif level_start >= f._external_level:
+                        total_write_buckets += len(bucket_path)
+                    else:
+                        total_write_buckets += len(full_bucket_path[f._external_level:])
+
 
                     orig = f.read_path(b, level_start=level_start)
+                    if len(full_bucket_path) <= f._external_level:
+                        pass
+                    elif level_start >= f._external_level:
+                        total_read_buckets += len(bucket_path)
+                    else:
+                        total_read_buckets += len(full_bucket_path[f._external_level:])
+
                     self.assertEqual(len(orig), len(bucket_path))
                     for i, bucket in zip(bucket_path, orig):
                         self.assertEqual(list(bytearray(bucket)),
                                          list(self._buckets[i]))
 
                     full_orig = f.read_path(b)
+                    if len(full_bucket_path) <= f._external_level:
+                        pass
+                    else:
+                        total_read_buckets += len(full_bucket_path[f._external_level:])
+
                     for i, bucket in zip(full_bucket_path, full_orig):
                         self.assertEqual(list(bytearray(bucket)),
                                          list(self._buckets[i]))
@@ -337,10 +397,19 @@ class _TestTopCachedEncryptedHeapStorage(object):
                             bucket_path = f.virtual_heap.Node(cb).\
                                           bucket_path_from_root()
                             orig = f.read_path(cb)
+                            if len(bucket_path) <= f._external_level:
+                                pass
+                            else:
+                                total_read_buckets += len(bucket_path[f._external_level:])
                             self.assertEqual(len(orig), len(bucket_path))
                             for i, bucket in zip(bucket_path, orig):
                                 self.assertEqual(list(bytearray(bucket)),
                                                  list(self._buckets[i]))
+
+            self.assertEqual(f.bytes_sent,
+                             total_write_buckets*f.bucket_storage._storage.block_size)
+            self.assertEqual(f.bytes_received,
+                             total_read_buckets*f.bucket_storage._storage.block_size)
 
     def test_update_header_data(self):
         fname = ".".join(self.id().split(".")[1:])
@@ -470,6 +539,12 @@ class _TestTopCachedEncryptedHeapStorage(object):
             self.assertEqual(cache_bucket_count > 0, True)
             self.assertEqual(len(f.cached_buckets), cache_bucket_count)
 
+            self.assertEqual(f.bytes_sent, 0)
+            self.assertEqual(f.bytes_received, 0)
+            self.assertEqual(f._root_device.bytes_sent, 0)
+            self.assertEqual(
+                f._root_device.bytes_received,
+                cache_bucket_count*f._root_device.bucket_storage._storage.block_size)
 
 class TestTopCachedEncryptedHeapStorageCacheMMapDefault(
         _TestTopCachedEncryptedHeapStorage,

@@ -32,10 +32,11 @@ class BlockStorageS3(BlockStorageInterface):
                  aws_secret_access_key=None,
                  region_name=None,
                  ignore_lock=False,
-                 threadpool_size=0,
+                 threadpool_size=None,
                  s3_wrapper=Boto3S3Wrapper):
 
-        self._threadpool_size = threadpool_size
+        self._bytes_sent = 0
+        self._bytes_received = 0
         self._storage_name = storage_name
         self._bucket_name = bucket_name
         self._aws_access_key_id = aws_access_key_id
@@ -104,6 +105,9 @@ class BlockStorageS3(BlockStorageInterface):
             for _ in map(self._s3.upload, arglist):
                 pass
 
+    def _download(self, i):
+        return self._s3.download(self._basename % i)
+
     #
     # Define BlockStorageInterface Methods
     #
@@ -149,7 +153,7 @@ class BlockStorageS3(BlockStorageInterface):
               region_name=None,
               header_data=None,
               initialize=None,
-              threadpool_size=0,
+              threadpool_size=None,
               ignore_existing=False,
               s3_wrapper=Boto3S3Wrapper,
               show_status_bar=False):
@@ -228,7 +232,7 @@ class BlockStorageS3(BlockStorageInterface):
                 for i,_ in enumerate(
                         tqdm.tqdm(
                             pool.imap_unordered(_do_upload, init_blocks()),
-                            desc="Initializing S3 Storage Space (with threadpool)",
+                            desc="Initializing S3 Block Storage Space (with threadpool)",
                             total=block_count,
                             disable=not show_status_bar)):
                     total = i
@@ -243,7 +247,7 @@ class BlockStorageS3(BlockStorageInterface):
                 for i,_ in enumerate(
                         tqdm.tqdm(
                             map(s3.upload, init_blocks()),
-                            desc="Initializing S3 Storage Space (no threadpool)",
+                            desc="Initializing S3 Block Storage Space (no threadpool)",
                             total=block_count,
                             disable=not show_status_bar)):
                     total = i
@@ -320,28 +324,35 @@ class BlockStorageS3(BlockStorageInterface):
             self._pool.join()
             self._pool = None
 
-    def _check_and_download(self, i):
-        assert 0 <= i < self.block_count
-        return self._s3.download(self._basename % i)
-
     def read_blocks(self, indices):
         self._check_async()
+        # be sure not to exhaust this if it is an iterator
+        # or generator
+        indices = list(indices)
+        assert all(0 <= i <= self.block_count for i in indices)
+        self._bytes_received += self.block_size * len(indices)
         if self._pool is not None:
-            return self._pool.map(self._check_and_download, indices)
+            return self._pool.map(self._download, indices)
         else:
-            return list(map(self._check_and_download, indices))
+            return list(map(self._download, indices))
 
     def yield_blocks(self, indices):
         self._check_async()
+        # be sure not to exhaust this if it is an iterator
+        # or generator
+        indices = list(indices)
+        assert all(0 <= i <= self.block_count for i in indices)
+        self._bytes_received += self.block_size * len(indices)
         if self._pool is not None:
-            return self._pool.imap(self._check_and_download, indices)
+            return self._pool.imap(self._download, indices)
         else:
-            return map(self._check_and_download, indices)
+            return map(self._download, indices)
 
     def read_block(self, i):
         self._check_async()
         assert 0 <= i < self.block_count
-        return self._s3.download(self._basename % i)
+        self._bytes_received += self.block_size
+        return self._download(i)
 
     def write_blocks(self, indices, blocks):
         self._check_async()
@@ -349,12 +360,22 @@ class BlockStorageS3(BlockStorageInterface):
         # or generator
         indices = list(indices)
         assert all(0 <= i <= self.block_count for i in indices)
+        self._bytes_sent += self.block_size * len(indices)
         indices = (self._basename % i for i in indices)
         self._schedule_async_write(zip(indices, blocks))
 
     def write_block(self, i, block):
         self._check_async()
         assert 0 <= i < self.block_count
+        self._bytes_sent += self.block_size
         self._schedule_async_write((((self._basename % i), block),))
+
+    @property
+    def bytes_sent(self):
+        return self._bytes_sent
+
+    @property
+    def bytes_received(self):
+        return self._bytes_received
 
 BlockStorageTypeFactory.register_device("s3", BlockStorageS3)

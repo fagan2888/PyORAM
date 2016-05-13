@@ -324,6 +324,9 @@ class _TestEncryptedBlockStorage(object):
         with EncryptedBlockStorage(self._testfname,
                                    key=self._key,
                                    storage_type=self._type_name) as f:
+            self.assertEqual(f.bytes_sent, 0)
+            self.assertEqual(f.bytes_received, 0)
+
             for i, data in enumerate(self._blocks):
                 self.assertEqual(list(bytearray(f.read_block(i))),
                                  list(self._blocks[i]))
@@ -336,13 +339,25 @@ class _TestEncryptedBlockStorage(object):
             for i, data in reversed(list(enumerate(self._blocks))):
                 self.assertEqual(list(bytearray(f.read_block(i))),
                                  list(self._blocks[i]))
+
+            self.assertEqual(f.bytes_sent, 0)
+            self.assertEqual(f.bytes_received,
+                             self._block_count*f._storage.block_size*4)
+
         with EncryptedBlockStorage(self._testfname,
                                    key=self._key,
                                    storage_type=self._type_name) as f:
+            self.assertEqual(f.bytes_sent, 0)
+            self.assertEqual(f.bytes_received, 0)
+
             self.assertEqual(list(bytearray(f.read_block(0))),
                              list(self._blocks[0]))
             self.assertEqual(list(bytearray(f.read_block(self._block_count-1))),
                              list(self._blocks[-1]))
+
+            self.assertEqual(f.bytes_sent, 0)
+            self.assertEqual(f.bytes_received,
+                             f._storage.block_size*2)
 
     def test_write_block(self):
         data = bytearray([self._block_count])*self._block_size
@@ -350,6 +365,9 @@ class _TestEncryptedBlockStorage(object):
         with EncryptedBlockStorage(self._testfname,
                                    key=self._key,
                                    storage_type=self._type_name) as f:
+            self.assertEqual(f.bytes_sent, 0)
+            self.assertEqual(f.bytes_received, 0)
+
             for i in xrange(self._block_count):
                 self.assertNotEqual(list(bytearray(f.read_block(i))),
                                     list(data))
@@ -361,10 +379,18 @@ class _TestEncryptedBlockStorage(object):
             for i, block in enumerate(self._blocks):
                 f.write_block(i, bytes(block))
 
+            self.assertEqual(f.bytes_sent,
+                             self._block_count*f._storage.block_size*2)
+            self.assertEqual(f.bytes_received,
+                             self._block_count*f._storage.block_size*2)
+
     def test_read_blocks(self):
         with EncryptedBlockStorage(self._testfname,
                                    key=self._key,
                                    storage_type=self._type_name) as f:
+            self.assertEqual(f.bytes_sent, 0)
+            self.assertEqual(f.bytes_received, 0)
+
             data = f.read_blocks(list(xrange(self._block_count)))
             self.assertEqual(len(data), self._block_count)
             for i, block in enumerate(data):
@@ -383,12 +409,48 @@ class _TestEncryptedBlockStorage(object):
             self.assertEqual(list(bytearray(data[-1])),
                              list(self._blocks[0]))
 
+            self.assertEqual(f.bytes_sent, 0)
+            self.assertEqual(f.bytes_received,
+                             (2*self._block_count+1)*f._storage.block_size)
+
+    def test_yield_blocks(self):
+        with EncryptedBlockStorage(self._testfname,
+                                   key=self._key,
+                                   storage_type=self._type_name) as f:
+            self.assertEqual(f.bytes_sent, 0)
+            self.assertEqual(f.bytes_received, 0)
+
+            data = list(f.yield_blocks(list(xrange(self._block_count))))
+            self.assertEqual(len(data), self._block_count)
+            for i, block in enumerate(data):
+                self.assertEqual(list(bytearray(block)),
+                                 list(self._blocks[i]))
+            data = list(f.yield_blocks([0]))
+            self.assertEqual(len(data), 1)
+            self.assertEqual(list(bytearray(data[0])),
+                             list(self._blocks[0]))
+            self.assertEqual(len(self._blocks) > 1, True)
+            data = list(f.yield_blocks(list(xrange(1, self._block_count)) + [0]))
+            self.assertEqual(len(data), self._block_count)
+            for i, block in enumerate(data[:-1], 1):
+                self.assertEqual(list(bytearray(block)),
+                                 list(self._blocks[i]))
+            self.assertEqual(list(bytearray(data[-1])),
+                             list(self._blocks[0]))
+
+            self.assertEqual(f.bytes_sent, 0)
+            self.assertEqual(f.bytes_received,
+                             (2*self._block_count+1)*f._storage.block_size)
+
     def test_write_blocks(self):
         data = [bytearray([self._block_count])*self._block_size
                 for i in xrange(self._block_count)]
         with EncryptedBlockStorage(self._testfname,
                                    key=self._key,
                                    storage_type=self._type_name) as f:
+            self.assertEqual(f.bytes_sent, 0)
+            self.assertEqual(f.bytes_received, 0)
+
             orig = f.read_blocks(list(xrange(self._block_count)))
             self.assertEqual(len(orig), self._block_count)
             for i, block in enumerate(orig):
@@ -408,6 +470,11 @@ class _TestEncryptedBlockStorage(object):
             for i, block in enumerate(orig):
                 self.assertEqual(list(bytearray(block)),
                                  list(self._blocks[i]))
+
+            self.assertEqual(f.bytes_sent,
+                             self._block_count*f._storage.block_size*2)
+            self.assertEqual(f.bytes_received,
+                             self._block_count*f._storage.block_size*3)
 
     def test_update_header_data(self):
         fname = ".".join(self.id().split(".")[1:])
@@ -496,7 +563,14 @@ class _TestEncryptedBlockStorage(object):
         with EncryptedBlockStorage(self._testfname,
                                    key=self._key,
                                    storage_type=self._type_name) as forig:
+            self.assertEqual(forig.bytes_sent, 0)
+            self.assertEqual(forig.bytes_received, 0)
             with forig.clone_device() as f:
+                self.assertEqual(forig.bytes_sent, 0)
+                self.assertEqual(forig.bytes_received, 0)
+                self.assertEqual(f.bytes_sent, 0)
+                self.assertEqual(f.bytes_received, 0)
+
                 for i, data in enumerate(self._blocks):
                     self.assertEqual(list(bytearray(f.read_block(i))),
                                      list(self._blocks[i]))
@@ -509,11 +583,28 @@ class _TestEncryptedBlockStorage(object):
                 for i, data in reversed(list(enumerate(self._blocks))):
                     self.assertEqual(list(bytearray(f.read_block(i))),
                                      list(self._blocks[i]))
+
+                self.assertEqual(f.bytes_sent, 0)
+                self.assertEqual(f.bytes_received,
+                                 self._block_count*f._storage.block_size*4)
+
             with forig.clone_device() as f:
+                self.assertEqual(forig.bytes_sent, 0)
+                self.assertEqual(forig.bytes_received, 0)
+                self.assertEqual(f.bytes_sent, 0)
+                self.assertEqual(f.bytes_received, 0)
+
                 self.assertEqual(list(bytearray(f.read_block(0))),
                                  list(self._blocks[0]))
                 self.assertEqual(list(bytearray(f.read_block(self._block_count-1))),
                                  list(self._blocks[-1]))
+
+                self.assertEqual(f.bytes_sent, 0)
+                self.assertEqual(f.bytes_received,
+                                 f._storage.block_size*2)
+
+            self.assertEqual(forig.bytes_sent, 0)
+            self.assertEqual(forig.bytes_received, 0)
 
     def test_write_block_cloned(self):
         data = bytearray([self._block_count])*self._block_size
@@ -521,7 +612,14 @@ class _TestEncryptedBlockStorage(object):
         with EncryptedBlockStorage(self._testfname,
                                    key=self._key,
                                    storage_type=self._type_name) as forig:
+            self.assertEqual(forig.bytes_sent, 0)
+            self.assertEqual(forig.bytes_received, 0)
             with forig.clone_device() as f:
+                self.assertEqual(forig.bytes_sent, 0)
+                self.assertEqual(forig.bytes_received, 0)
+                self.assertEqual(f.bytes_sent, 0)
+                self.assertEqual(f.bytes_received, 0)
+
                 for i in xrange(self._block_count):
                     self.assertNotEqual(list(bytearray(f.read_block(i))),
                                         list(data))
@@ -533,11 +631,25 @@ class _TestEncryptedBlockStorage(object):
                 for i, block in enumerate(self._blocks):
                     f.write_block(i, bytes(block))
 
+                self.assertEqual(f.bytes_sent,
+                                 self._block_count*f._storage.block_size*2)
+                self.assertEqual(f.bytes_received,
+                                 self._block_count*f._storage.block_size*2)
+            self.assertEqual(forig.bytes_sent, 0)
+            self.assertEqual(forig.bytes_received, 0)
+
     def test_read_blocks_cloned(self):
         with EncryptedBlockStorage(self._testfname,
                                    key=self._key,
                                    storage_type=self._type_name) as forig:
+            self.assertEqual(forig.bytes_sent, 0)
+            self.assertEqual(forig.bytes_received, 0)
             with forig.clone_device() as f:
+                self.assertEqual(forig.bytes_sent, 0)
+                self.assertEqual(forig.bytes_received, 0)
+                self.assertEqual(f.bytes_sent, 0)
+                self.assertEqual(f.bytes_received, 0)
+
                 data = f.read_blocks(list(xrange(self._block_count)))
                 self.assertEqual(len(data), self._block_count)
                 for i, block in enumerate(data):
@@ -556,13 +668,62 @@ class _TestEncryptedBlockStorage(object):
                 self.assertEqual(list(bytearray(data[-1])),
                                  list(self._blocks[0]))
 
+                self.assertEqual(f.bytes_sent, 0)
+                self.assertEqual(f.bytes_received,
+                                 (2*self._block_count + 1)*f._storage.block_size)
+            self.assertEqual(forig.bytes_sent, 0)
+            self.assertEqual(forig.bytes_received, 0)
+
+    def test_read_blocks_cloned(self):
+        with EncryptedBlockStorage(self._testfname,
+                                   key=self._key,
+                                   storage_type=self._type_name) as forig:
+            self.assertEqual(forig.bytes_sent, 0)
+            self.assertEqual(forig.bytes_received, 0)
+            with forig.clone_device() as f:
+                self.assertEqual(forig.bytes_sent, 0)
+                self.assertEqual(forig.bytes_received, 0)
+                self.assertEqual(f.bytes_sent, 0)
+                self.assertEqual(f.bytes_received, 0)
+
+                data = list(f.yield_blocks(list(xrange(self._block_count))))
+                self.assertEqual(len(data), self._block_count)
+                for i, block in enumerate(data):
+                    self.assertEqual(list(bytearray(block)),
+                                     list(self._blocks[i]))
+                data = list(f.yield_blocks([0]))
+                self.assertEqual(len(data), 1)
+                self.assertEqual(list(bytearray(data[0])),
+                                 list(self._blocks[0]))
+                self.assertEqual(len(self._blocks) > 1, True)
+                data = list(f.yield_blocks(list(xrange(1, self._block_count)) + [0]))
+                self.assertEqual(len(data), self._block_count)
+                for i, block in enumerate(data[:-1], 1):
+                    self.assertEqual(list(bytearray(block)),
+                                     list(self._blocks[i]))
+                self.assertEqual(list(bytearray(data[-1])),
+                                 list(self._blocks[0]))
+
+                self.assertEqual(f.bytes_sent, 0)
+                self.assertEqual(f.bytes_received,
+                                 (2*self._block_count + 1)*f._storage.block_size)
+            self.assertEqual(forig.bytes_sent, 0)
+            self.assertEqual(forig.bytes_received, 0)
+
     def test_write_blocks_cloned(self):
         data = [bytearray([self._block_count])*self._block_size
                 for i in xrange(self._block_count)]
         with EncryptedBlockStorage(self._testfname,
                                    key=self._key,
                                    storage_type=self._type_name) as forig:
+            self.assertEqual(forig.bytes_sent, 0)
+            self.assertEqual(forig.bytes_received, 0)
             with forig.clone_device() as f:
+                self.assertEqual(forig.bytes_sent, 0)
+                self.assertEqual(forig.bytes_received, 0)
+                self.assertEqual(f.bytes_sent, 0)
+                self.assertEqual(f.bytes_received, 0)
+
                 orig = f.read_blocks(list(xrange(self._block_count)))
                 self.assertEqual(len(orig), self._block_count)
                 for i, block in enumerate(orig):
@@ -582,6 +743,13 @@ class _TestEncryptedBlockStorage(object):
                 for i, block in enumerate(orig):
                     self.assertEqual(list(bytearray(block)),
                                      list(self._blocks[i]))
+
+                self.assertEqual(f.bytes_sent,
+                                 self._block_count*f._storage.block_size*2)
+                self.assertEqual(f.bytes_received,
+                                 self._block_count*f._storage.block_size*3)
+            self.assertEqual(forig.bytes_sent, 0)
+            self.assertEqual(forig.bytes_received, 0)
 
 class TestEncryptedBlockStorageFileCTRKey(_TestEncryptedBlockStorage,
                                           unittest2.TestCase):

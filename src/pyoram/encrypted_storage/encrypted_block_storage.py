@@ -240,3 +240,11 @@ class EncryptedBlockStorage(EncryptedBlockStorageInterface):
             enc_blocks.append(
                 self._encrypt_block_func(self._key, b))
         self._storage.write_blocks(indices, enc_blocks)
+
+    @property
+    def bytes_sent(self):
+        return self._storage.bytes_sent
+
+    @property
+    def bytes_received(self):
+        return self._storage.bytes_received
