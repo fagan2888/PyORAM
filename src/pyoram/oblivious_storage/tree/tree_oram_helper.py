@@ -123,7 +123,10 @@ class TreeORAMStorage(object):
             block_reordering[write_pos] = read_pos
             block_reordering[read_pos] = -1
 
-        def _next_write_pos(current):
+        def _new_write_pos(current):
+            current -= 1
+            if current < 0:
+                return None, None
             while (block_eviction_levels[current] is not None):
                 current -= 1
                 if current < 0:
@@ -131,10 +134,8 @@ class TreeORAMStorage(object):
             assert block_ids[current] == \
                 self.empty_block_id
             return current, current // Z
-        write_pos, write_level = _next_write_pos(
-            (bucket_count * Z) - 1)
 
-        def _next_read_pos(current):
+        def _new_read_pos(current):
             current -= 1
             if current < 0:
                 return None
@@ -146,19 +147,25 @@ class TreeORAMStorage(object):
                 self.empty_block_id
             return current
 
+        write_pos, write_level = _new_write_pos(bucket_count * Z)
         while write_pos is not None:
-            read_pos = _next_read_pos(write_pos)
+            read_pos = _new_read_pos(write_pos)
             if read_pos is None:
                 break
             while ((read_pos // Z) == write_level) or \
                   (write_level > block_eviction_levels[read_pos]):
-                read_pos = _next_read_pos(read_pos)
+                read_pos = _new_read_pos(read_pos)
                 if read_pos is None:
                     break
-            if read_pos is None:
-                break
-            _do_swap(write_pos, read_pos)
-            write_pos, write_level = _next_write_pos(write_pos)
+            if read_pos is not None:
+                _do_swap(write_pos, read_pos)
+            else:
+                # Jump directly to the start of this
+                # bucket. There is not point in checking
+                # for other empty slots because no blocks
+                # can be evicted to this level.
+                write_pos = Z * (write_pos//Z)
+            write_pos, write_level = _new_write_pos(write_pos)
 
     def fill_path_from_stash(self):
         vheap = self.storage_heap.virtual_heap

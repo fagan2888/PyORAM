@@ -503,6 +503,59 @@ class _TestPathORAMBase(object):
             self.assertEqual(list(bytearray(f.read_block(self._block_count-1))),
                              list(self._blocks[-1]))
 
+        # test eviction behavior of the tree oram helper
+        with PathORAM(self._testfname,
+                      self._stash,
+                      self._position_map,
+                      key=self._key,
+                      storage_type=self._type_name,
+                      **self._kwds) as f:
+            oram = f._oram
+            vheap = oram.storage_heap.virtual_heap
+            Z = vheap.blocks_per_bucket
+            def _has_vacancies(level):
+                return any(oram.path_block_ids[i] == oram.empty_block_id
+                           for i in range(level*Z, (level+1)*Z))
+
+            for i in range(len(f.position_map)):
+                b = f.position_map[i]
+                f.position_map[i] = vheap.random_leaf_bucket()
+                oram.load_path(b)
+                block = oram.extract_block_from_path(i)
+                if block is not None:
+                    oram.stash[i] = block
+
+                # track where everyone should be able to move
+                # to, unless the bucket fills up
+                eviction_levels = {}
+                for id_, level in zip(oram.path_block_ids,
+                                      oram.path_block_eviction_levels):
+                    eviction_levels[id_] = level
+                for id_ in oram.stash:
+                    block_id, block_addr = \
+                        oram.get_block_info(oram.stash[id_])
+                    assert block_id == id_
+                    eviction_levels[id_] = \
+                        vheap.clib.calculate_last_common_level(
+                            vheap.k, b, block_addr)
+
+                oram.push_down_path()
+                oram.fill_path_from_stash()
+                oram.evict_path()
+
+                # check that everyone was pushed down greedily
+                oram.load_path(b)
+                for pos, id_ in enumerate(oram.path_block_ids):
+                    current_level = pos // Z
+                    if (id_ != oram.empty_block_id):
+                        eviction_level = eviction_levels[id_]
+                        self.assertEqual(current_level <= eviction_level, True)
+                        if current_level < eviction_level:
+                            self.assertEqual(_has_vacancies(eviction_level), False)
+                for id_ in oram.stash:
+                    self.assertEqual(
+                        _has_vacancies(eviction_levels[id_]), False)
+
     def test_write_block(self):
         data = bytearray([self._block_count])*self._block_size
         self.assertEqual(len(data) > 0, True)
