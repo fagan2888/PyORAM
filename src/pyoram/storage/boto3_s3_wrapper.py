@@ -10,6 +10,8 @@ try:
 except:                                                # pragma: no cover
     boto3_available = False                            # pragma: no cover
 
+from six.moves import map
+
 class Boto3S3Wrapper(object):
     """
     A wrapper class for the boto3 S3 service.
@@ -60,10 +62,16 @@ class Boto3S3Wrapper(object):
         key, block = key_block
         self._bucket.put_object(Key=key, Body=block)
 
-    def clear(self, key):
-        for obj in self._bucket.objects.filter(
-                Prefix=key+"/"):
+    def clear(self, key, threadpool=None):
+        _del = lambda obj: \
             self._s3.Object(self._bucket.name, obj.key).delete()
+        objs = self._bucket.objects.filter(Prefix=key+"/")
+        if threadpool is not None:
+            deliter = threadpool.imap(_del, objs)
+        else:
+            deliter = map(_del, objs)
+        for _ in deliter:
+            pass
 
 class MockBoto3S3Wrapper(object):
     """
@@ -106,7 +114,7 @@ class MockBoto3S3Wrapper(object):
         with open(os.path.join(self._bucket_name, key), 'wb') as f:
             f.write(block)
 
-    def clear(self, key):
+    def clear(self, key, threadpool=None):
         if os.path.exists(
                 os.path.join(self._bucket_name, key)):
             if os.path.isdir(

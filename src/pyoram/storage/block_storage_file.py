@@ -93,6 +93,9 @@ class BlockStorageFile(BlockStorageInterface):
         if self._async_write is not None:
             self._async_write.get()
             self._async_write = None
+        # TODO: Figure out why tests fail on Python3 without this
+        if six.PY3:
+            self._f.flush()
 
     def _schedule_async_write(self, args):
         assert self._async_write is None
@@ -109,10 +112,6 @@ class BlockStorageFile(BlockStorageInterface):
         for i, block in chunks:
             self._f.seek(self._header_offset + i * self.block_size)
             self._f.write(block)
-
-        # TODO: Figure out why tests fail on Python3 without this
-        if six.PY3:
-            self._f.flush()
 
     #
     # Define BlockStorageInterface Methods

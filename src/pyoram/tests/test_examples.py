@@ -25,6 +25,13 @@ for fname in examples:
 
 assert len(tdict) == len(examples)
 
+assert 'test_path_oram_s3' in tdict
+if 'PYORAM_AWS_TEST_BUCKET' not in os.environ:
+    del tdict['test_path_oram_s3']
+assert 'test_path_oram_sftp' in tdict
+if 'PYORAM_SSH_TEST_HOST' not in os.environ:
+    del tdict['test_path_oram_sftp']
+
 def _execute_example(example_name):
     filename, basename = tdict[example_name]
     assert os.path.exists(filename)

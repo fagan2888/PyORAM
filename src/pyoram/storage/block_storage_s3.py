@@ -174,6 +174,10 @@ class BlockStorageS3(BlockStorageInterface):
                 "'header_data' must be of type bytes. "
                 "Invalid type: %s" % (type(header_data)))
 
+        pool = None
+        if threadpool_size != 0:
+            pool = ThreadPool(threadpool_size)
+
         s3 = s3_wrapper(bucket_name,
                         aws_access_key_id=aws_access_key_id,
                         aws_secret_access_key=aws_secret_access_key,
@@ -186,7 +190,9 @@ class BlockStorageS3(BlockStorageInterface):
         if exists:
             log.info("Deleting objects in existing S3 entry: %s/%s"
                      % (bucket_name, storage_name))
-            s3.clear(storage_name)
+            print("Clearing Existing S3 Objects With Prefix %s/%s/"
+                  % (bucket_name, storage_name))
+            s3.clear(storage_name, threadpool=pool)
 
         if header_data is None:
             s3.upload((storage_name+"/"+BlockStorageS3._index_name,
@@ -225,9 +231,7 @@ class BlockStorageS3(BlockStorageInterface):
                           % (str(e)))
                 raise
         total = None
-        pool = None
-        if (threadpool_size != 0):
-            pool = ThreadPool(threadpool_size)
+        if pool is not None:
             try:
                 for i,_ in enumerate(
                         tqdm.tqdm(
