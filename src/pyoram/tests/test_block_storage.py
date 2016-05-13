@@ -2,7 +2,6 @@ import os
 import shutil
 import unittest2
 import tempfile
-from multiprocessing.pool import ThreadPool
 
 from pyoram.storage.block_storage import \
     BlockStorageTypeFactory
@@ -647,6 +646,11 @@ class TestBlockStorageFile(_TestBlockStorage,
                            unittest2.TestCase):
     _type = BlockStorageFile
     _type_kwds = {}
+
+class TestBlockStorageFileNoThreadPool(_TestBlockStorage,
+                                       unittest2.TestCase):
+    _type = BlockStorageFile
+    _type_kwds = {'threadpool_size': 0}
 
 class TestBlockStorageFileThreadPool(_TestBlockStorage,
                                      unittest2.TestCase):
