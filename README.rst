@@ -48,18 +48,46 @@ Installation Tips
   vcvarsall.bat" error when installing packages with C
   extensions through pip in Windows: `blog post <https://blogs.msdn.microsoft.com/pythonengineering/2016/04/11/unable-to-find-vcvarsall-bat>`_.
 
-Algorithms Available (So Far)
+Tools Available (So Far)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+* Encrypted block storage:
+
+  - The basic building block for any ORAM implementation.
+
+  - Available storage interfaces include:
+
+    + local storage using a file or a memory-mapped file
+
+    + cloud storage using SFTP (requires SSH access to a server)
+
+      * Amazon EC2
+
+      * Microsoft Azure
+
+      * Google Cloud Platform
+
+    + cloud storage using Amazon Simple Storage Service (S3)
+
+  - Examples:
+
+    + examples/encrypted_storage_mmap.py
+
+    + examples/encrypted_storage_file.py
+
+    + examples/encrypted_storage_sftp.py
+
+    + examples/encrypted_storage_s3.py
 
 * `Path ORAM <http://arxiv.org/abs/1202.5150v3>`_
 
-  - Generalized to work over k-kary storage heaps in order
-    to study stash-size behavior in this setting. Default
-    settings will use a binary storage heap.
+  - Generalized to work over k-kary storage heaps. Default
+    settings use a binary storage heap and bucket size
+    parameter set to 4. Using a k-ary storage can reduce the
+    access cost but stash size behavior has not been
+    formally analyzed in this setting.
 
-  - Includes interfaces for local storage, SFTP storage
-    (using paramiko), and Amazon S3 storage (using
-    boto3). See examples:
+  - Examples:
 
     + examples/path_oram_mmap.py
 
