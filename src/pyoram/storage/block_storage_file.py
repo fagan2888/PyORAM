@@ -113,6 +113,24 @@ class BlockStorageFile(BlockStorageInterface):
             self._f.seek(self._header_offset + i * self.block_size)
             self._f.write(block)
 
+    def _prep_for_close(self):
+        self._check_async()
+        if self._close_pool and (self._pool is not None):
+            self._pool.close()
+            self._pool.join()
+            self._pool = None
+        if self._f is not None:
+            if not self._ignore_lock:
+                # turn off the locked flag
+                self._f.seek(0)
+                self._f.write(
+                    struct.pack(BlockStorageFile._index_struct_string,
+                                self.block_size,
+                                self.block_count,
+                                len(self._user_header_data),
+                                False))
+                self._f.flush()
+
     #
     # Define BlockStorageInterface Methods
     #
@@ -243,22 +261,8 @@ class BlockStorageFile(BlockStorageInterface):
         self._f.write(self._user_header_data)
 
     def close(self):
-        self._check_async()
-        if self._close_pool and (self._pool is not None):
-            self._pool.close()
-            self._pool.join()
-            self._pool = None
+        self._prep_for_close()
         if self._f is not None:
-            if not self._ignore_lock:
-                # turn off the locked flag
-                self._f.seek(0)
-                self._f.write(
-                    struct.pack(BlockStorageFile._index_struct_string,
-                                self.block_size,
-                                self.block_count,
-                                len(self._user_header_data),
-                                False))
-                self._f.flush()
             try:
                 self._f.close()
             except OSError:                            # pragma: no cover
