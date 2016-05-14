@@ -121,13 +121,16 @@ Performance Tips
 Setup Storage Locally
 ~~~~~~~~~~~~~~~~~~~~~
 
-Storage schemes such as BlockStorageFile ("file"),
-BlockStorageMMap ("mmap"), BlockStorageRAM ("ram"), and
-BlockStorageSFTP ("sftp") all employ the same underlying
-storage format. Thus, an oblivious storage scheme can be
-initialized locally and then transferred to an external
-storage location and accessed via BlockStorageSFTP using SSH
-login credentials.
+Storage schemes such as BlockStorageFile ("file"), BlockStorageMMap
+("mmap"), BlockStorageRAM ("ram"), and BlockStorageSFTP ("sftp") all
+employ the same underlying storage format. Thus, an oblivious storage
+scheme can be initialized locally and then transferred to an external
+storage location and accessed via BlockStorageSFTP using SSH login
+credentials. See the following pair of files for an example of this:
+
+* examples/path_oram_sftp_setup.py
+
+* examples/path_oram_sftp_test.py
 
 BlockStorageS3 ("s3") employs a different format whereby the
 underlying blocks are stored in separate "file" objects.
