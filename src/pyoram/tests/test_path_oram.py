@@ -270,6 +270,9 @@ class _TestPathORAMBase(object):
         fsetup.close()
         self.assertEqual(type(fsetup.raw_storage),
                          BlockStorageTypeFactory(self._type_name))
+        # test that these can be called with default keyword values
+        fsetup.stash_digest(fsetup.stash)
+        fsetup.position_map_digest(fsetup.position_map)
         with open(fname, 'rb') as f:
             flen = len(f.read())
             self.assertEqual(
