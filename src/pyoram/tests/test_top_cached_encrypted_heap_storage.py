@@ -87,10 +87,11 @@ class _TestTopCachedEncryptedHeapStorage(object):
             bsize,
             self._heap_height,
             heap_base=self._heap_base,
+            storage_type=self._storage_type,
             blocks_per_bucket=blocks_per_bucket)
         fsetup.close()
         self.assertEqual(type(fsetup.raw_storage),
-                         BlockStorageTypeFactory(self._type_name))
+                         BlockStorageTypeFactory(self._storage_type))
         with open(fname, 'rb') as f:
             flen = len(f.read())
             self.assertEqual(
@@ -148,11 +149,12 @@ class _TestTopCachedEncryptedHeapStorage(object):
             bsize,
             self._heap_height,
             heap_base=self._heap_base,
+            storage_type=self._storage_type,
             blocks_per_bucket=blocks_per_bucket,
             header_data=header_data)
         fsetup.close()
         self.assertEqual(type(fsetup.raw_storage),
-                         BlockStorageTypeFactory(self._type_name))
+                         BlockStorageTypeFactory(self._storage_type))
         with open(fname, 'rb') as f:
             flen = len(f.read())
             self.assertEqual(
