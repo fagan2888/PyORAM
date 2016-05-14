@@ -47,7 +47,6 @@ class _TestEncryptedBlockStorage(object):
             ignore_existing=True)
         f.close()
         cls._key = f.key
-
         for i in range(cls._block_count):
             data = bytearray([i])*cls._block_size
             cls._blocks.append(data)

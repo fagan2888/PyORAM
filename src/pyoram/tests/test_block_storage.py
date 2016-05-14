@@ -22,7 +22,7 @@ from pyoram.storage.boto3_s3_wrapper import \
 
 import six
 from six.moves import xrange
-from six import StringIO
+from six import BytesIO
 
 thisdir = os.path.dirname(os.path.abspath(__file__))
 
@@ -765,7 +765,7 @@ class _TestBlockStorageRAM(_TestBlockStorage):
         self.assertEqual(databefore, dataafter)
 
     def test_tofile_fromfile_fileobj(self):
-        out1 = StringIO()
+        out1 = BytesIO()
         self._original_f.tofile(out1)
         out1.seek(0)
         self.assertEqual(len(self._original_f.data) > 0, True)
@@ -773,7 +773,7 @@ class _TestBlockStorageRAM(_TestBlockStorage):
         out1.seek(0)
         in1 = self._type.fromfile(out1)
         self.assertNotEqual(self._original_f.data, in1.data)
-        out2 = StringIO()
+        out2 = BytesIO()
         in1.tofile(out2)
         self.assertNotEqual(self._original_f.data, in1.data)
         in1.close()
