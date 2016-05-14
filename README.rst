@@ -53,6 +53,17 @@ If you are a developer, you should instead install using::
   $ pip install -e .
   $ pip install nose2 unittest2
 
+
+Installation Tips
+-----------------
+
+* If you have trouble installing the cryptography package
+  on OS X with PyPy: `stackoverflow <https://stackoverflow.com/questions/36662704/fatal-error-openssl-e-os2-h-file-not-found-in-pypy/36706513#36706513>`_.
+
+* If you encounter the dreaded "unable to find
+  vcvarsall.bat" error when installing packages with C
+  extensions through pip on Windows: `blog post <https://blogs.msdn.microsoft.com/pythonengineering/2016/04/11/unable-to-find-vcvarsall-bat>`_.
+
 Tools Available (So Far)
 ------------------------
 
@@ -187,12 +198,3 @@ There are two options for avoiding this error:
    of the storage heap in RAM, but all I/O operations would
    take place through a single storage device (e.g., using 1
    SFTP session).
-
-Installation Tips
------------------
-
-* If you have trouble installing the cryptography package
-  on OS X with PyPy: `stackoverflow <https://stackoverflow.com/questions/36662704/fatal-error-openssl-e-os2-h-file-not-found-in-pypy/36706513#36706513>`_.
-* If you encounter the dreaded "unable to find
-  vcvarsall.bat" error when installing packages with C
-  extensions through pip on Windows: `blog post <https://blogs.msdn.microsoft.com/pythonengineering/2016/04/11/unable-to-find-vcvarsall-bat>`_.
