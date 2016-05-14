@@ -34,7 +34,7 @@ assert 'test_path_oram_sftp' in tdict
 assert 'test_encrypted_storage_sftp' in tdict
 if 'PYORAM_SSH_TEST_HOST' not in os.environ:
     del tdict['test_path_oram_sftp']
-    del tdict['test_encrypted_strage_sftp']
+    del tdict['test_encrypted_storage_sftp']
 
 def _execute_example(example_name):
     filename, basename = tdict[example_name]
