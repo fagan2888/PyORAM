@@ -51,6 +51,7 @@ def main():
     # Start an SSH client using paramiko
     print("Starting SSH Client")
     with paramiko.SSHClient() as ssh:
+        ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
         ssh.load_system_host_keys()
         ssh.connect(ssh_host,
                     username=ssh_username,
