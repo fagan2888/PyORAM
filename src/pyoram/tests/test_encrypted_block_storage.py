@@ -1,6 +1,7 @@
 import os
 import unittest2
 import tempfile
+import struct
 
 from pyoram.storage.block_storage import \
     BlockStorageTypeFactory
@@ -216,6 +217,15 @@ class _TestEncryptedBlockStorage(object):
             self.assertEqual(fsetup.block_count, bcount)
             self.assertEqual(f.storage_name, fname)
             self.assertEqual(fsetup.storage_name, fname)
+        # tamper with the plaintext index
+        with open(fname, 'r+b') as f:
+            f.seek(0)
+            f.write(struct.pack("!L",0))
+        with self.assertRaises(ValueError):
+            with EncryptedBlockStorage(fname,
+                                       key=fsetup.key,
+                                       storage_type=self._type_name) as f:
+                pass                                       # pragma: no cover
         os.remove(fname)
 
     def test_setup_withdata(self):

@@ -1,6 +1,8 @@
 __all__ = ('EncryptedBlockStorage',)
 
 import struct
+import hmac
+import hashlib
 
 from pyoram.storage.block_storage import (BlockStorageInterface,
                                           BlockStorageTypeFactory)
@@ -23,8 +25,10 @@ class EncryptedBlockStorageInterface(BlockStorageInterface):
 
 class EncryptedBlockStorage(EncryptedBlockStorageInterface):
 
-    _index_struct_string = "!?"
+    _index_struct_string = "!"+("x"*hashlib.sha384().digest_size)+"?"
     _index_offset = struct.calcsize(_index_struct_string)
+    _verify_struct_string = "!LLL"
+    _verify_size = struct.calcsize(_verify_struct_string)
 
     def __init__(self, storage, **kwds):
         self._key = kwds.pop('key', None)
@@ -49,6 +53,18 @@ class EncryptedBlockStorage(EncryptedBlockStorageInterface):
         (self._ismodegcm,) = struct.unpack(
             self._index_struct_string,
             header_data[:self._index_offset])
+        self._verify_digest = header_data[:hashlib.sha384().digest_size]
+
+        verify = hmac.HMAC(
+            key=self.key,
+            msg=struct.pack(self._verify_struct_string,
+                            self._storage.block_size,
+                            self._storage.block_count,
+                            len(self._storage.header_data)),
+            digestmod=hashlib.sha384)
+        if verify.digest() != self._verify_digest:
+            raise ValueError(
+                "HMAC of plaintext index data does not match")
         if self._ismodegcm:
             self._encrypt_block_func = AES.GCMEnc
             self._decrypt_block_func = AES.GCMDec
@@ -178,10 +194,35 @@ class EncryptedBlockStorage(EncryptedBlockStorageInterface):
             raise TypeError(
                 "'header_data' must be of type bytes. "
                 "Invalid type: %s" % (type(user_header_data)))
-        header_data = struct.pack(cls._index_struct_string,
-                                  ismodegcm) + \
-                        user_header_data
-        kwds['header_data'] = AES.GCMEnc(key, header_data)
+        # we generate the first time simply to
+        # compute the length
+        tmp = hmac.HMAC(
+            key=key,
+            msg=struct.pack(cls._verify_struct_string,
+                            encrypted_block_size,
+                            block_count,
+                            0),
+            digestmod=hashlib.sha384).digest()
+        header_data = bytearray(struct.pack(cls._index_struct_string,
+                                            ismodegcm))
+        header_data[:hashlib.sha384().digest_size] = tmp
+        header_data = header_data + user_header_data
+        header_data = AES.GCMEnc(key, bytes(header_data))
+        # now that we know the length of the header data
+        # being sent to the underlying storage we can
+        # compute the real hmac
+        verify_digest = hmac.HMAC(
+            key=key,
+            msg=struct.pack(cls._verify_struct_string,
+                            encrypted_block_size,
+                            block_count,
+                            len(header_data)),
+            digestmod=hashlib.sha384).digest()
+        header_data = bytearray(struct.pack(cls._index_struct_string,
+                                            ismodegcm))
+        header_data[:hashlib.sha384().digest_size] = verify_digest
+        header_data = header_data + user_header_data
+        kwds['header_data'] = AES.GCMEnc(key, bytes(header_data))
 
         return EncryptedBlockStorage(
             storage_type.setup(storage_name,

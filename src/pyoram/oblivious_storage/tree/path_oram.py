@@ -1,4 +1,5 @@
 import hashlib
+import hmac
 import struct
 import array
 import logging
@@ -25,7 +26,7 @@ log = logging.getLogger("pyoram")
 
 class PathORAM(EncryptedBlockStorageInterface):
 
-    _header_struct_string = "!"+("x"*2*hashlib.sha1().digest_size)+"L"
+    _header_struct_string = "!"+("x"*2*hashlib.sha384().digest_size)+"L"
     _header_offset = struct.calcsize(_header_struct_string)
 
     def __init__(self,
@@ -61,20 +62,23 @@ class PathORAM(EncryptedBlockStorageInterface):
                     cached_levels=cached_levels,
                     concurrency_level=concurrency_level)
 
-        self._block_count, = struct.unpack(
+        (self._block_count,) = struct.unpack(
             self._header_struct_string,
-            storage_heap.header_data\
-            [:self._header_offset])
+            storage_heap.header_data[:self._header_offset])
         stashdigest = storage_heap.\
-                      header_data[:hashlib.sha1().digest_size]
+                      header_data[:hashlib.sha384().digest_size]
         positiondigest = storage_heap.\
-            header_data[hashlib.sha1().digest_size:\
-                        (2*hashlib.sha1().digest_size)]
+            header_data[hashlib.sha384().digest_size:\
+                        (2*hashlib.sha384().digest_size)]
 
         try:
-            if stashdigest != PathORAM.stash_digest(stash):
+            if stashdigest != \
+               PathORAM.stash_digest(
+                   stash,
+                   digestmod=hmac.HMAC(key=storage_heap.key,
+                                       digestmod=hashlib.sha384)):
                 raise ValueError(
-                    "Stash digest does not match that saved with "
+                    "Stash HMAC does not match that saved with "
                     "storage heap %s" % (storage_heap.storage_name))
         except:
             if close_storage_heap:
@@ -83,9 +87,12 @@ class PathORAM(EncryptedBlockStorageInterface):
 
         try:
             if positiondigest != \
-               PathORAM.position_map_digest(position_map):
+               PathORAM.position_map_digest(
+                   position_map,
+                   digestmod=hmac.HMAC(key=storage_heap.key,
+                                       digestmod=hashlib.sha384)):
                 raise ValueError(
-                    "Stash digest does not match that saved with "
+                    "Position map HMAC does not match that saved with "
                     "storage heap %s" % (storage_heap.storage_name))
         except:
             if close_storage_heap:
@@ -113,27 +120,27 @@ class PathORAM(EncryptedBlockStorageInterface):
     #
 
     @classmethod
-    def stash_digest(cls, stash, hasher=None):
-        if hasher is None:
-            hasher = hashlib.sha1()
+    def stash_digest(cls, stash, digestmod=None):
+        if digestmod is None:
+            digestmod = hashlib.sha1()
         id_to_bytes = lambda id_: \
             struct.pack(TreeORAMStorage.block_id_storage_string, id_)
         if len(stash) == 0:
-            hasher.update(b'0')
+            digestmod.update(b'0')
         else:
             for id_ in sorted(stash):
                 if id_ < 0:
                     raise ValueError(
                         "Invalid stash id '%s'. Values must be "
                         "nonnegative integers." % (id_))
-                hasher.update(id_to_bytes(id_))
-                hasher.update(stash[id_])
-        return hasher.digest()
+                digestmod.update(id_to_bytes(id_))
+                digestmod.update(stash[id_])
+        return digestmod.digest()
 
     @classmethod
-    def position_map_digest(cls, position_map, hasher=None):
-        if hasher is None:
-            hasher = hashlib.sha1()
+    def position_map_digest(cls, position_map, digestmod=None):
+        if digestmod is None:
+            digestmod = hashlib.sha1()
         id_to_bytes = lambda id_: \
             struct.pack(TreeORAMStorage.block_id_storage_string, id_)
         assert len(position_map) > 0
@@ -142,8 +149,8 @@ class PathORAM(EncryptedBlockStorageInterface):
                 raise ValueError(
                     "Invalid position map address '%s'. Values must be "
                     "nonnegative integers." % (addr))
-            hasher.update(id_to_bytes(addr))
-        return hasher.digest()
+            digestmod.update(id_to_bytes(addr))
+        return digestmod.digest()
 
     @property
     def position_map(self):
@@ -333,8 +340,14 @@ class PathORAM(EncryptedBlockStorageInterface):
                 oram.evict_path()
 
             header_data = bytearray(header_data)
-            stash_digest = cls.stash_digest(oram.stash)
-            position_map_digest = cls.position_map_digest(oram.position_map)
+            stash_digest = cls.stash_digest(
+                oram.stash,
+                digestmod=hmac.HMAC(key=oram.storage_heap.key,
+                                    digestmod=hashlib.sha384))
+            position_map_digest = cls.position_map_digest(
+                oram.position_map,
+                digestmod=hmac.HMAC(key=oram.storage_heap.key,
+                                    digestmod=hashlib.sha384))
             header_data[:len(stash_digest)] = stash_digest[:]
             header_data[len(stash_digest):\
                         (len(stash_digest)+len(position_map_digest))] = \
@@ -372,16 +385,22 @@ class PathORAM(EncryptedBlockStorageInterface):
         if self._oram is not None:
             try:
                 stashdigest = \
-                    PathORAM.stash_digest(self._oram.stash)
+                    PathORAM.stash_digest(
+                        self._oram.stash,
+                        digestmod=hmac.HMAC(key=self._oram.storage_heap.key,
+                                            digestmod=hashlib.sha384))
                 positiondigest = \
-                    PathORAM.position_map_digest(self._oram.position_map)
+                    PathORAM.position_map_digest(
+                        self._oram.position_map,
+                        digestmod=hmac.HMAC(key=self._oram.storage_heap.key,
+                                            digestmod=hashlib.sha384))
                 new_header_data = \
                     bytearray(self._oram.storage_heap.\
                               header_data[:self._header_offset])
-                new_header_data[:hashlib.sha1().digest_size] = \
+                new_header_data[:hashlib.sha384().digest_size] = \
                     stashdigest
-                new_header_data[hashlib.sha1().digest_size:\
-                                (2*hashlib.sha1().digest_size)] = \
+                new_header_data[hashlib.sha384().digest_size:\
+                                (2*hashlib.sha384().digest_size)] = \
                     positiondigest
                 self._oram.storage_heap.update_header_data(
                     bytes(new_header_data) + self.header_data)
