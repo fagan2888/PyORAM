@@ -17,6 +17,9 @@ class EncryptedHeapStorageInterface(HeapStorageInterface):
     @property
     def key(self, *args, **kwds):
         raise NotImplementedError                      # pragma: no cover
+    @property
+    def raw_storage(self, *args, **kwds):
+        raise NotImplementedError                      # pragma: no cover
 
 class EncryptedHeapStorage(EncryptedHeapStorageInterface):
 
@@ -49,6 +52,10 @@ class EncryptedHeapStorage(EncryptedHeapStorageInterface):
     @property
     def key(self):
         return self._storage.key
+
+    @property
+    def raw_storage(self):
+        return self._storage.raw_storage
 
     #
     # Define HeapStorageInterface Methods

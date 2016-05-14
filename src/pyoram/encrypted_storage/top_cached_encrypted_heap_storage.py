@@ -119,6 +119,10 @@ class TopCachedEncryptedHeapStorage(EncryptedHeapStorageInterface):
     def key(self):
         return self._root_device.key
 
+    @property
+    def raw_storage(self):
+        return self._root_device.raw_storage
+
     #
     # Define HeapStorageInterface Methods
     #

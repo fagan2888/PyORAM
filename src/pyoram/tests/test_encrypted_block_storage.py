@@ -184,6 +184,8 @@ class _TestEncryptedBlockStorage(object):
             aes_mode=self._aes_mode,
             storage_type=self._type_name)
         fsetup.close()
+        self.assertEqual(type(fsetup.raw_storage),
+                         BlockStorageTypeFactory(self._type_name))
         with open(fname, 'rb') as f:
             flen = len(f.read())
             self.assertEqual(
@@ -235,6 +237,8 @@ class _TestEncryptedBlockStorage(object):
             storage_type=self._type_name,
             header_data=header_data)
         fsetup.close()
+        self.assertEqual(type(fsetup.raw_storage),
+                         BlockStorageTypeFactory(self._type_name))
         with open(fname, 'rb') as f:
             flen = len(f.read())
             self.assertEqual(

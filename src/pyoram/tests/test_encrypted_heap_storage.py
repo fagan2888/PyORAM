@@ -4,6 +4,8 @@ import tempfile
 
 from pyoram.util.virtual_heap import \
     SizedVirtualHeap
+from pyoram.storage.block_storage import \
+    BlockStorageTypeFactory
 from pyoram.encrypted_storage.encrypted_block_storage import \
     EncryptedBlockStorage
 from pyoram.encrypted_storage.encrypted_heap_storage import \
@@ -170,6 +172,8 @@ class TestEncryptedHeapStorage(unittest2.TestCase):
             key_size=AES.key_sizes[-1],
             blocks_per_bucket=blocks_per_bucket)
         fsetup.close()
+        self.assertEqual(type(fsetup.raw_storage),
+                         BlockStorageTypeFactory(self._type_name))
         with open(fname, 'rb') as f:
             flen = len(f.read())
             self.assertEqual(
@@ -227,6 +231,8 @@ class TestEncryptedHeapStorage(unittest2.TestCase):
             blocks_per_bucket=blocks_per_bucket,
             header_data=header_data)
         fsetup.close()
+        self.assertEqual(type(fsetup.raw_storage),
+                         BlockStorageTypeFactory(self._type_name))
         with open(fname, 'rb') as f:
             flen = len(f.read())
             self.assertEqual(

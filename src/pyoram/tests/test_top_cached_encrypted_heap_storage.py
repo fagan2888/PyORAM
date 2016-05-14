@@ -3,6 +3,8 @@ import unittest2
 import tempfile
 import random
 
+from pyoram.storage.block_storage import \
+    BlockStorageTypeFactory
 from pyoram.encrypted_storage.top_cached_encrypted_heap_storage import \
     TopCachedEncryptedHeapStorage
 from pyoram.encrypted_storage.encrypted_block_storage import \
@@ -87,6 +89,8 @@ class _TestTopCachedEncryptedHeapStorage(object):
             heap_base=self._heap_base,
             blocks_per_bucket=blocks_per_bucket)
         fsetup.close()
+        self.assertEqual(type(fsetup.raw_storage),
+                         BlockStorageTypeFactory(self._type_name))
         with open(fname, 'rb') as f:
             flen = len(f.read())
             self.assertEqual(
@@ -147,6 +151,8 @@ class _TestTopCachedEncryptedHeapStorage(object):
             blocks_per_bucket=blocks_per_bucket,
             header_data=header_data)
         fsetup.close()
+        self.assertEqual(type(fsetup.raw_storage),
+                         BlockStorageTypeFactory(self._type_name))
         with open(fname, 'rb') as f:
             flen = len(f.read())
             self.assertEqual(

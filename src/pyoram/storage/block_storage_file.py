@@ -260,7 +260,7 @@ class BlockStorageFile(BlockStorageInterface):
                 "Original bytes: %s\n"
                 "New bytes: %s" % (len(self.header_data),
                                    len(new_header_data)))
-        self._user_header_data = new_header_data
+        self._user_header_data = bytes(new_header_data)
         self._f.seek(BlockStorageFile._index_offset)
         self._f.write(self._user_header_data)
 

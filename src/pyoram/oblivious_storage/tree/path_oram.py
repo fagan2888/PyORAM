@@ -179,6 +179,10 @@ class PathORAM(EncryptedBlockStorageInterface):
     def key(self):
         return self._oram.storage_heap.key
 
+    @property
+    def raw_storage(self):
+        return self._oram.storage_heap.raw_storage
+
     #
     # Define BlockStorageInterface Methods
     #

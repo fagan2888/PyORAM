@@ -2,7 +2,10 @@ import os
 import unittest2
 import tempfile
 
-from pyoram.oblivious_storage.tree.path_oram import PathORAM
+from pyoram.oblivious_storage.tree.path_oram import \
+    PathORAM
+from pyoram.storage.block_storage import \
+    BlockStorageTypeFactory
 from pyoram.encrypted_storage.encrypted_heap_storage import \
     EncryptedHeapStorage
 from pyoram.crypto.aes import AES
@@ -265,6 +268,8 @@ class _TestPathORAMBase(object):
             storage_type=self._type_name,
             **self._kwds)
         fsetup.close()
+        self.assertEqual(type(fsetup.raw_storage),
+                         BlockStorageTypeFactory(self._type_name))
         with open(fname, 'rb') as f:
             flen = len(f.read())
             self.assertEqual(
@@ -326,6 +331,8 @@ class _TestPathORAMBase(object):
             header_data=header_data,
             **self._kwds)
         fsetup.close()
+        self.assertEqual(type(fsetup.raw_storage),
+                         BlockStorageTypeFactory(self._type_name))
         with open(fname, 'rb') as f:
             flen = len(f.read())
             self.assertEqual(

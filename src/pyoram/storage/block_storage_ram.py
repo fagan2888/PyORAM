@@ -64,8 +64,8 @@ class BlockStorageRAM(_BlockStorageMemoryImpl,
         self._user_header_data = bytes()
         if user_header_size > 0:
             self._user_header_data = \
-                self._f[BlockStorageRAM._index_offset:\
-                        (BlockStorageRAM._index_offset+user_header_size)]
+                bytes(self._f[BlockStorageRAM._index_offset:\
+                              (BlockStorageRAM._index_offset+user_header_size)])
         assert len(self._user_header_data) == user_header_size
         self._header_offset = BlockStorageRAM._index_offset + \
                               len(self._user_header_data)
@@ -258,7 +258,7 @@ class BlockStorageRAM(_BlockStorageMemoryImpl,
                 "Original bytes: %s\n"
                 "New bytes: %s" % (len(self.header_data),
                                    len(new_header_data)))
-        self._user_header_data = new_header_data
+        self._user_header_data = bytes(new_header_data)
         self._f[BlockStorageRAM._index_offset:\
                 (BlockStorageRAM._index_offset+len(new_header_data))] = \
             self._user_header_data
@@ -278,11 +278,22 @@ class BlockStorageRAM(_BlockStorageMemoryImpl,
                             False)
             self._ignore_lock = True
 
-    #def read_blocks(...)
+    #
+    # We must cast from bytearray to bytes
+    # when reading from a bytearray so that this
+    # class works with the encryption layer.
+    #
 
-    #def yield_blocks(...)
+    def read_blocks(self, indices):
+        return [bytes(block) for block
+                in super(BlockStorageRAM, self).read_blocks(indices)]
 
-    #def read_block(...)
+    def yield_blocks(self, indices):
+        for block in super(BlockStorageRAM, self).yield_blocks(indices):
+            yield bytes(block)
+
+    def read_block(self, i):
+        return bytes(super(BlockStorageRAM, self).read_block(i))
 
     #def write_blocks(...)
 

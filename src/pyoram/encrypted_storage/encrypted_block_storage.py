@@ -17,6 +17,9 @@ class EncryptedBlockStorageInterface(BlockStorageInterface):
     @property
     def key(self, *args, **kwds):
         raise NotImplementedError                      # pragma: no cover
+    @property
+    def raw_storage(self, *args, **kwds):
+        raise NotImplementedError                      # pragma: no cover
 
 class EncryptedBlockStorage(EncryptedBlockStorageInterface):
 
@@ -60,6 +63,10 @@ class EncryptedBlockStorage(EncryptedBlockStorageInterface):
     @property
     def key(self):
         return self._key
+
+    @property
+    def raw_storage(self):
+        return self._storage
 
     #
     # Define BlockStorageInterface Methods
