@@ -134,7 +134,7 @@ class PathORAM(EncryptedBlockStorageInterface):
                         "Invalid stash id '%s'. Values must be "
                         "nonnegative integers." % (id_))
                 digestmod.update(id_to_bytes(id_))
-                digestmod.update(stash[id_])
+                digestmod.update(bytes(stash[id_]))
         return digestmod.digest()
 
     @classmethod
