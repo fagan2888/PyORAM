@@ -32,14 +32,6 @@ try:
 except:                                                # pragma: no cover
     has_boto3 = False                                  # pragma: no cover
 
-try:
-    from nose2.tools import nottest
-except ImportError:
-    def nottest(func):
-        """Decorator to mark a function or method as *not* a test"""
-        func.__test__ = False
-        return func
-
 class TestBlockStorageTypeFactory(unittest2.TestCase):
 
     def test_file(self):

@@ -94,11 +94,13 @@ class TopCachedEncryptedHeapStorage(EncryptedHeapStorageInterface):
                             vheap.first_bucket_at_level(concurrency_level+1)):
                 try:
                     self._concurrent_devices[b] = self._root_device.clone_device()
-                except:
-                    log.error("Exception encountered while cloning "
-                              "device. Closing storage.")
-                    self.close()
-                    raise
+                except:                                # pragma: no cover
+                    log.error(                         # pragma: no cover
+                        "Exception encountered while " # pragma: no cover
+                        "cloning device. Closing "     # pragma: no cover
+                        "storage.")                    # pragma: no cover
+                    self.close()                       # pragma: no cover
+                    raise                              # pragma: no cover
 
         self._subheap_storage = {}
         # Avoid populating this dictionary when the entire

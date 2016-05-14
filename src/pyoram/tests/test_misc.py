@@ -66,6 +66,11 @@ class Test(unittest2.TestCase):
         self.assertTrue("GB" in str(pyoram.util.misc.MemorySize(1000000000)))
         self.assertTrue("GB" in str(pyoram.util.misc.MemorySize(9999999999)))
         self.assertTrue("TB" in str(pyoram.util.misc.MemorySize(1000000000000)))
+        # account for floating point error
+        self.assertAlmostEqual(pyoram.util.misc.MemorySize(1024).KiB, 1.0)
+        self.assertAlmostEqual(pyoram.util.misc.MemorySize(1024**2).MiB, 1.0)
+        self.assertAlmostEqual(pyoram.util.misc.MemorySize(1024**3).GiB, 1.0)
+        self.assertAlmostEqual(pyoram.util.misc.MemorySize(1024**4).TiB, 1.0)
 
     def test_saveload_private_key(self):
         with tempfile.NamedTemporaryFile(delete=False) as f:

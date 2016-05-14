@@ -225,11 +225,13 @@ class BlockStorageS3(BlockStorageInterface):
         def _do_upload(arg):
             try:
                 s3.upload(arg)
-            except Exception as e:
-                log.error("An exception occured during S3 setup when "
-                          "calling the block initialization function: %s"
-                          % (str(e)))
-                raise
+            except Exception as e:                     # pragma: no cover
+                log.error(                             # pragma: no cover
+                    "An exception occured during S3 "  # pragma: no cover
+                    "setup when calling the block "    # pragma: no cover
+                    "initialization function: %s"      # pragma: no cover
+                    % (str(e)))                        # pragma: no cover
+                raise                                  # pragma: no cover
         total = None
         if pool is not None:
             try:
@@ -240,9 +242,9 @@ class BlockStorageS3(BlockStorageInterface):
                             total=block_count,
                             disable=not show_status_bar)):
                     total = i
-            except Exception as e:
-                s3.clear(storage_name)
-                raise
+            except Exception as e:                     # pragma: no cover
+                s3.clear(storage_name)                 # pragma: no cover
+                raise                                  # pragma: no cover
             finally:
                 pool.close()
                 pool.join()
@@ -255,18 +257,19 @@ class BlockStorageS3(BlockStorageInterface):
                             total=block_count,
                             disable=not show_status_bar)):
                     total = i
-            except Exception as e:
-                s3.clear(storage_name)
-                raise
+            except Exception as e:                     # pragma: no cover
+                s3.clear(storage_name)                 # pragma: no cover
+                raise                                  # pragma: no cover
 
         if total != block_count - 1:
-            s3.clear(storage_name)
-            if pool is not None:
-                pool.close()
-                pool.join()
-            raise ValueError(
-                "Something went wrong during S3 block initialization. "
-                "Check the logger output for more information.")
+            s3.clear(storage_name)                     # pragma: no cover
+            if pool is not None:                       # pragma: no cover
+                pool.close()                           # pragma: no cover
+                pool.join()                            # pragma: no cover
+            raise ValueError(                          # pragma: no cover
+                "Something went wrong during S3 block" # pragma: no cover
+                " initialization. Check the logger "   # pragma: no cover
+                "output for more information.")        # pragma: no cover
 
         return BlockStorageS3(storage_name,
                               bucket_name=bucket_name,
