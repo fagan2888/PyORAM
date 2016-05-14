@@ -157,8 +157,8 @@ sessions associated with a single SSH connection is limited
 by the SSH server. For instance, the default maximum number
 of sessions allowed by a server using OpenSSH is 10. Thus,
 increasing the number of cached levels beyond 3 when using
-a binary storage heap will exceed this number, resulting in
-errors such as::
+a binary storage heap will attempt to generate 16 or more SFTP
+sessions and result in an error such as::
 
   paramiko.ssh_exception.ChannelException: (1, 'Administratively prohibited')
 
