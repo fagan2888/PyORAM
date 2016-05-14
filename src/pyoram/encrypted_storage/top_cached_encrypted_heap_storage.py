@@ -1,5 +1,7 @@
 __all__ = ('TopCachedEncryptedHeapStorage',)
 
+import logging
+
 from pyoram.util.virtual_heap import SizedVirtualHeap
 from pyoram.encrypted_storage.encrypted_heap_storage import \
     (EncryptedHeapStorageInterface,
@@ -8,6 +10,8 @@ from pyoram.encrypted_storage.encrypted_heap_storage import \
 import tqdm
 import six
 from six.moves import xrange
+
+log = logging.getLogger("pyoram")
 
 class TopCachedEncryptedHeapStorage(EncryptedHeapStorageInterface):
     """
@@ -88,7 +92,13 @@ class TopCachedEncryptedHeapStorage(EncryptedHeapStorageInterface):
            (concurrency_level <= vheap.last_level):
             for b in xrange(vheap.first_bucket_at_level(concurrency_level),
                             vheap.first_bucket_at_level(concurrency_level+1)):
-                self._concurrent_devices[b] = self._root_device.clone_device()
+                try:
+                    self._concurrent_devices[b] = self._root_device.clone_device()
+                except:
+                    log.error("Exception encountered while cloning "
+                              "device. Closing storage.")
+                    self.close()
+                    raise
 
         self._subheap_storage = {}
         # Avoid populating this dictionary when the entire
