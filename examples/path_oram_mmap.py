@@ -7,7 +7,6 @@
 import os
 import random
 import time
-import pickle
 
 from pyoram.util.misc import MemorySize
 from pyoram.oblivious_storage.tree.path_oram import \
@@ -71,7 +70,7 @@ def main():
         stop_time = time.time()
         print("Current Stash Size: %s"
               % len(f.stash))
-        print("Access Block Avg. Data Transmitted: %s (%.2fx)"
+        print("Access Block Avg. Data Transmitted: %s (%.3fx)"
               % (MemorySize((f.bytes_sent + f.bytes_received)/float(test_count)),
                  (f.bytes_sent + f.bytes_received)/float(test_count)/float(block_size)))
         print("Access Block Avg. Latency: %.2f ms"

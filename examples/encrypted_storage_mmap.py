@@ -1,6 +1,6 @@
 #
-# This example measures the performance of Path ORAM
-# when storage is accessed through a local file.
+# This example measures the performance of encrypted
+# storage access through a local memory-mapped file.
 #
 
 import os
@@ -8,8 +8,8 @@ import random
 import time
 
 from pyoram.util.misc import MemorySize
-from pyoram.oblivious_storage.tree.path_oram import \
-    PathORAM
+from pyoram.encrypted_storage.encrypted_block_storage import \
+    EncryptedBlockStorage
 
 import tqdm
 
@@ -30,24 +30,22 @@ def main():
           % (MemorySize(block_size*block_count)))
     print("Actual Storage Required: %s"
           % (MemorySize(
-              PathORAM.compute_storage_size(
+              EncryptedBlockStorage.compute_storage_size(
                   block_size,
                   block_count,
-                  storage_type='file'))))
+                  storage_type='mmap'))))
     print("")
 
-    print("Setting Up Path ORAM Storage")
+    print("Setting Up Encrypted Block Storage")
     setup_start = time.time()
-    with PathORAM.setup(storage_name,
-                        block_size,
-                        block_count,
-                        storage_type='file',
-                        ignore_existing=True,
-                        show_status_bar=True) as f:
+    with EncryptedBlockStorage.setup(storage_name,
+                                     block_size,
+                                     block_count,
+                                     storage_type='mmap',
+                                     ignore_existing=True,
+                                     show_status_bar=True) as f:
         print("Total Setup Time: %2.f s"
               % (time.time()-setup_start))
-        print("Current Stash Size: %s"
-              % len(f.stash))
         print("Total Data Transmission: %s"
               % (MemorySize(f.bytes_sent + f.bytes_received)))
         print("")
@@ -55,20 +53,16 @@ def main():
     # We close the device and reopen it after
     # setup to reset the bytes sent and bytes
     # received stats.
-    with PathORAM(storage_name,
-                  f.stash,
-                  f.position_map,
-                  key=f.key,
-                  storage_type='file') as f:
+    with EncryptedBlockStorage(storage_name,
+                               key=f.key,
+                               storage_type='mmap') as f:
 
-        test_count = 100
+        test_count = 1000
         start_time = time.time()
         for t in tqdm.tqdm(list(range(test_count)),
                            desc="Running I/O Performance Test"):
             f.read_block(random.randint(0,f.block_count-1))
         stop_time = time.time()
-        print("Current Stash Size: %s"
-              % len(f.stash))
         print("Access Block Avg. Data Transmitted: %s (%.3fx)"
               % (MemorySize((f.bytes_sent + f.bytes_received)/float(test_count)),
                  (f.bytes_sent + f.bytes_received)/float(test_count)/float(block_size)))
