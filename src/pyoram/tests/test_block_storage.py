@@ -20,7 +20,9 @@ from pyoram.storage.boto3_s3_wrapper import \
     (Boto3S3Wrapper,
      MockBoto3S3Wrapper)
 
+import six
 from six.moves import xrange
+from six import StringIO
 
 thisdir = os.path.dirname(os.path.abspath(__file__))
 
@@ -761,6 +763,61 @@ class _TestBlockStorageRAM(_TestBlockStorage):
             self.assertEqual(f.header_data, bytes())
         dataafter = self._read_storage(self._original_f)
         self.assertEqual(databefore, dataafter)
+
+    def test_tofile_fromfile_fileobj(self):
+        out1 = StringIO()
+        self._original_f.tofile(out1)
+        out1.seek(0)
+        self.assertEqual(len(self._original_f.data) > 0, True)
+        self.assertEqual(self._original_f.data, out1.read())
+        out1.seek(0)
+        in1 = self._type.fromfile(out1)
+        self.assertNotEqual(self._original_f.data, in1.data)
+        out2 = StringIO()
+        in1.tofile(out2)
+        self.assertNotEqual(self._original_f.data, in1.data)
+        in1.close()
+        self.assertEqual(self._original_f.data, in1.data)
+        out2.seek(0)
+        with self.assertRaises(IOError):
+            with self._type.fromfile(out2) as in2:
+                pass                                  # pragma: no cover
+        out2.seek(0)
+        with self._type.fromfile(out2, ignore_lock=True) as in2:
+            self.assertEqual(self._original_f.data, in1.data)
+            self.assertNotEqual(self._original_f.data, in2.data)
+        self.assertEqual(self._original_f.data, in1.data)
+        self.assertNotEqual(self._original_f.data, in2.data)
+
+    def test_tofile_fromfile_filename(self):
+
+        def _create():
+            fd, out = tempfile.mkstemp()
+            os.close(fd)
+            return out
+        def _read(name):
+            with open(name, 'rb') as f:
+                return f.read()
+
+        out1 = _create()
+        self._original_f.tofile(out1)
+        self.assertEqual(len(self._original_f.data) > 0, True)
+        self.assertEqual(self._original_f.data, _read(out1))
+        in1 = self._type.fromfile(out1)
+        self.assertNotEqual(self._original_f.data, in1.data)
+        out2 = _create()
+        in1.tofile(out2)
+        self.assertNotEqual(self._original_f.data, in1.data)
+        in1.close()
+        self.assertEqual(self._original_f.data, in1.data)
+        with self.assertRaises(IOError):
+            with self._type.fromfile(out2) as in2:
+                pass                                  # pragma: no cover
+        with self._type.fromfile(out2, ignore_lock=True) as in2:
+            self.assertEqual(self._original_f.data, in1.data)
+            self.assertNotEqual(self._original_f.data, in2.data)
+        self.assertEqual(self._original_f.data, in1.data)
+        self.assertNotEqual(self._original_f.data, in2.data)
 
 class TestBlockStorageRAM(_TestBlockStorageRAM,
                           unittest2.TestCase):
