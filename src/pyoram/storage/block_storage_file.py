@@ -22,6 +22,10 @@ class default_filesystem(object):
     stat = os.stat
 
 class BlockStorageFile(BlockStorageInterface):
+    """
+    A class implementing the block storage interface
+    using a local file.
+    """
 
     _index_struct_string = "!LLL?"
     _index_offset = struct.calcsize(_index_struct_string)
