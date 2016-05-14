@@ -77,7 +77,8 @@ def main():
               % ((stop_time-start_time)/float(test_count)*1000))
         print("")
 
-if __name__ == "__main__":
-    main()                                             # pragma: no cover
     # cleanup because this is a test example
     os.remove(storage_name)
+
+if __name__ == "__main__":
+    main()                                             # pragma: no cover
