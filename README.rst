@@ -56,60 +56,64 @@ If you are a developer, you should instead install using::
 Tools Available (So Far)
 ------------------------
 
-* Encrypted block storage:
+Encrypted block storage
+~~~~~~~~~~~~~~~~~~~~~~~
 
-  - The basic building block for any ORAM implementation.
+* The basic building block for any ORAM implementation.
 
-  - Available storage interfaces include:
+* Available storage interfaces include:
 
-    + local storage using a file, a memory-mapped file, or RAM
+  - local storage using a file, a memory-mapped file, or RAM
 
-    + cloud storage using SFTP (requires SSH access to a server)
+  - cloud storage using SFTP (requires SSH access to a server)
 
-      * Amazon EC2
+    + Amazon EC2
 
-      * Microsoft Azure
+    + Microsoft Azure
 
-      * Google Cloud Platform
+    + Google Cloud Platform
 
-    + cloud storage using Amazon Simple Storage Service (S3)
+  - cloud storage using Amazon Simple Storage Service (S3)
 
-  - Examples:
+* See Examples:
 
-    + examples/encrypted_storage_ram.py
+  - examples/encrypted_storage_ram.py
 
-    + examples/encrypted_storage_mmap.py
+  - examples/encrypted_storage_mmap.py
 
-    + examples/encrypted_storage_file.py
+  - examples/encrypted_storage_file.py
 
-    + examples/encrypted_storage_sftp.py
+  - examples/encrypted_storage_sftp.py
 
-    + examples/encrypted_storage_s3.py
+  - examples/encrypted_storage_s3.py
 
-* `Path ORAM <http://arxiv.org/abs/1202.5150v3>`_
+Path ORAM
+~~~~~~~~~
 
-  - Generalized to work over k-kary storage heaps. Default
-    settings use a binary storage heap and bucket size
-    parameter set to 4. Using a k-ary storage heap can
-    reduce the access cost; however, stash size behavior has
-    not been formally analyzed in this setting.
+* Reference: `Stefanov et al. <http://arxiv.org/abs/1202.5150v3>`_
 
-  - Tree-Top caching can be used to reduce data transmission
-    per access as well as reduce access latency by
-    exploiting parallelism across independent sub-heaps
-    below the last cached heap level.
+* Generalized to work over k-kary storage heaps. Default
+  settings use a binary storage heap and bucket size
+  parameter set to 4. Using a k-ary storage heap can reduce
+  the access cost; however, stash size behavior has not been
+  formally analyzed in this setting.
 
-  - Examples:
+* Tree-Top caching can be used to reduce data transmission
+  per access as well as reduce access latency by exploiting
+  parallelism across independent sub-heaps below the last
+  cached heap level.
 
-    + examples/path_oram_ram.py
+* See Examples:
 
-    + examples/path_oram_mmap.py
+  -  examples/path_oram_ram.py
 
-    + examples/path_oram_file.py
+  - examples/path_oram_mmap.py
 
-    + examples/path_oram_sftp.py
+  - examples/path_oram_file.py
 
-    + examples/path_oram_s3.py
+  - examples/path_oram_sftp.py
+
+  - examples/path_oram_s3.py
 
 Performance Tips
 ----------------
@@ -158,7 +162,7 @@ errors such as::
 
   paramiko.ssh_exception.ChannelException: (1, 'Administratively prohibited')
 
-There are two options to avoiding this error.
+There are two options for avoiding this error:
 
 1. If you have administrative privileges on the server, you
    can increase the maximum number of allowed sessions for a
@@ -168,17 +172,18 @@ There are two options to avoiding this error.
 
      MaxSessions 128
 
-   in :code:`/etc/ssh/sshd_config`, and then run::
-
-     sudo service ssh restart
+   in :code:`/etc/ssh/sshd_config`, and then run the
+   command :code:`sudo service ssh restart`.
 
 2. You can limit the number of concurrent devices that will
-   be created to something below the last cached level using
-   the :code:`concurrency_level` keyword. For example, the
+   be created by setting the concurrency level to something
+   below the last cached level using the
+   :code:`concurrency_level` keyword. For example, the
    settings :code:`cached_levels=5` and
    :code:`concurrency_level=0` would cache the top 5 levels
-   of the storage heap in RAM but perform I/O requests on a
-   single storage device.
+   of the storage heap in RAM, but all I/O operations would
+   take place through a single storage device (e.g., using 1
+   SFTP session).
 
 Installation Tips
 -----------------
