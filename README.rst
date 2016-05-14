@@ -192,4 +192,4 @@ Installation Tips
   on OS X with PyPy: `stackoverflow <https://stackoverflow.com/questions/36662704/fatal-error-openssl-e-os2-h-file-not-found-in-pypy/36706513#36706513>`_.
 * If you encounter the dreaded "unable to find
   vcvarsall.bat" error when installing packages with C
-  extensions through pip in Windows: `blog post <https://blogs.msdn.microsoft.com/pythonengineering/2016/04/11/unable-to-find-vcvarsall-bat>`_.
+  extensions through pip on Windows: `blog post <https://blogs.msdn.microsoft.com/pythonengineering/2016/04/11/unable-to-find-vcvarsall-bat>`_.
