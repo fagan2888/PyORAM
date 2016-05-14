@@ -83,9 +83,14 @@ Tools Available (So Far)
 
   - Generalized to work over k-kary storage heaps. Default
     settings use a binary storage heap and bucket size
-    parameter set to 4. Using a k-ary storage can reduce the
-    access cost but stash size behavior has not been
-    formally analyzed in this setting.
+    parameter set to 4. Using a k-ary storage heap can
+    reduce the access cost; however, stash size behavior has
+    not been formally analyzed in this setting.
+
+  - Tree-Top caching can be used to reduce data transmission
+    per access as well as reduce access latency by
+    exploiting parallelism across independent sub-heaps
+    below the last cached heap level.
 
   - Examples:
 
