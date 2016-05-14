@@ -23,8 +23,22 @@ This software is copyright (c) by Gabriel A. Hackebeil (gabe.hackebeil@gmail.com
 This software is released under the MIT software license.
 This license, including disclaimer, is available in the 'LICENSE' file.
 
+Why Python?
+-----------
+
+This project is meant for research. It is provided mainly as
+a tool for other researchers studying the applicability of
+ORAM to the cloud-storage setting. In such a setting, we
+observe that network latency far outweighs any overhead
+introduced from switching to an interpreted language such as
+Python (as opposed to C++ or Java). Thus, our hope is that
+by providing a Python-based library of ORAM tools, we will
+enable researchers to spend more time prototyping new and
+interesting ORAM applications and less time fighting with a
+compiler or chasing down segmentation faults.
+
 Installation
-~~~~~~~~~~~~
+------------
 
 To install PyORAM, first clone the repository::
 
@@ -39,17 +53,8 @@ If you are a developer, you should instead install using::
   $ pip install -e .
   $ pip install nose2 unittest2
 
-Installation Tips
-~~~~~~~~~~~~~~~~~
-
-* If you have trouble installing the cryptography package
-  on OS X with PyPy: `stackoverflow <https://stackoverflow.com/questions/36662704/fatal-error-openssl-e-os2-h-file-not-found-in-pypy/36706513#36706513>`_.
-* If you encounter the dreaded "unable to find
-  vcvarsall.bat" error when installing packages with C
-  extensions through pip in Windows: `blog post <https://blogs.msdn.microsoft.com/pythonengineering/2016/04/11/unable-to-find-vcvarsall-bat>`_.
-
 Tools Available (So Far)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+------------------------
 
 * Encrypted block storage:
 
@@ -57,7 +62,7 @@ Tools Available (So Far)
 
   - Available storage interfaces include:
 
-    + local storage using a file or a memory-mapped file
+    + local storage using a file, a memory-mapped file, or RAM
 
     + cloud storage using SFTP (requires SSH access to a server)
 
@@ -70,6 +75,8 @@ Tools Available (So Far)
     + cloud storage using Amazon Simple Storage Service (S3)
 
   - Examples:
+
+    + examples/encrypted_storage_ram.py
 
     + examples/encrypted_storage_mmap.py
 
@@ -94,6 +101,8 @@ Tools Available (So Far)
 
   - Examples:
 
+    + examples/path_oram_ram.py
+
     + examples/path_oram_mmap.py
 
     + examples/path_oram_file.py
@@ -102,16 +111,80 @@ Tools Available (So Far)
 
     + examples/path_oram_s3.py
 
-Why Python?
-~~~~~~~~~~~
+Performance Tips
+----------------
 
-This project is meant for research. It is provided mainly as
-a tool for other researchers studying the applicability of
-ORAM to the cloud-storage setting. In such a setting, we
-observe that network latency far outweighs any overhead
-introduced from switching to an interpreted language such as
-Python (as opposed to C++ or Java). Thus, our hope is that
-by providing a Python-based library of ORAM tools, we will
-enable researchers to spend more time prototyping new and
-interesting ORAM applications and less time fighting with a
-compiler or chasing down segmentation faults.
+Setup Storage Locally
+~~~~~~~~~~~~~~~~~~~~~
+
+Storage schemes such as BlockStorageFile ("file"),
+BlockStorageMMap ("mmap"), BlockStorageRAM ("ram"), and
+BlockStorageSFTP ("sftp") all employ the same underlying
+storage format. Thus, an oblivious storage scheme can be
+initialized locally and then transferred to an external
+storage location and accessed via BlockStorageSFTP using SSH
+login credentials.
+
+BlockStorageS3 ("s3") employs a different format whereby the
+underlying blocks are stored in separate "file" objects.
+This design is due to the fact that the Amazon S3 API does
+not allow modifications to a specific byte range within a
+file, but instead requires that the entire modified file
+object be re-uploaded. Thus any efficient block storage
+scheme must use separate "file" objects for each block.
+
+Tree-Top Caching
+~~~~~~~~~~~~~~~~
+
+For schemes that employ a storage heap (such as Path ORAM),
+tree-top caching provides the ability to parallelize I/O
+operations across the independent sub-heaps below the last
+cached heap level. The default behavior of this
+implementation of Path ORAM, for instance, caches the top
+three levels of the storage heap in RAM, which creates eight
+independent sub-heaps across which write operations can be
+asynchronous.
+
+If the underlying storage is being accessed through SFTP, the
+tree-top cached storage heap will attempt to open an
+independent SFTP session for each sub-heap using the same
+SSH connection. Typically, the maximum number of allowable
+sessions associated with a single SSH connection is limited
+by the SSH server. For instance, the default maximum number
+of sessions allowed by a server using OpenSSH is 10. Thus,
+increasing the number of cached levels beyond 3 when using
+a binary storage heap will exceed this number, resulting in
+errors such as::
+
+  paramiko.ssh_exception.ChannelException: (1, 'Administratively prohibited')
+
+There are two options to avoiding this error.
+
+1. If you have administrative privileges on the server, you
+   can increase the maximum number of allowed sessions for a
+   single SSH connection. For example, to set the maximum
+   allowed sessions to 128 on a server using OpenSSH, one
+   would set::
+
+     MaxSessions 128
+
+   in :code:`/etc/ssh/sshd_config`, and then run::
+
+     sudo service ssh restart
+
+2. You can limit the number of concurrent devices that will
+   be created to something below the last cached level using
+   the :code:`concurrency_level` keyword. For example, the
+   settings :code:`cached_levels=5` and
+   :code:`concurrency_level=0` would cache the top 5 levels
+   of the storage heap in RAM but perform I/O requests on a
+   single storage device.
+
+Installation Tips
+-----------------
+
+* If you have trouble installing the cryptography package
+  on OS X with PyPy: `stackoverflow <https://stackoverflow.com/questions/36662704/fatal-error-openssl-e-os2-h-file-not-found-in-pypy/36706513#36706513>`_.
+* If you encounter the dreaded "unable to find
+  vcvarsall.bat" error when installing packages with C
+  extensions through pip in Windows: `blog post <https://blogs.msdn.microsoft.com/pythonengineering/2016/04/11/unable-to-find-vcvarsall-bat>`_.
