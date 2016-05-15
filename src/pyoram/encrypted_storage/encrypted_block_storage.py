@@ -231,20 +231,12 @@ class EncryptedBlockStorage(EncryptedBlockStorageInterface):
         header_data = header_data + user_header_data
         kwds['header_data'] = AES.GCMEnc(key, bytes(header_data))
 
-        storage = None
-        try:
-            storage = storage_type.setup(storage_name,
-                                         encrypted_block_size,
-                                         block_count,
-                                         **kwds)
-            storage = EncryptedBlockStorage(storage,
-                                            key=key)
-        except:
-            if storage is not None:
-                storage.close()
-            raise
-
-        return storage
+        return EncryptedBlockStorage(
+            storage_type.setup(storage_name,
+                               encrypted_block_size,
+                               block_count,
+                               **kwds),
+            key=key)
 
     @property
     def header_data(self):
