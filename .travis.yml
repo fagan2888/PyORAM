@@ -13,7 +13,7 @@ cache: false
 before_install:
   - sudo apt-get update -q
   - sudo apt-get install graphviz -y
-  - if [ -n "$JYTHON" ]; then ./.travis_before_install_jython.sh; source $HOME/myvirtualenv/bin/activate ;fi
+  - if [ -n "$JYTHON" ]; then bash ./.travis_before_install_jython.sh; source $HOME/myvirtualenv/bin/activate ;fi
   - if [ -n "$JYTHON" ]; then pip install jip==0.7; fi
   - if [ -n "$JYTHON" ]; then jip install joda-time:joda-time:2.3; fi
   - if [ -n "$JYTHON" ]; then export CLASSPATH=$VIRTUAL_ENV/javalib/*; fi
