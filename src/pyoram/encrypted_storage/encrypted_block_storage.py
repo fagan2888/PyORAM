@@ -37,6 +37,7 @@ class EncryptedBlockStorage(EncryptedBlockStorageInterface):
                 "An encryption key is required using "
                 "the 'key' keyword.")
         if isinstance(storage, BlockStorageInterface):
+            storage_owned = False
             self._storage = storage
             if len(kwds):
                 raise ValueError(
@@ -44,33 +45,39 @@ class EncryptedBlockStorage(EncryptedBlockStorageInterface):
                     "with a storage device: %s"
                     % (str(kwds)))
         else:
+            storage_owned = True
             storage_type = kwds.pop('storage_type', 'file')
             self._storage = \
                 BlockStorageTypeFactory(storage_type)(storage, **kwds)
 
-        header_data = AES.GCMDec(self._key,
-                                 self._storage.header_data)
-        (self._ismodegcm,) = struct.unpack(
-            self._index_struct_string,
-            header_data[:self._index_offset])
-        self._verify_digest = header_data[:hashlib.sha384().digest_size]
+        try:
+            header_data = AES.GCMDec(self._key,
+                                     self._storage.header_data)
+            (self._ismodegcm,) = struct.unpack(
+                self._index_struct_string,
+                header_data[:self._index_offset])
+            self._verify_digest = header_data[:hashlib.sha384().digest_size]
 
-        verify = hmac.HMAC(
-            key=self.key,
-            msg=struct.pack(self._verify_struct_string,
-                            self._storage.block_size,
-                            self._storage.block_count,
-                            len(self._storage.header_data)),
-            digestmod=hashlib.sha384)
-        if verify.digest() != self._verify_digest:
-            raise ValueError(
-                "HMAC of plaintext index data does not match")
-        if self._ismodegcm:
-            self._encrypt_block_func = AES.GCMEnc
-            self._decrypt_block_func = AES.GCMDec
-        else:
-            self._encrypt_block_func = AES.CTREnc
-            self._decrypt_block_func = AES.CTRDec
+            verify = hmac.HMAC(
+                key=self.key,
+                msg=struct.pack(self._verify_struct_string,
+                                self._storage.block_size,
+                                self._storage.block_count,
+                                len(self._storage.header_data)),
+                digestmod=hashlib.sha384)
+            if verify.digest() != self._verify_digest:
+                raise ValueError(
+                    "HMAC of plaintext index data does not match")
+            if self._ismodegcm:
+                self._encrypt_block_func = AES.GCMEnc
+                self._decrypt_block_func = AES.GCMDec
+            else:
+                self._encrypt_block_func = AES.CTREnc
+                self._decrypt_block_func = AES.CTRDec
+        except:
+            if storage_owned:
+                self._storage.close()
+            raise
 
     #
     # Define EncryptedBlockStorageInterface Methods
@@ -224,12 +231,20 @@ class EncryptedBlockStorage(EncryptedBlockStorageInterface):
         header_data = header_data + user_header_data
         kwds['header_data'] = AES.GCMEnc(key, bytes(header_data))
 
-        return EncryptedBlockStorage(
-            storage_type.setup(storage_name,
-                               encrypted_block_size,
-                               block_count,
-                               **kwds),
-            key=key)
+        storage = None
+        try:
+            storage = storage_type.setup(storage_name,
+                                         encrypted_block_size,
+                                         block_count,
+                                         **kwds)
+            storage = EncryptedBlockStorage(storage,
+                                            key=key)
+        except:
+            if storage is not None:
+                storage.close()
+            raise
+
+        return storage
 
     @property
     def header_data(self):
