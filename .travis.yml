@@ -22,7 +22,7 @@ install:
   - python -m pip install -U unittest2 nose2 cov-core codecov coverage
 script: python -m nose2 -v --log-capture --with-coverage --coverage src --coverage examples -s src
 after_success:
-  - python -m codecov
+  - codecov
 branches:
   only:
     - master
