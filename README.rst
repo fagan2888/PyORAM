@@ -10,6 +10,12 @@ PyORAM
 .. image:: https://codecov.io/github/ghackebeil/PyORAM/coverage.svg?branch=master
     :target: https://codecov.io/github/ghackebeil/PyORAM?branch=master
 
+.. image:: https://img.shields.io/pypi/v/PyORAM.svg
+    :target: https://pypi.python.org/pypi/PyORAM/
+
+.. image:: https://img.shields.io/pypi/dm/PyORAM.svg
+    :target: https://pypi.python.org/pypi/PyORAM/
+
 Python-based Oblivious RAM (PyORAM) is a collection of
 Oblivious RAM algorithms implemented in Python. This package
 serves to enable rapid prototyping and testing of new ORAM
