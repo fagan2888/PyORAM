@@ -2,8 +2,8 @@
 language: python
 matrix:
   include:
-  - python: 2.7
-    env: JYTHON=org.python:jython-installer:2.7.0
+#  - python: 2.7
+#    env: JYTHON=org.python:jython-installer:2.7.1
   - python: 2.7
   - python: 3.3
   - python: 3.4
@@ -16,7 +16,6 @@ before_install:
   - python -m pip install -v -U pip setuptools virtualenv wheel
   - if [ -n "$JYTHON" ]; then bash ./.travis_before_install_jython.sh; source $HOME/myvirtualenv/bin/activate ;fi
   - if [ -n "$JYTHON" ]; then pip install jip; fi
-  - if [ -n "$JYTHON" ]; then jip install joda-time:joda-time:2.3; fi
   - if [ -n "$JYTHON" ]; then export CLASSPATH=$VIRTUAL_ENV/javalib/*; fi
 install:
   - python -m pip install -v -e .
