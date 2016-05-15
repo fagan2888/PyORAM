@@ -46,7 +46,7 @@ setup(
     license=about['__license__'],
     # https://pypi.python.org/pypi?%3Aaction=list_classifiers
     classifiers=[
-        'Development Status :: 2 - Alpha',
+        'Development Status :: 4 - Beta',
         'Intended Audience :: Science/Research',
         'Topic :: Security :: Cryptography',
         "Natural Language :: English",
@@ -59,7 +59,7 @@ setup(
         'Programming Language :: Python :: Implementation :: CPython',
         'Programming Language :: Python :: Implementation :: PyPy',
     ],
-    keywords='oram privacy cryptography',
+    keywords='oram, storage, privacy, cryptography, cloud storage',
     package_dir={'': 'src'},
     packages=['pyoram'],
     setup_requires=setup_requirements,
