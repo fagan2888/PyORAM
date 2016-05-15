@@ -71,12 +71,17 @@ Installation Tips
   If you had already attempted to install PyORAM into the
   system Python and encountered errors, it may be necessary
   to delete the directories :code:`build` and :code:`dist`
-  from the current directory using the command :code:`sudo
-  rm -rf build dist`. Once this virtual environment has been
-  successfully created, you can *activate* it using the
-  command :code:`. local_python2.7/bin/activate`. Then,
-  proceed with the normal installation steps to install
-  PyORAM into this environment. Note that you must
+  from the current directory using the command::
+
+    $ sudo rm -rf build dist
+
+  Once this virtual environment has been successfully
+  created, you can *activate* it using the command::
+
+    $ . local_python2.7/bin/activate
+
+  Then, proceed with the normal installation steps to
+  install PyORAM into this environment. Note that you must
   *activate* this environment each time you open a new
   terminal if PyORAM is installed in this way. Also, note
   that use of the :code:`sudo` command is no longer
