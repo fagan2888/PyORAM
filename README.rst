@@ -179,7 +179,7 @@ underlying blocks are stored in separate "file" objects.
 This design is due to the fact that the Amazon S3 API does
 not allow modifications to a specific byte range within a
 file, but instead requires that the entire modified file
-object be re-uploaded. Thus any efficient block storage
+object be re-uploaded. Thus, any efficient block storage
 scheme must use separate "file" objects for each block.
 
 Tree-Top Caching
