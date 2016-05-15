@@ -1,7 +1,7 @@
 import os
 import sys
 import platform
-from setuptools import setup
+from setuptools import setup, find_packages
 from codecs import open
 
 here = os.path.abspath(os.path.dirname(__file__))
@@ -61,7 +61,7 @@ setup(
     ],
     keywords='oram, storage, privacy, cryptography, cloud storage',
     package_dir={'': 'src'},
-    packages=['pyoram'],
+    packages=find_packages(where="src", exclude=["_cffi_src", "_cffi_src.*"]),
     setup_requires=setup_requirements,
     install_requires=requirements,
     cffi_modules=["src/_cffi_src/virtual_heap_helper_build.py:ffi"],
