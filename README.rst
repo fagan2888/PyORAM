@@ -57,6 +57,32 @@ If you are a developer, you should instead install using::
 Installation Tips
 -----------------
 
+* OS X users are recommended to work with the `homebrew
+  <http://brew.sh/>`_ version of Python2 or Python3. If you
+  must use the default system Python, then the best thing to
+  do is create a virtual environment and install PyORAM into
+  that. The process of creating a virtual environment that is
+  stored in the PyORAM directory would look something like::
+
+    $ sudo pip install virtualenv
+    $ cd <PyORAM-directory>
+    $ virtualenv local_python2.7
+
+  If you had already attempted to install PyORAM into the
+  system Python and encountered errors, it may be necessary
+  to delete the directories :code:`build` and :code:`dist`
+  from the current directory using the command :code:`sudo
+  rm -rf build dist`. Once this virtual environment has been
+  successfully created, you can *activate* it using the
+  command :code:`. local_python2.7/bin/activate`. Then,
+  proceed with the normal installation steps to install
+  PyORAM into this environment. Note that you must
+  *activate* this environment each time you open a new
+  terminal if PyORAM is installed in this way. Also, note
+  that use of the :code:`sudo` command is no longer
+  necessary (and should be avoided) once a virtual
+  environment is activated in the current shell.
+
 * If you have trouble installing the cryptography package
   on OS X with PyPy: `stackoverflow <https://stackoverflow.com/questions/36662704/fatal-error-openssl-e-os2-h-file-not-found-in-pypy/36706513#36706513>`_.
 
