@@ -3,31 +3,27 @@ language: python
 matrix:
   include:
   - python: 2.7
-    env: JYTHON=true
+    env: JYTHON=org.python:jython-installer:2.7.0
   - python: 2.7
-    env: JYTHON=false
   - python: 3.3
-    env: JYTHON=false
   - python: 3.4
-    env: JYTHON=false
   - python: 3.5
-    env: JYTHON=false
   - python: pypy
-    env: JYTHON=false
 cache: false
 before_install:
   - sudo apt-get update -q
   - sudo apt-get install graphviz -y
-  - if [ "$JYTHON" == "true" ]; then sudo apt-get install jython; fi
-  - if [ "$JYTHON" == "true" ]; then export PYTHON_EXE=jython; jython -c "print ''"; else export PYTHON_EXE=python; fi
+  - if [ -n "$JYTHON" ]; then ./.travis_before_install_jython.sh; source $HOME/myvirtualenv/bin/activate ;fi
+  - if [ -n "$JYTHON" ]; then pip install jip==0.7; fi
+  - if [ -n "$JYTHON" ]; then jip install joda-time:joda-time:2.3; fi
+  - if [ -n "$JYTHON" ]; then export CLASSPATH=$VIRTUAL_ENV/javalib/*; fi
 install:
-  - if [ "$JYTHON" == "true" ]; then $PYTHON_EXE -m easy_install pip; fi
-  - $PYTHON_EXE -m pip install -v -U pip setuptools
-  - $PYTHON_EXE -m pip install -v -e .
-  - $PYTHON_EXE -m pip install -U unittest2 nose2 cov-core codecov coverage
-script: $PYTHON_EXE -m nose2 -v --log-capture --with-coverage --coverage src --coverage examples -s src
+  - python -m pip install -v -U pip setuptools
+  - python -m pip install -v -e .
+  - python -m pip install -U unittest2 nose2 cov-core codecov coverage
+script: python -m nose2 -v --log-capture --with-coverage --coverage src --coverage examples -s src
 after_success:
-  - $PYTHON_EXE -m codecov
+  - python -m codecov
 branches:
   only:
     - master
