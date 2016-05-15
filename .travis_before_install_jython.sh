@@ -15,7 +15,7 @@
 
 set -e
 
-pip install jip==0.7
+pip install jip
 jip install $JYTHON
 NON_GROUP_ID=${JYTHON#*:}
 _JYTHON_BASENAME=${NON_GROUP_ID/:/-}
