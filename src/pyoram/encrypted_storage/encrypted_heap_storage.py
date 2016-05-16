@@ -4,9 +4,11 @@ import struct
 
 from pyoram.util.virtual_heap import SizedVirtualHeap
 from pyoram.storage.heap_storage import \
-    HeapStorageInterface
+    (HeapStorageInterface,
+     HeapStorage)
 from pyoram.encrypted_storage.encrypted_block_storage import \
-    EncryptedBlockStorage
+    (EncryptedBlockStorageInterface,
+     EncryptedBlockStorage)
 
 class EncryptedHeapStorageInterface(HeapStorageInterface):
 
@@ -21,29 +23,21 @@ class EncryptedHeapStorageInterface(HeapStorageInterface):
     def raw_storage(self, *args, **kwds):
         raise NotImplementedError                      # pragma: no cover
 
-class EncryptedHeapStorage(EncryptedHeapStorageInterface):
-
-    _header_struct_string = "!LLL"
-    _header_offset = struct.calcsize(_header_struct_string)
+class EncryptedHeapStorage(HeapStorage,
+                           EncryptedHeapStorageInterface):
 
     def __init__(self, storage, **kwds):
-        if isinstance(storage, EncryptedBlockStorage):
-            self._storage = storage
+
+        if isinstance(storage, EncryptedBlockStorageInterface):
             if len(kwds):
                 raise ValueError(
                     "Keywords not used when initializing "
                     "with a storage device: %s"
                     % (str(kwds)))
         else:
-            self._storage = EncryptedBlockStorage(storage, **kwds)
-        heap_base, heap_height, blocks_per_bucket = \
-            struct.unpack(
-                self._header_struct_string,
-                self._storage.header_data[:self._header_offset])
-        self._vheap = SizedVirtualHeap(
-            heap_base,
-            heap_height,
-            blocks_per_bucket=blocks_per_bucket)
+            storage = EncryptedBlockStorage(storage, **kwds)
+
+        super(EncryptedHeapStorage, self).__init__(storage)
 
     #
     # Define EncryptedHeapStorageInterface Methods
@@ -59,7 +53,7 @@ class EncryptedHeapStorage(EncryptedHeapStorageInterface):
 
     #
     # Define HeapStorageInterface Methods
-    #
+    # (override what is defined on HeapStorage)
 
     def clone_device(self):
         return EncryptedHeapStorage(self._storage.clone_device())
@@ -142,59 +136,37 @@ class EncryptedHeapStorage(EncryptedHeapStorageInterface):
                 vheap.bucket_count(),
                 **kwds))
 
-    @property
-    def header_data(self):
-        return self._storage.header_data[self._header_offset:]
+    #@property
+    #def header_data(...)
 
-    @property
-    def bucket_count(self):
-        return self._storage.block_count
+    #@property
+    #def bucket_count(...)
 
-    @property
-    def bucket_size(self):
-        return self._storage.block_size
+    #@property
+    #def bucket_size(...)
 
-    @property
-    def blocks_per_bucket(self):
-        return self._vheap.blocks_per_bucket
+    #@property
+    #def blocks_per_bucket(...)
 
-    @property
-    def storage_name(self):
-        return self._storage.storage_name
+    #@property
+    #def storage_name(...)
 
-    @property
-    def virtual_heap(self):
-        return self._vheap
+    #@property
+    #def virtual_heap(...)
 
-    @property
-    def bucket_storage(self):
-        return self._storage
+    #@property
+    #def bucket_storage(...)
 
-    def update_header_data(self, new_header_data):
-        self._storage.update_header_data(
-            self._storage.header_data[:self._header_offset] + \
-            new_header_data)
+    #def update_header_data(...)
 
-    def close(self):
-        self._storage.close()
+    #def close(...)
 
-    def read_path(self, b, level_start=0):
-        assert 0 <= b < self._vheap.bucket_count()
-        bucket_list = self._vheap.Node(b).bucket_path_from_root()
-        assert 0 <= level_start < len(bucket_list)
-        return self._storage.read_blocks(bucket_list[level_start:])
+    #def read_path(...)
 
-    def write_path(self, b, buckets, level_start=0):
-        assert 0 <= b < self._vheap.bucket_count()
-        bucket_list = self._vheap.Node(b).bucket_path_from_root()
-        assert 0 <= level_start < len(bucket_list)
-        self._storage.write_blocks(bucket_list[level_start:],
-                                   buckets)
+    #def write_path(...)
 
-    @property
-    def bytes_sent(self):
-        return self._storage.bytes_sent
+    #@property
+    #def bytes_sent(...)
 
-    @property
-    def bytes_received(self):
-        return self._storage.bytes_received
+    #@property
+    #def bytes_received(...)
