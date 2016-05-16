@@ -8,7 +8,7 @@ import random
 import string
 import tempfile
 
-from six.moves import range
+from six.moves import xrange
 
 from pyoram.util._virtual_heap_helper import lib as _clib
 from pyoram.util.misc import log2floor
@@ -116,6 +116,8 @@ def create_node_type(k):
 
         def __hash__(self):
             return self.bucket.__hash__()
+        def __int__(self):
+            return self.bucket
         def __lt__(self, other):
             return self.bucket < other
         def __le__(self, other):
@@ -147,6 +149,14 @@ def create_node_type(k):
             while current.level != level:
                 current = current.parent_node()
             return current
+        def path_to_root(self):
+            bucket = self.bucket
+            yield self
+            while bucket != 0:
+                bucket = (bucket - 1)//self.k
+                yield type(self)(bucket)
+        def path_from_root(self):
+            return list(reversed(list(self.path_to_root())))
         def bucket_path_to_root(self):
             bucket = self.bucket
             yield bucket
@@ -383,7 +393,7 @@ class SizedVirtualHeap(VirtualHeap):
                     lbl = str(n)
             else:
                 s = self.bucket_to_block(n.bucket)
-                for i in range(self.blocks_per_bucket):
+                for i in xrange(self.blocks_per_bucket):
                     lbl += "{%s}" % (data[s+i])
                     if i + 1 != self.blocks_per_bucket:
                         lbl += "|"
@@ -392,7 +402,7 @@ class SizedVirtualHeap(VirtualHeap):
                     % (n.bucket, 1, lbl))
             levels += 1
             if (max_levels is None) or (levels <= max_levels):
-                for i in range(self.k):
+                for i in xrange(self.k):
                     cn = n.child_node(i)
                     if not self.is_nil_node(cn):
                         visit_node(cn, levels)

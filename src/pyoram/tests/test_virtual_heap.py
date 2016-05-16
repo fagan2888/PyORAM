@@ -122,6 +122,13 @@ class TestVirtualHeapNode(unittest2.TestCase):
                              sorted(node_list))
         self.assertNotEqual(sorted(all_node_set),
                             sorted(all_node_list))
+    def test_int(self):
+        Node2 = VirtualHeap(2).Node
+        Node3 = VirtualHeap(3).Node
+        for b in range(100):
+            self.assertEqual(int(Node2(b)), b)
+            self.assertEqual(int(Node3(b)), b)
+
     def test_lt(self):
         Node = VirtualHeap(3).Node
         self.assertEqual(Node(5) < 4, False)
@@ -428,6 +435,48 @@ class TestVirtualHeapNode(unittest2.TestCase):
                          Node(4))
         self.assertEqual(Node(4).ancestor_node_at_level(3),
                          None)
+
+    def test_path_to_root(self):
+        Node = VirtualHeap(2).Node
+        self.assertEqual(list(int(n) for n in Node(0).bucket_path_to_root()),
+                         list(reversed([0])))
+        self.assertEqual(list(int(n) for n in Node(7).bucket_path_to_root()),
+                         list(reversed([0, 1, 3, 7])))
+        self.assertEqual(list(int(n) for n in Node(8).bucket_path_to_root()),
+                         list(reversed([0, 1, 3, 8])))
+        self.assertEqual(list(int(n) for n in Node(9).bucket_path_to_root()),
+                         list(reversed([0, 1, 4, 9])))
+        self.assertEqual(list(int(n) for n in Node(10).bucket_path_to_root()),
+                         list(reversed([0, 1, 4, 10])))
+        self.assertEqual(list(int(n) for n in Node(11).bucket_path_to_root()),
+                         list(reversed([0, 2, 5, 11])))
+        self.assertEqual(list(int(n) for n in Node(12).bucket_path_to_root()),
+                         list(reversed([0, 2, 5, 12])))
+        self.assertEqual(list(int(n) for n in Node(13).bucket_path_to_root()),
+                         list(reversed([0, 2, 6, 13])))
+        self.assertEqual(list(int(n) for n in Node(14).bucket_path_to_root()),
+                         list(reversed([0, 2, 6, 14])))
+
+    def test_path_from_root(self):
+        Node = VirtualHeap(2).Node
+        self.assertEqual(list(int(n) for n in Node(0).bucket_path_from_root()),
+                         [0])
+        self.assertEqual(list(int(n) for n in Node(7).bucket_path_from_root()),
+                         [0, 1, 3, 7])
+        self.assertEqual(list(int(n) for n in Node(8).bucket_path_from_root()),
+                         [0, 1, 3, 8])
+        self.assertEqual(list(int(n) for n in Node(9).bucket_path_from_root()),
+                         [0, 1, 4, 9])
+        self.assertEqual(list(int(n) for n in Node(10).bucket_path_from_root()),
+                         [0, 1, 4, 10])
+        self.assertEqual(list(int(n) for n in Node(11).bucket_path_from_root()),
+                         [0, 2, 5, 11])
+        self.assertEqual(list(int(n) for n in Node(12).bucket_path_from_root()),
+                         [0, 2, 5, 12])
+        self.assertEqual(list(int(n) for n in Node(13).bucket_path_from_root()),
+                         [0, 2, 6, 13])
+        self.assertEqual(list(int(n) for n in Node(14).bucket_path_from_root()),
+                         [0, 2, 6, 14])
 
     def test_bucket_path_to_root(self):
         Node = VirtualHeap(2).Node
