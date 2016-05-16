@@ -21,7 +21,7 @@ class BlockStorageS3(BlockStorageInterface):
     Storage Service (S3).
     """
 
-    _index_name = "PyORAMBlockStorageS3_index.txt"
+    _index_name = "PyORAMBlockStorageS3_index.bin"
     _index_struct_string = "!LLL?"
     _index_offset = struct.calcsize(_index_struct_string)
 
