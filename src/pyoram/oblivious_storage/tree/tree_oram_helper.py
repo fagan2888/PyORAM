@@ -74,11 +74,11 @@ class TreeORAMStorage(object):
             # that are common between the previous bucket path
             # and the new one
             read_level_start = lcl(k, self.path_stop_bucket, b)
-
         assert 0 <= b < vheap.bucket_count()
         self.path_stop_bucket = b
-        new_buckets = self.storage_heap.read_path(self.path_stop_bucket,
-                                                  level_start=read_level_start)
+        new_buckets = self.storage_heap.read_path(
+            self.path_stop_bucket,
+            level_start=read_level_start)
 
         self.path_bucket_count = read_level_start + len(new_buckets)
         pos = 0
@@ -209,6 +209,7 @@ class TreeORAMStorage(object):
         vheap = self.storage_heap.virtual_heap
         Z = vheap.blocks_per_bucket
 
+        bucket_count = self.path_bucket_count
         stop_bucket = self.path_stop_bucket
         bucket_dataview = self.path_bucket_dataview
         block_dataview = self.path_block_dataview
@@ -231,7 +232,8 @@ class TreeORAMStorage(object):
 
         self.storage_heap.write_path(
             stop_bucket,
-            (b_.tobytes() for b_ in bucket_dataview))
+            (bucket_dataview[i].tobytes()
+             for i in xrange(bucket_count)))
 
     def extract_block_from_path(self, id_):
         block_ids = self.path_block_ids

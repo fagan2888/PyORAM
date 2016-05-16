@@ -106,6 +106,11 @@ class PathORAM(EncryptedBlockStorageInterface):
         assert self._block_count <= \
             self._oram.storage_heap.bucket_count
 
+    @classmethod
+    def _init_position_map(cls, vheap, block_count):
+        return array.array("L", [vheap.random_leaf_bucket()
+                                 for i in xrange(block_count)])
+
     def _init_oram_block(self, id_, block):
         oram_block = bytearray(self.block_size)
         oram_block[self._oram.block_info_storage_size:] = block[:]
@@ -162,10 +167,12 @@ class PathORAM(EncryptedBlockStorageInterface):
 
     def access(self, id_, write_block=None):
         assert 0 <= id_ <= self.block_count
-        b = self.position_map[id_]
+        bucket = self.position_map[id_]
+        bucket_level = self._oram.storage_heap.virtual_heap.Node(bucket).level
         self.position_map[id_] = \
-            self._oram.storage_heap.virtual_heap.random_leaf_bucket()
-        self._oram.load_path(b)
+            self._oram.storage_heap.virtual_heap.\
+            random_bucket_at_level(bucket_level)
+        self._oram.load_path(bucket)
         block = self._oram.extract_block_from_path(id_)
         if block is None:
             block = self.stash[id_]
@@ -255,6 +262,7 @@ class PathORAM(EncryptedBlockStorageInterface):
             raise ValueError(
                 "Block count must be a positive integer: %s"
                 % (block_count))
+
         if heap_base < 2:
             raise ValueError(
                 "heap base must be 2 or greater. Invalid value: %s"
@@ -267,8 +275,8 @@ class PathORAM(EncryptedBlockStorageInterface):
             heap_base,
             heap_height,
             blocks_per_bucket=bucket_capacity)
-        position_map = array.array("L", [vheap.random_leaf_bucket()
-                                         for i in xrange(block_count)])
+        position_map = cls._init_position_map(vheap, block_count)
+
         oram_block_size = block_size + \
                           TreeORAMStorageManagerExplicitAddressing.\
                           block_info_storage_size
@@ -296,7 +304,8 @@ class PathORAM(EncryptedBlockStorageInterface):
         kwds['initialize'] = lambda i: empty_bucket
         f = None
         try:
-            log.info("Path ORAM is setting up encrypted heap storage")
+            log.info("%s: setting up encrypted heap storage"
+                     % (cls.__name__))
             f = EncryptedHeapStorage.setup(storage_name,
                                            oram_block_size,
                                            heap_height,
@@ -322,17 +331,21 @@ class PathORAM(EncryptedBlockStorageInterface):
                 initialize = lambda i: zeros
             initial_oram_block = bytearray(oram_block_size)
             for i in tqdm.tqdm(xrange(block_count),
-                               desc="Initializing Path ORAM Blocks",
+                               desc=("Initializing %s Blocks" % (cls.__name__)),
                                total=block_count,
                                disable=not show_status_bar):
+
                 oram.tag_block_with_id(initial_oram_block, i)
                 initial_oram_block[oram.block_info_storage_size:] = \
                     initialize(i)[:]
 
-                b = oram.position_map[i]
+                bucket = oram.position_map[i]
+                bucket_level = vheap.Node(bucket).level
                 oram.position_map[i] = \
-                    oram.storage_heap.virtual_heap.random_leaf_bucket()
-                oram.load_path(b)
+                    oram.storage_heap.virtual_heap.\
+                    random_bucket_at_level(bucket_level)
+
+                oram.load_path(bucket)
                 oram.push_down_path()
                 # place a copy in the stash
                 oram.stash[i] = bytearray(initial_oram_block)
@@ -406,8 +419,8 @@ class PathORAM(EncryptedBlockStorageInterface):
                     bytes(new_header_data) + self.header_data)
             except:                                                # pragma: no cover
                 log.error(                                         # pragma: no cover
-                    "Failed to update PathORAM header data "       # pragma: no cover
-                    "with current stash and position map state")   # pragma: no cover
+                    "Failed to update header data with "           # pragma: no cover
+                    "current stash and position map state")        # pragma: no cover
             finally:
                 self._oram.storage_heap.close()
 
