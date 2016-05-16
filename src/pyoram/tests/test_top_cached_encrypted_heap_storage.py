@@ -74,6 +74,16 @@ class _TestTopCachedEncryptedHeapStorage(object):
         except OSError:                                # pragma: no cover
             pass                                       # pragma: no cover
 
+    def test_factory(self):
+        kwds = dict(self._init_kwds)
+        kwds['cached_levels'] = 0
+        with EncryptedHeapStorage(
+                self._testfname,
+                key=self._key,
+                storage_type=self._storage_type) as f1:
+            with TopCachedEncryptedHeapStorage(f1, **kwds) as f2:
+                self.assertTrue(f1 is f2)
+
     def test_setup(self):
         fname = ".".join(self.id().split(".")[1:])
         fname += ".bin"
@@ -540,6 +550,8 @@ class _TestTopCachedEncryptedHeapStorage(object):
                                      storage_type=self._storage_type),
                 **self._init_kwds) as f:
             num_cached_levels = self._init_kwds.get('cached_levels', 1)
+            if num_cached_levels < 0:
+                num_cached_levels = f.virtual_heap.levels
             cache_bucket_count = 0
             for l in xrange(num_cached_levels):
                 if l <= f.virtual_heap.last_level:
@@ -686,6 +698,14 @@ class TestTopCachedEncryptedHeapStorageFileCache3Concurrency1Base3(
     _storage_type = 'file'
     _heap_base = 3
     _heap_height = 4
+
+class TestTopCachedEncryptedHeapStorageFileCacheAll(
+        _TestTopCachedEncryptedHeapStorage,
+        unittest2.TestCase):
+    _init_kwds = {'cached_levels': -1}
+    _storage_type = 'file'
+    _heap_base = 2
+    _heap_height = 3
 
 if __name__ == "__main__":
     unittest2.main()                                    # pragma: no cover

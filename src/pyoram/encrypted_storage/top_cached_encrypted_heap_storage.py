@@ -56,6 +56,14 @@ class TopCachedEncryptedHeapStorage(EncryptedHeapStorageInterface):
     is allowed by the heap size.
     """
 
+    def __new__(cls, *args, **kwds):
+        if kwds.get("cached_levels", 1) == 0:
+            assert len(args) == 1
+            return args[0]
+        else:
+            return super(TopCachedEncryptedHeapStorage, cls).\
+                __new__(cls, *args, **kwds)
+
     def __init__(self,
                  heap_storage,
                  cached_levels=1,
