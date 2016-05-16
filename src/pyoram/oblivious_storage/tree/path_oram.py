@@ -50,18 +50,11 @@ class PathORAM(EncryptedBlockStorageInterface):
         else:
             cached_levels = kwds.pop('cached_levels', 3)
             concurrency_level = kwds.pop('concurrency_level', None)
-            if (cached_levels == 0) and (concurrency_level is not None):
-                raise ValueError(                      # pragma: no cover
-                    "'concurrency_level' keyword is "  # pragma: no cover
-                    "not used when no heap levels "    # pragma: no cover
-                    "are cached")                      # pragma: no cover
-            storage_heap = EncryptedHeapStorage(storage, **kwds)
             close_storage_heap = True
-            if cached_levels != 0:
-                storage_heap = TopCachedEncryptedHeapStorage(
-                    storage_heap,
-                    cached_levels=cached_levels,
-                    concurrency_level=concurrency_level)
+            storage_heap = TopCachedEncryptedHeapStorage(
+                EncryptedHeapStorage(storage, **kwds),
+                cached_levels=cached_levels,
+                concurrency_level=concurrency_level)
 
         (self._block_count,) = struct.unpack(
             self._header_struct_string,

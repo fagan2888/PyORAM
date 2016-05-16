@@ -3,6 +3,9 @@ __all__ = ("Boto3S3Wrapper",
 import os
 import shutil
 
+import pyoram
+
+import tqdm
 try:
     import boto3
     import botocore
@@ -65,13 +68,16 @@ class Boto3S3Wrapper(object):
     def clear(self, key, threadpool=None):
         _del = lambda obj: \
             self._s3.Object(self._bucket.name, obj.key).delete()
-        objs = self._bucket.objects.filter(Prefix=key+"/")
+        objs = list(self._bucket.objects.filter(Prefix=key+"/"))
         if threadpool is not None:
             deliter = threadpool.imap(_del, objs)
         else:
             deliter = map(_del, objs)
-        for _ in deliter:
-            pass
+        with tqdm.tqdm(total=len(objs),
+                       desc="Clearing S3 Blocks",
+                       disable=not pyoram.config.SHOW_PROGRESS_BAR) as progress_bar:
+            for _ in deliter:
+                progress_bar.update()
 
 class MockBoto3S3Wrapper(object):
     """

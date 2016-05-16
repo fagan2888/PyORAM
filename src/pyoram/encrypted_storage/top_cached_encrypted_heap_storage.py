@@ -92,14 +92,17 @@ class TopCachedEncryptedHeapStorage(EncryptedHeapStorageInterface):
         self._cached_bucket_count = total_buckets
         self._cached_buckets_tempfile = tempfile.TemporaryFile()
         self._cached_buckets_tempfile.seek(0)
-        for b, bucket in enumerate(
-                tqdm.tqdm(self._root_device.bucket_storage.yield_blocks(
-                    xrange(vheap.first_bucket_at_level(cached_levels))),
-                          desc=("Downloading %s Cached Heap Buckets"
-                                % (self._cached_bucket_count)),
-                          total=self._cached_bucket_count,
-                          disable=not pyoram.config.SHOW_PROGRESS_BAR)):
-            self._cached_buckets_tempfile.write(bucket)
+        with tqdm.tqdm(desc=("Downloading %s Cached Heap Buckets"
+                             % (self._cached_bucket_count)),
+                       total=self._cached_bucket_count*self._root_device.bucket_size,
+                       unit="B",
+                       unit_scale=True,
+                       disable=not pyoram.config.SHOW_PROGRESS_BAR) as progress_bar:
+            for b, bucket in enumerate(
+                    self._root_device.bucket_storage.yield_blocks(
+                        xrange(vheap.first_bucket_at_level(cached_levels)))):
+                self._cached_buckets_tempfile.write(bucket)
+                progress_bar.update(self._root_device.bucket_size)
         self._cached_buckets_tempfile.flush()
         self._cached_buckets_mmap = mmap.mmap(
             self._cached_buckets_tempfile.fileno(), 0)
