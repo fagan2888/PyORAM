@@ -233,30 +233,30 @@ class BlockStorageS3(BlockStorageInterface):
                     % (str(e)))                        # pragma: no cover
                 raise                                  # pragma: no cover
         total = None
+        status_bar = tqdm.tqdm(total=block_count*block_size,
+                               desc="Initializing S3 Block Storage Space",
+                               unit="B",
+                               unit_scale=True,
+                               disable=not show_status_bar)
         if pool is not None:
             try:
                 for i,_ in enumerate(
-                        tqdm.tqdm(
-                            pool.imap_unordered(_do_upload, init_blocks()),
-                            desc="Initializing S3 Block Storage Space (with threadpool)",
-                            total=block_count,
-                            disable=not show_status_bar)):
+                        pool.imap_unordered(_do_upload, init_blocks())):
                     total = i
+                    status_bar.update(n=block_size)
             except Exception as e:                     # pragma: no cover
                 s3.clear(storage_name)                 # pragma: no cover
                 raise                                  # pragma: no cover
             finally:
+                status_bar.close()
                 pool.close()
                 pool.join()
         else:
             try:
                 for i,_ in enumerate(
-                        tqdm.tqdm(
-                            map(s3.upload, init_blocks()),
-                            desc="Initializing S3 Block Storage Space (no threadpool)",
-                            total=block_count,
-                            disable=not show_status_bar)):
+                        map(s3.upload, init_blocks())):
                     total = i
+                    status_bar.update(n=block_size)
             except Exception as e:                     # pragma: no cover
                 s3.clear(storage_name)                 # pragma: no cover
                 raise                                  # pragma: no cover

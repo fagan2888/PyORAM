@@ -221,10 +221,12 @@ class BlockStorageRAM(_BlockStorageMemoryImpl,
         f = bytearray(header_offset + \
                       (block_size * block_count))
         f[:header_offset] = index_data + header_data
-        for i in tqdm.tqdm(xrange(block_count),
-                           desc="Initializing RAM Block Storage Space",
-                           total=block_count,
-                           disable=not show_status_bar):
+        status_bar = tqdm.tqdm(total=block_count*block_size,
+                               desc="Initializing File Block Storage Space",
+                               unit="B",
+                               unit_scale=True,
+                               disable=not show_status_bar)
+        for i in xrange(block_count):
             block = initialize(i)
             assert len(block) == block_size, \
                 ("%s != %s" % (len(block), block_size))
@@ -232,6 +234,7 @@ class BlockStorageRAM(_BlockStorageMemoryImpl,
             pos_start = header_offset + i * block_size
             pos_stop = pos_start + block_size
             f[pos_start:pos_stop] = block[:]
+            status_bar.update(n=block_size)
 
         return BlockStorageRAM(f, threadpool_size=threadpool_size)
 

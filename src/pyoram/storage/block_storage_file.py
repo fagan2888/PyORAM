@@ -220,14 +220,17 @@ class BlockStorageFile(BlockStorageInterface):
                                         len(header_data),
                                         False))
                     f.write(header_data)
-                for i in tqdm.tqdm(xrange(block_count),
-                                   desc="Initializing File Block Storage Space",
-                                   total=block_count,
-                                   disable=not show_status_bar):
+                status_bar = tqdm.tqdm(total=block_count*block_size,
+                                       desc="Initializing File Block Storage Space",
+                                       unit="B",
+                                       unit_scale=True,
+                                       disable=not show_status_bar)
+                for i in xrange(block_count):
                     block = initialize(i)
                     assert len(block) == block_size, \
                         ("%s != %s" % (len(block), block_size))
                     f.write(block)
+                    status_bar.update(n=block_size)
         except:                                        # pragma: no cover
             _filesystem.remove(storage_name)           # pragma: no cover
             raise                                      # pragma: no cover
