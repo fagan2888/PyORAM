@@ -46,7 +46,11 @@ compiler or chasing down segmentation faults.
 Installation
 ------------
 
-To install PyORAM, first clone the repository::
+To install the latest release of PyORAM, simply execute::
+
+  $ pip install PyORAM
+
+To install the trunk version of PyORAM, first clone the repository::
 
   $ git clone https://github.com/ghackebeil/PyORAM.git
 
@@ -58,7 +62,6 @@ If you are a developer, you should instead install using::
 
   $ pip install -e .
   $ pip install nose2 unittest2
-
 
 Installation Tips
 -----------------
