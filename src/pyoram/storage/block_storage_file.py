@@ -100,6 +100,8 @@ class BlockStorageFile(BlockStorageInterface):
             self._async_write = None
         # TODO: Figure out why tests fail on Python3 without this
         if six.PY3:
+            if self._f is None:
+                return
             self._f.flush()
 
     def _schedule_async_write(self, args):

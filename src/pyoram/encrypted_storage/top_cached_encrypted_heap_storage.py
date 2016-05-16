@@ -62,7 +62,7 @@ class TopCachedEncryptedHeapStorage(EncryptedHeapStorageInterface):
             return args[0]
         else:
             return super(TopCachedEncryptedHeapStorage, cls).\
-                __new__(cls, *args, **kwds)
+                __new__(cls)
 
     def __init__(self,
                  heap_storage,
