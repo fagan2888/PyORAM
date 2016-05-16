@@ -66,11 +66,30 @@ class Test(unittest2.TestCase):
         self.assertTrue("GB" in str(pyoram.util.misc.MemorySize(1000000000)))
         self.assertTrue("GB" in str(pyoram.util.misc.MemorySize(9999999999)))
         self.assertTrue("TB" in str(pyoram.util.misc.MemorySize(1000000000000)))
-        # account for floating point error
-        self.assertAlmostEqual(pyoram.util.misc.MemorySize(1024).KiB, 1.0)
-        self.assertAlmostEqual(pyoram.util.misc.MemorySize(1024**2).MiB, 1.0)
-        self.assertAlmostEqual(pyoram.util.misc.MemorySize(1024**3).GiB, 1.0)
-        self.assertAlmostEqual(pyoram.util.misc.MemorySize(1024**4).TiB, 1.0)
+        self.assertTrue("b" in str(pyoram.util.misc.MemorySize(1, unit="b")))
+        self.assertTrue("b" in str(pyoram.util.misc.MemorySize(2, unit="b")))
+        self.assertTrue("b" in str(pyoram.util.misc.MemorySize(7.9, unit="b")))
+
+        self.assertTrue("B" in str(pyoram.util.misc.MemorySize(8, unit="b")))
+        self.assertTrue("B" in str(pyoram.util.misc.MemorySize(1, unit="B")))
+        self.assertTrue("B" in str(pyoram.util.misc.MemorySize(999, unit="B")))
+
+        self.assertTrue("KB" in str(pyoram.util.misc.MemorySize(1000, unit="B")))
+        self.assertTrue("KB" in str(pyoram.util.misc.MemorySize(1, unit="KB")))
+        self.assertTrue("KB" in str(pyoram.util.misc.MemorySize(999, unit="KB")))
+        self.assertTrue("MB" in str(pyoram.util.misc.MemorySize(1000, unit="KB")))
+        self.assertTrue("MB" in str(pyoram.util.misc.MemorySize(1, unit="MB")))
+        self.assertTrue("MB" in str(pyoram.util.misc.MemorySize(999, unit="MB")))
+        self.assertTrue("GB" in str(pyoram.util.misc.MemorySize(1000, unit="MB")))
+        self.assertTrue("GB" in str(pyoram.util.misc.MemorySize(1, unit="GB")))
+        self.assertTrue("GB" in str(pyoram.util.misc.MemorySize(999, unit="GB")))
+        self.assertTrue("TB" in str(pyoram.util.misc.MemorySize(1000, unit="GB")))
+        self.assertTrue("TB" in str(pyoram.util.misc.MemorySize(1, unit="TB")))
+
+        self.assertEqual(pyoram.util.misc.MemorySize(1024).KiB, 1)
+        self.assertEqual(pyoram.util.misc.MemorySize(1024**2).MiB, 1)
+        self.assertEqual(pyoram.util.misc.MemorySize(1024**3).GiB, 1)
+        self.assertEqual(pyoram.util.misc.MemorySize(1024**4).TiB, 1)
 
     def test_saveload_private_key(self):
         with tempfile.NamedTemporaryFile(delete=False) as f:

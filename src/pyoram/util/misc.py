@@ -40,11 +40,25 @@ def load_private_key(filename):
     with open(filename, "rb") as f:
         return base64.b64decode(f.read())
 
+from fractions import Fraction
+
 class MemorySize(object):
 
-    def __init__(self, numbytes):
-        assert numbytes >= 0
-        self.numbytes = numbytes
+    to_bytes = {}
+    to_bytes['b'] = lambda x: Fraction(x,8)
+    to_bytes['B'] = lambda x: Fraction(x,1)
+    to_bytes['KB'] = lambda x: Fraction(1000*x,1)
+    to_bytes['MB'] = lambda x: Fraction((1000**2)*x,1)
+    to_bytes['GB'] = lambda x: Fraction((1000**3)*x,1)
+    to_bytes['TB'] = lambda x: Fraction((1000**4)*x,1)
+    to_bytes['KiB'] = lambda x: Fraction(1024*x,1)
+    to_bytes['MiB'] = lambda x: Fraction((1024**2)*x,1)
+    to_bytes['GiB'] = lambda x: Fraction((1024**3)*x,1)
+    to_bytes['TiB'] = lambda x: Fraction((1024**4)*x,1)
+
+    def __init__(self, size, unit='B'):
+        assert size >= 0
+        self.numbytes = MemorySize.to_bytes[unit](Fraction.from_float(size))
 
     def __str__(self):
         if self.B < 1:
@@ -60,24 +74,24 @@ class MemorySize(object):
         return "%.3f TB" % (self.TB)
 
     @property
-    def b(self): return float(self.numbytes)*8
+    def b(self): return self.numbytes*8
     @property
-    def B(self): return float(self.numbytes)
+    def B(self): return self.numbytes
 
     @property
-    def KB(self): return self.B/1000.0
+    def KB(self): return self.B/1000
     @property
-    def MB(self): return self.KB/1000.0
+    def MB(self): return self.KB/1000
     @property
-    def GB(self): return self.MB/1000.0
+    def GB(self): return self.MB/1000
     @property
-    def TB(self): return self.GB/1000.0
+    def TB(self): return self.GB/1000
 
     @property
-    def KiB(self): return self.B/1024.0
+    def KiB(self): return self.B/1024
     @property
-    def MiB(self): return self.KiB/1024.0
+    def MiB(self): return self.KiB/1024
     @property
-    def GiB(self): return self.MiB/1024.0
+    def GiB(self): return self.MiB/1024
     @property
-    def TiB(self): return self.GiB/1024.0
+    def TiB(self): return self.GiB/1024
