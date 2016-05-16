@@ -6,6 +6,7 @@ import logging
 import errno
 from multiprocessing.pool import ThreadPool
 
+import pyoram
 from pyoram.storage.block_storage import \
     (BlockStorageInterface,
      BlockStorageTypeFactory)
@@ -179,8 +180,7 @@ class BlockStorageRAM(_BlockStorageMemoryImpl,
               initialize=None,
               header_data=None,
               ignore_existing=False,
-              threadpool_size=None,
-              show_status_bar=False):
+              threadpool_size=None):
 
         # We ignore the 'storage_name' argument
         # We ignore the 'ignore_existing' flag
@@ -221,11 +221,11 @@ class BlockStorageRAM(_BlockStorageMemoryImpl,
         f = bytearray(header_offset + \
                       (block_size * block_count))
         f[:header_offset] = index_data + header_data
-        status_bar = tqdm.tqdm(total=block_count*block_size,
-                               desc="Initializing File Block Storage Space",
-                               unit="B",
-                               unit_scale=True,
-                               disable=not show_status_bar)
+        progress_bar = tqdm.tqdm(total=block_count*block_size,
+                                 desc="Initializing File Block Storage Space",
+                                 unit="B",
+                                 unit_scale=True,
+                                 disable=not pyoram.config.SHOW_PROGRESS_BAR)
         for i in xrange(block_count):
             block = initialize(i)
             assert len(block) == block_size, \
@@ -234,7 +234,8 @@ class BlockStorageRAM(_BlockStorageMemoryImpl,
             pos_start = header_offset + i * block_size
             pos_stop = pos_start + block_size
             f[pos_start:pos_stop] = block[:]
-            status_bar.update(n=block_size)
+            progress_bar.update(n=block_size)
+        progress_bar.close()
 
         return BlockStorageRAM(f, threadpool_size=threadpool_size)
 

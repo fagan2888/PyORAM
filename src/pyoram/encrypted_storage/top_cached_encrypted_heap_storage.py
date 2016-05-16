@@ -1,7 +1,10 @@
 __all__ = ('TopCachedEncryptedHeapStorage',)
 
 import logging
+import tempfile
+import mmap
 
+import pyoram
 from pyoram.util.virtual_heap import SizedVirtualHeap
 from pyoram.encrypted_storage.encrypted_heap_storage import \
     (EncryptedHeapStorageInterface,
@@ -56,20 +59,20 @@ class TopCachedEncryptedHeapStorage(EncryptedHeapStorageInterface):
     def __init__(self,
                  heap_storage,
                  cached_levels=1,
-                 concurrency_level=None,
-                 show_status_bar=False):
+                 concurrency_level=None):
         assert isinstance(heap_storage, EncryptedHeapStorage)
-        assert cached_levels >= 1
+        assert cached_levels != 0
+        vheap = heap_storage.virtual_heap
+        if cached_levels < 0:
+            cached_levels = vheap.levels
         if concurrency_level is None:
             concurrency_level = cached_levels
         assert concurrency_level >= 0
-        vheap = heap_storage.virtual_heap
         cached_levels = min(vheap.levels, cached_levels)
         concurrency_level = min(cached_levels, concurrency_level)
         self._external_level = cached_levels
         total_buckets = sum(vheap.bucket_count_at_level(l)
                             for l in xrange(cached_levels))
-        self._cached_buckets = [None]*total_buckets
 
         self._root_device = heap_storage
         # clone before we download the cache so that we can
@@ -77,14 +80,21 @@ class TopCachedEncryptedHeapStorage(EncryptedHeapStorageInterface):
         # (separate from the cached download)
         self._concurrent_devices = \
             {vheap.first_bucket_at_level(0): self._root_device.clone_device()}
+
+        self._cached_bucket_count = total_buckets
+        self._cached_buckets_tempfile = tempfile.TemporaryFile()
+        self._cached_buckets_tempfile.seek(0)
         for b, bucket in enumerate(
                 tqdm.tqdm(self._root_device.bucket_storage.yield_blocks(
                     xrange(vheap.first_bucket_at_level(cached_levels))),
                           desc=("Downloading %s Cached Heap Buckets"
-                                % (total_buckets)),
-                          total=total_buckets,
-                          disable=not show_status_bar)):
-            self._cached_buckets[b] = bucket
+                                % (self._cached_bucket_count)),
+                          total=self._cached_bucket_count,
+                          disable=not pyoram.config.SHOW_PROGRESS_BAR)):
+            self._cached_buckets_tempfile.write(bucket)
+        self._cached_buckets_tempfile.flush()
+        self._cached_buckets_mmap = mmap.mmap(
+            self._cached_buckets_tempfile.fileno(), 0)
 
         # Avoid cloning devices when the cache line is at the root
         # bucket or when the entire heap is cached
@@ -120,8 +130,8 @@ class TopCachedEncryptedHeapStorage(EncryptedHeapStorageInterface):
     #
 
     @property
-    def cached_buckets(self):
-        return self._cached_buckets
+    def cached_bucket_data(self):
+        return self._cached_buckets_mmap
 
     #
     # Define EncryptedHeapStorageInterface Methods
@@ -184,9 +194,15 @@ class TopCachedEncryptedHeapStorage(EncryptedHeapStorageInterface):
         self._root_device.update_header_data(new_header_data)
 
     def close(self):
+        log.info("Uploading cached bucket data before closing")
         self.bucket_storage.\
-            write_blocks(list(xrange(len(self._cached_buckets))),
-                         self._cached_buckets)
+            write_blocks(
+                xrange(self._cached_bucket_count),
+                (self._cached_buckets_mmap[(b*self.bucket_size):
+                                           ((b+1)*self.bucket_size)]
+                 for b in xrange(self._cached_bucket_count)))
+        self._cached_buckets_mmap.close()
+        self._cached_buckets_tempfile.close()
         for b in self._concurrent_devices:
             self._concurrent_devices[b].close()
         self._root_device.close()
@@ -195,7 +211,9 @@ class TopCachedEncryptedHeapStorage(EncryptedHeapStorageInterface):
         assert 0 <= b < self.virtual_heap.bucket_count()
         bucket_list = self.virtual_heap.Node(b).bucket_path_from_root()
         if len(bucket_list) <= self._external_level:
-            return [self._cached_buckets[bb] for bb in bucket_list[level_start:]]
+            return [self._cached_buckets_mmap[(bb*self.bucket_size):
+                                              ((bb+1)*self.bucket_size)]
+                    for bb in bucket_list[level_start:]]
         elif level_start >= self._external_level:
             return self._subheap_storage[bucket_list[self._external_level]].\
                 bucket_storage.read_blocks(bucket_list[level_start:])
@@ -204,7 +222,9 @@ class TopCachedEncryptedHeapStorage(EncryptedHeapStorageInterface):
             external_buckets = bucket_list[self._external_level:]
             buckets = []
             for bb in local_buckets[level_start:]:
-                buckets.append(self._cached_buckets[bb])
+                buckets.append(
+                    self._cached_buckets_mmap[(bb*self.bucket_size):
+                                              ((bb+1)*self.bucket_size)])
             if len(external_buckets) > 0:
                 buckets.extend(
                     self._subheap_storage[external_buckets[0]].\
@@ -217,7 +237,8 @@ class TopCachedEncryptedHeapStorage(EncryptedHeapStorageInterface):
         bucket_list = self.virtual_heap.Node(b).bucket_path_from_root()
         if len(bucket_list) <= self._external_level:
             for bb, bucket in zip(bucket_list[level_start:], buckets):
-                self._cached_buckets[bb] = bucket
+                self._cached_buckets_mmap[(bb*self.bucket_size):
+                                          ((bb+1)*self.bucket_size)] = bucket
         elif level_start >= self._external_level:
             self._subheap_storage[bucket_list[self._external_level]].\
                 bucket_storage.write_blocks(bucket_list[level_start:], buckets)
@@ -228,7 +249,8 @@ class TopCachedEncryptedHeapStorage(EncryptedHeapStorageInterface):
             external_buckets = bucket_list[self._external_level:]
             ndx = -1
             for ndx, bb in enumerate(local_buckets[level_start:]):
-                self._cached_buckets[bb] = buckets[ndx]
+                self._cached_buckets_mmap[(bb*self.bucket_size):
+                                          ((bb+1)*self.bucket_size)] = buckets[ndx]
             if len(external_buckets) > 0:
                 self._subheap_storage[external_buckets[0]].\
                     bucket_storage.write_blocks(external_buckets,

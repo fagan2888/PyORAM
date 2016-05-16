@@ -17,12 +17,15 @@ import time
 import pickle
 import multiprocessing
 
+import pyoram
 from pyoram.util.misc import MemorySize, load_private_key
 from pyoram.oblivious_storage.tree.path_oram import \
     PathORAM
 
 import paramiko
 import tqdm
+
+pyoram.config.SHOW_PROGRESS_BAR = True
 
 # Set SSH login credentials here
 # (by default, we pull these from the environment

@@ -39,6 +39,15 @@ def _configure_logging():
 _configure_logging()
 del _configure_logging
 
+def _configure_pyoram():
+    class _Configure(object):
+        __slots__ = ("SHOW_PROGRESS_BAR",)
+        def __init__(self):
+            self.SHOW_PROGRESS_BAR = False
+    return _Configure()
+config = _configure_pyoram()
+del _configure_pyoram
+
 import pyoram.util
 import pyoram.crypto
 import pyoram.storage

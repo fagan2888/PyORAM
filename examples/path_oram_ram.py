@@ -8,6 +8,7 @@ import os
 import random
 import time
 
+import pyoram
 from pyoram.util.misc import MemorySize
 from pyoram.oblivious_storage.tree.path_oram import \
     PathORAM
@@ -15,6 +16,8 @@ from pyoram.storage.block_storage_ram import \
     BlockStorageRAM
 
 import tqdm
+
+pyoram.config.SHOW_PROGRESS_BAR = True
 
 # Set the storage location and size
 storage_name = "heap.bin"
@@ -45,8 +48,7 @@ def main():
                         block_size,
                         block_count,
                         storage_type='ram',
-                        ignore_existing=True,
-                        show_status_bar=True) as f:
+                        ignore_existing=True) as f:
         print("Total Setup Time: %2.f s"
               % (time.time()-setup_start))
         print("Current Stash Size: %s"

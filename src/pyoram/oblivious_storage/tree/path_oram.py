@@ -4,6 +4,7 @@ import struct
 import array
 import logging
 
+import pyoram
 from pyoram.oblivious_storage.tree.tree_oram_helper import \
     (TreeORAMStorage,
      TreeORAMStorageManagerExplicitAddressing)
@@ -245,7 +246,6 @@ class PathORAM(EncryptedBlockStorageInterface):
               heap_base=2,
               cached_levels=3,
               concurrency_level=None,
-              show_status_bar=False,
               **kwds):
         if 'heap_height' in kwds:
             raise ValueError("'heap_height' keyword is not accepted")
@@ -311,14 +311,12 @@ class PathORAM(EncryptedBlockStorageInterface):
                                            heap_height,
                                            heap_base=heap_base,
                                            blocks_per_bucket=bucket_capacity,
-                                           show_status_bar=show_status_bar,
                                            **kwds)
             if cached_levels != 0:
                 f = TopCachedEncryptedHeapStorage(
                     f,
                     cached_levels=cached_levels,
-                    concurrency_level=concurrency_level,
-                    show_status_bar=show_status_bar)
+                    concurrency_level=concurrency_level)
             elif concurrency_level is not None:
                 raise ValueError(                      # pragma: no cover
                     "'concurrency_level' keyword is "  # pragma: no cover
@@ -333,7 +331,7 @@ class PathORAM(EncryptedBlockStorageInterface):
             for i in tqdm.tqdm(xrange(block_count),
                                desc=("Initializing %s Blocks" % (cls.__name__)),
                                total=block_count,
-                               disable=not show_status_bar):
+                               disable=not pyoram.config.SHOW_PROGRESS_BAR):
 
                 oram.tag_block_with_id(initial_oram_block, i)
                 initial_oram_block[oram.block_info_storage_size:] = \

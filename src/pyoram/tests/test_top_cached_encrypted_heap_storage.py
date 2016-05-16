@@ -545,7 +545,8 @@ class _TestTopCachedEncryptedHeapStorage(object):
                 if l <= f.virtual_heap.last_level:
                     cache_bucket_count += f.virtual_heap.bucket_count_at_level(l)
             self.assertEqual(cache_bucket_count > 0, True)
-            self.assertEqual(len(f.cached_buckets), cache_bucket_count)
+            self.assertEqual(len(f.cached_bucket_data),
+                             cache_bucket_count * f.bucket_size)
 
             self.assertEqual(f.bytes_sent, 0)
             self.assertEqual(f.bytes_received, 0)

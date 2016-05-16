@@ -16,11 +16,14 @@ import os
 import random
 import time
 
+import pyoram
 from pyoram.util.misc import MemorySize
 from pyoram.encrypted_storage.encrypted_block_storage import \
     EncryptedBlockStorage
 
 import tqdm
+
+pyoram.SHOW_PROGRESS_BAR = True
 
 # Set S3 bucket name here
 # (by default, we pull this from the environment
@@ -57,8 +60,7 @@ def main():
                                      block_count,
                                      storage_type='s3',
                                      bucket_name=bucket_name,
-                                     ignore_existing=True,
-                                     show_status_bar=True) as f:
+                                     ignore_existing=True) as f:
         print("Total Setup Time: %2.f s"
               % (time.time()-setup_start))
         print("Total Data Transmission: %s"

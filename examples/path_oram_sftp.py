@@ -11,12 +11,15 @@ import os
 import random
 import time
 
+import pyoram
 from pyoram.util.misc import MemorySize
 from pyoram.oblivious_storage.tree.path_oram import \
     PathORAM
 
 import paramiko
 import tqdm
+
+pyoram.config.SHOW_PROGRESS_BAR = True
 
 # Set SSH login credentials here
 # (by default, we pull these from the environment
@@ -64,8 +67,7 @@ def main():
                             block_count,
                             storage_type='sftp',
                             sshclient=ssh,
-                            ignore_existing=True,
-                            show_status_bar=True) as f:
+                            ignore_existing=True) as f:
             print("Total Setup Time: %.2f s"
                   % (time.time()-setup_start))
             print("Current Stash Size: %s"

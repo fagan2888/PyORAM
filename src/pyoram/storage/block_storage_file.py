@@ -6,6 +6,7 @@ import logging
 import errno
 from multiprocessing.pool import ThreadPool
 
+import pyoram
 from pyoram.storage.block_storage import \
     (BlockStorageInterface,
      BlockStorageTypeFactory)
@@ -173,7 +174,6 @@ class BlockStorageFile(BlockStorageInterface):
               header_data=None,
               ignore_existing=False,
               threadpool_size=None,
-              show_status_bar=False,
               _filesystem=default_filesystem):
 
         if (not ignore_existing):
@@ -220,17 +220,18 @@ class BlockStorageFile(BlockStorageInterface):
                                         len(header_data),
                                         False))
                     f.write(header_data)
-                status_bar = tqdm.tqdm(total=block_count*block_size,
-                                       desc="Initializing File Block Storage Space",
-                                       unit="B",
-                                       unit_scale=True,
-                                       disable=not show_status_bar)
+                progress_bar = tqdm.tqdm(total=block_count*block_size,
+                                         desc="Initializing File Block Storage Space",
+                                         unit="B",
+                                         unit_scale=True,
+                                         disable=not pyoram.config.SHOW_PROGRESS_BAR)
                 for i in xrange(block_count):
                     block = initialize(i)
                     assert len(block) == block_size, \
                         ("%s != %s" % (len(block), block_size))
                     f.write(block)
-                    status_bar.update(n=block_size)
+                    progress_bar.update(n=block_size)
+                progress_bar.close()
         except:                                        # pragma: no cover
             _filesystem.remove(storage_name)           # pragma: no cover
             raise                                      # pragma: no cover
