@@ -13,7 +13,8 @@ try:
 except:                                                # pragma: no cover
     boto3_available = False                            # pragma: no cover
 
-from six.moves import map
+import six
+from six.moves import xrange, map
 
 class Boto3S3Wrapper(object):
     """
@@ -65,24 +66,48 @@ class Boto3S3Wrapper(object):
         key, block = key_block
         self._bucket.put_object(Key=key, Body=block)
 
+    # Chunk a streamed iterator of which we do not know
+    # the size
+    def _chunks(self, objs, n=100):
+        assert 1 <= n <= 1000 # required by boto3
+        objs = iter(objs)
+        try:
+            while (1):
+                chunk = []
+                while len(chunk) < n:
+                    chunk.append({'Key': six.next(objs).key})
+                yield {'Objects': chunk}
+        except StopIteration:
+            pass
+        if len(chunk):
+            yield {'Objects': chunk}
+
+    def _del(self, chunk):
+        self._bucket.delete_objects(Delete=chunk)
+        return len(chunk['Objects'])
+
     def clear(self, key, threadpool=None):
-        _del = lambda obj: \
-            self._s3.Object(self._bucket.name, obj.key).delete()
-        objs = list(self._bucket.objects.filter(Prefix=key+"/"))
+        objs = self._bucket.objects.filter(Prefix=key+"/")
         if threadpool is not None:
-            deliter = threadpool.imap(_del, objs)
+            deliter = threadpool.imap(self._del, self._chunks(objs))
         else:
-            deliter = map(_del, objs)
-        with tqdm.tqdm(total=len(objs),
+            deliter = map(self._del, self._chunks(objs))
+        with tqdm.tqdm(total=None, #len(objs),
                        desc="Clearing S3 Blocks",
+                       unit=" objects",
                        disable=not pyoram.config.SHOW_PROGRESS_BAR) as progress_bar:
-            for _ in deliter:
-                progress_bar.update()
+            progress_bar.update(n=0)
+            for chunksize in deliter:
+                progress_bar.update(n=chunksize)
 
 class MockBoto3S3Wrapper(object):
     """
-    A mock class for Boto3S3Wrapper that uses the local
-    filesystem and treats the bucket name as a directory.
+    A mock class for Boto3S3Wrapper that uses the local filesystem and
+    treats the bucket name as a directory.
+
+    This class is mainly used for testing, but could potentially be
+    used to setup storage locally that is then uploaded to S3 through
+    the AWS web portal.
     """
 
     def __init__(self,
