@@ -179,6 +179,10 @@ class PathORAM(EncryptedBlockStorageInterface):
         if write_block is None:
             return self._extract_virtual_block(block)
 
+    @property
+    def heap_storage(self):
+        return self._oram.storage_heap
+
     #
     # Define EncryptedBlockStorageInterface Methods
     #

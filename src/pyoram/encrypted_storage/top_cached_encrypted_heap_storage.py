@@ -59,7 +59,9 @@ class TopCachedEncryptedHeapStorage(EncryptedHeapStorageInterface):
     def __new__(cls, *args, **kwds):
         if kwds.get("cached_levels", 1) == 0:
             assert len(args) == 1
-            return args[0]
+            storage = args[0]
+            storage.cached_bucket_data = bytes()
+            return storage
         else:
             return super(TopCachedEncryptedHeapStorage, cls).\
                 __new__(cls)
