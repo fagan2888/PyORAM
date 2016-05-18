@@ -1,5 +1,7 @@
 import base64
 
+import six
+
 def log2floor(n):
     """
     Returns the exact value of floor(log2(n)).
@@ -95,3 +97,21 @@ class MemorySize(object):
     def GiB(self): return self.MiB/1024
     @property
     def TiB(self): return self.GiB/1024
+
+def chunkiter(objs, n=100):
+    """
+    Chunk an iterator of unknown size. The optional
+    keyword 'n' sets the chunk size (default 100).
+    """
+
+    objs = iter(objs)
+    try:
+        while (1):
+            chunk = []
+            while len(chunk) < n:
+                chunk.append(six.next(objs))
+            yield chunk
+    except StopIteration:
+        pass
+    if len(chunk):
+        yield chunk

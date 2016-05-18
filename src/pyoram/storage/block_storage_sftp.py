@@ -2,6 +2,7 @@ __all__ = ('BlockStorageSFTP',)
 
 import logging
 
+from pyoram.util.misc import chunkiter
 from pyoram.storage.block_storage import \
      BlockStorageTypeFactory
 from pyoram.storage.block_storage_file import \
@@ -99,7 +100,15 @@ class BlockStorageSFTP(BlockStorageFile):
                          self.block_size))
         return self._f.readv(args)
 
-    #def yield_blocks(...)
+    def yield_blocks(self, indices, chunksize=100):
+        for chunk in chunkiter(indices, n=chunksize):
+            assert all(0 <= i <= self.block_count for i in chunk)
+            self._bytes_received += self.block_size * len(chunk)
+            args = [(self._header_offset + i * self.block_size,
+                     self.block_size)
+                    for i in chunk]
+            for block in self._f.readv(args):
+                yield block
 
     #def read_block(...)
 

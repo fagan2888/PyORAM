@@ -102,5 +102,23 @@ class Test(unittest2.TestCase):
         finally:
             os.remove(filename)
 
+    def test_chunkiter(self):
+        self.assertEqual(list(pyoram.util.misc.chunkiter([1,2,3,4,5], 1)),
+                         [[1],[2],[3],[4],[5]])
+        self.assertEqual(list(pyoram.util.misc.chunkiter([1,2,3,4,5], 2)),
+                         [[1,2],[3,4],[5]])
+        self.assertEqual(list(pyoram.util.misc.chunkiter([1,2,3,4,5], 3)),
+                         [[1,2,3],[4,5]])
+        self.assertEqual(list(pyoram.util.misc.chunkiter([1,2,3,4,5], 4)),
+                         [[1,2,3,4],[5]])
+        self.assertEqual(list(pyoram.util.misc.chunkiter([1,2,3,4,5], 5)),
+                         [[1,2,3,4,5]])
+        self.assertEqual(list(pyoram.util.misc.chunkiter([1,2,3,4,5], 6)),
+                         [[1,2,3,4,5]])
+        self.assertEqual(list(pyoram.util.misc.chunkiter([], 1)),
+                         [])
+        self.assertEqual(list(pyoram.util.misc.chunkiter([], 2)),
+                         [])
+
 if __name__ == "__main__":
     unittest2.main()                                    # pragma: no cover
