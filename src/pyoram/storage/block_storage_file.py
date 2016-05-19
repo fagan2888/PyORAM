@@ -104,21 +104,23 @@ class BlockStorageFile(BlockStorageInterface):
                 return
             self._f.flush()
 
-    def _schedule_async_write(self, args):
+    def _schedule_async_write(self, args, callback=None):
         assert self._async_write is None
         if self._pool is not None:
             self._async_write = \
-                self._pool.apply_async(self._writev, (args,))
+                self._pool.apply_async(self._writev, (args, callback))
         else:
-            self._writev(args)
+            self._writev(args, callback)
 
     # This method is usually executed in another thread, so
     # do not attempt to handle exceptions because it will
     # not work.
-    def _writev(self, chunks):
+    def _writev(self, chunks, callback):
         for i, block in chunks:
             self._f.seek(self._header_offset + i * self.block_size)
             self._f.write(block)
+            if callback is not None:
+                callback(i)
 
     def _prep_for_close(self):
         self._check_async()
@@ -222,18 +224,17 @@ class BlockStorageFile(BlockStorageInterface):
                                         len(header_data),
                                         False))
                     f.write(header_data)
-                progress_bar = tqdm.tqdm(total=block_count*block_size,
-                                         desc="Initializing File Block Storage Space",
-                                         unit="B",
-                                         unit_scale=True,
-                                         disable=not pyoram.config.SHOW_PROGRESS_BAR)
-                for i in xrange(block_count):
-                    block = initialize(i)
-                    assert len(block) == block_size, \
-                        ("%s != %s" % (len(block), block_size))
-                    f.write(block)
-                    progress_bar.update(n=block_size)
-                progress_bar.close()
+                with tqdm.tqdm(total=block_count*block_size,
+                               desc="Initializing File Block Storage Space",
+                               unit="B",
+                               unit_scale=True,
+                               disable=not pyoram.config.SHOW_PROGRESS_BAR) as progress_bar:
+                    for i in xrange(block_count):
+                        block = initialize(i)
+                        assert len(block) == block_size, \
+                            ("%s != %s" % (len(block), block_size))
+                        f.write(block)
+                        progress_bar.update(n=block_size)
         except:                                        # pragma: no cover
             _filesystem.remove(storage_name)           # pragma: no cover
             raise                                      # pragma: no cover
@@ -304,7 +305,7 @@ class BlockStorageFile(BlockStorageInterface):
         self._f.seek(self._header_offset + i * self.block_size)
         return self._f.read(self.block_size)
 
-    def write_blocks(self, indices, blocks):
+    def write_blocks(self, indices, blocks, callback=None):
         self._check_async()
         chunks = []
         for i, block in zip(indices, blocks):
@@ -313,7 +314,7 @@ class BlockStorageFile(BlockStorageInterface):
                 ("%s != %s" % (len(block), self.block_size))
             self._bytes_sent += self.block_size
             chunks.append((i, block))
-        self._schedule_async_write(chunks)
+        self._schedule_async_write(chunks, callback=callback)
 
     def write_block(self, i, block):
         self._check_async()

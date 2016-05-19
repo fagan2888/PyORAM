@@ -42,13 +42,15 @@ class _BlockStorageMemoryImpl(object):
         pos_stop = pos_start + self.block_size
         return self._f[pos_start:pos_stop]
 
-    def write_blocks(self, indices, blocks):
+    def write_blocks(self, indices, blocks, callback=None):
         for i, block in zip(indices, blocks):
             assert 0 <= i < self.block_count
             self._bytes_sent += self.block_size
             pos_start = self._header_offset + i * self.block_size
             pos_stop = pos_start + self.block_size
             self._f[pos_start:pos_stop] = block
+            if callback is not None:
+                callback(i)
 
     def write_block(self, i, block):
         assert 0 <= i < self.block_count

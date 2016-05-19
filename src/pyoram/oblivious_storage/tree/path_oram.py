@@ -390,6 +390,7 @@ class PathORAM(EncryptedBlockStorageInterface):
             new_header_data)
 
     def close(self):
+        log.info("%s: Closing" % (self.__class__.__name__))
         if self._oram is not None:
             try:
                 stashdigest = \
@@ -414,8 +415,10 @@ class PathORAM(EncryptedBlockStorageInterface):
                     bytes(new_header_data) + self.header_data)
             except:                                                # pragma: no cover
                 log.error(                                         # pragma: no cover
-                    "Failed to update header data with "           # pragma: no cover
-                    "current stash and position map state")        # pragma: no cover
+                    "%s: Failed to update header data with "       # pragma: no cover
+                    "current stash and position map state"         # pragma: no cover
+                    % (self.__class__.__name__))                   # pragma: no cover
+                raise
             finally:
                 self._oram.storage_heap.close()
 

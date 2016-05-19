@@ -276,25 +276,26 @@ class EncryptedBlockStorage(EncryptedBlockStorageInterface):
             self._key,
             self._storage.read_block(i))
 
-    def read_blocks(self, indices):
+    def read_blocks(self, indices, *args, **kwds):
         return [self._decrypt_block_func(self._key, b)
-                for b in self._storage.read_blocks(indices)]
+                for b in self._storage.read_blocks(indices, *args, **kwds)]
 
-    def yield_blocks(self, indices):
-        for b in self._storage.yield_blocks(indices):
+    def yield_blocks(self, indices, *args, **kwds):
+        for b in self._storage.yield_blocks(indices, *args, **kwds):
             yield self._decrypt_block_func(self._key, b)
 
-    def write_block(self, i, block):
+    def write_block(self, i, block, *args, **kwds):
         self._storage.write_block(
             i,
-            self._encrypt_block_func(self._key, block))
+            self._encrypt_block_func(self._key, block),
+            *args, **kwds)
 
-    def write_blocks(self, indices, blocks):
+    def write_blocks(self, indices, blocks, *args, **kwds):
         enc_blocks = []
         for i, b in zip(indices, blocks):
             enc_blocks.append(
                 self._encrypt_block_func(self._key, b))
-        self._storage.write_blocks(indices, enc_blocks)
+        self._storage.write_blocks(indices, enc_blocks, *args, **kwds)
 
     @property
     def bytes_sent(self):

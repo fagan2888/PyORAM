@@ -48,6 +48,7 @@ class BlockStorageS3(BlockStorageInterface):
         self._s3 = None
         self._ignore_lock = ignore_lock
         self._async_write = None
+        self._async_write_callback = None
 
         if bucket_name is None:
             raise ValueError("'bucket_name' keyword is required")
@@ -92,19 +93,23 @@ class BlockStorageS3(BlockStorageInterface):
     def _check_async(self):
         if self._async_write is not None:
             for i in self._async_write:
-                pass
+                if self._async_write_callback is not None:
+                    self._async_write_callback(i)
             self._async_write = None
+            self._async_write_callback = None
 
-    def _schedule_async_write(self, arglist):
+    def _schedule_async_write(self, arglist, callback=None):
         assert self._async_write is None
         if self._pool is not None:
             self._async_write = \
                 self._pool.imap_unordered(self._s3.upload, arglist)
+            self._async_write_callback = callback
         else:
             # Note: we are using six.map which always
             #       behaves like imap
-            for _ in map(self._s3.upload, arglist):
-                pass
+            for i in map(self._s3.upload, arglist):
+                if callback is not None:
+                    callback(i)
 
     def _download(self, i):
         return self._s3.download(self._basename % i)
@@ -363,7 +368,7 @@ class BlockStorageS3(BlockStorageInterface):
         self._bytes_received += self.block_size
         return self._download(i)
 
-    def write_blocks(self, indices, blocks):
+    def write_blocks(self, indices, blocks, callback=None):
         self._check_async()
         # be sure not to exhaust this if it is an iterator
         # or generator
@@ -371,7 +376,8 @@ class BlockStorageS3(BlockStorageInterface):
         assert all(0 <= i <= self.block_count for i in indices)
         self._bytes_sent += self.block_size * len(indices)
         indices = (self._basename % i for i in indices)
-        self._schedule_async_write(zip(indices, blocks))
+        self._schedule_async_write(zip(indices, blocks),
+                                   callback=callback)
 
     def write_block(self, i, block):
         self._check_async()

@@ -109,6 +109,8 @@ class TopCachedEncryptedHeapStorage(EncryptedHeapStorageInterface):
         self._cached_buckets_mmap = mmap.mmap(
             self._cached_buckets_tempfile.fileno(), 0)
 
+        log.info("%s: Cloning %s sub-heap devices"
+                 % (self.__class__.__name__, vheap.bucket_count_at_level(concurrency_level)))
         # Avoid cloning devices when the cache line is at the root
         # bucket or when the entire heap is cached
         if (concurrency_level > 0) and \
@@ -119,9 +121,10 @@ class TopCachedEncryptedHeapStorage(EncryptedHeapStorageInterface):
                     self._concurrent_devices[b] = self._root_device.clone_device()
                 except:                                # pragma: no cover
                     log.error(                         # pragma: no cover
-                        "Exception encountered while " # pragma: no cover
-                        "cloning device. Closing "     # pragma: no cover
-                        "storage.")                    # pragma: no cover
+                        "%s: Exception encountered "   # pragma: no cover
+                        "while cloning device. "       # pragma: no cover
+                        "Closing storage."             # pragma: no cover
+                        % (self.__class__.__name__))   # pragma: no cover
                     self.close()                       # pragma: no cover
                     raise                              # pragma: no cover
 
@@ -207,18 +210,31 @@ class TopCachedEncryptedHeapStorage(EncryptedHeapStorageInterface):
         self._root_device.update_header_data(new_header_data)
 
     def close(self):
-        log.info("Uploading cached bucket data before closing")
-        self.bucket_storage.\
-            write_blocks(
-                xrange(self._cached_bucket_count),
-                (self._cached_buckets_mmap[(b*self.bucket_size):
-                                           ((b+1)*self.bucket_size)]
-                 for b in xrange(self._cached_bucket_count)))
+        log.info("%s: Uploading %s cached bucket data before closing"
+                 % (self.__class__.__name__, self._cached_bucket_count))
+        with tqdm.tqdm(desc=("Uploading %s Cached Heap Buckets"
+                             % (self._cached_bucket_count)),
+                       total=self._cached_bucket_count*self.bucket_size,
+                       unit="B",
+                       unit_scale=True,
+                       disable=not pyoram.config.SHOW_PROGRESS_BAR) as progress_bar:
+            self.bucket_storage.\
+                write_blocks(
+                    xrange(self._cached_bucket_count),
+                    (self._cached_buckets_mmap[(b*self.bucket_size):
+                                               ((b+1)*self.bucket_size)]
+                     for b in xrange(self._cached_bucket_count)),
+                    callback=lambda i: progress_bar.update(self._root_device.bucket_size))
+            self._root_device.close()
+            for b in self._concurrent_devices:
+                self._concurrent_devices[b].close()
+            # forces the bar to become full at close
+            # even if te write_blocks action was faster
+            # the the mininterval time
+            progress_bar.mininterval = 0
+
         self._cached_buckets_mmap.close()
         self._cached_buckets_tempfile.close()
-        for b in self._concurrent_devices:
-            self._concurrent_devices[b].close()
-        self._root_device.close()
 
     def read_path(self, b, level_start=0):
         assert 0 <= b < self.virtual_heap.bucket_count()
