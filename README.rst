@@ -235,6 +235,6 @@ There are two options for avoiding this error:
    :code:`concurrency_level` keyword. For example, the
    settings :code:`cached_levels=5` and
    :code:`concurrency_level=0` would cache the top 5 levels
-   of the storage heap in RAM, but all I/O operations would
-   take place through a single storage device (e.g., using 1
-   SFTP session).
+   of the storage heap locally, but all external I/O
+   operations would take place through a single storage
+   device (e.g., using 1 SFTP session).
