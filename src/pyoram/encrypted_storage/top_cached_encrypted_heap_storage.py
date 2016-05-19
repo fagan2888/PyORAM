@@ -225,9 +225,9 @@ class TopCachedEncryptedHeapStorage(EncryptedHeapStorageInterface):
                                                ((b+1)*self.bucket_size)]
                      for b in xrange(self._cached_bucket_count)),
                     callback=lambda i: progress_bar.update(self._root_device.bucket_size))
-            self._root_device.close()
             for b in self._concurrent_devices:
                 self._concurrent_devices[b].close()
+            self._root_device.close()
             # forces the bar to become full at close
             # even if te write_blocks action was faster
             # the the mininterval time
