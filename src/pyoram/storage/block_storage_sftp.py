@@ -29,6 +29,7 @@ class BlockStorageSFTP(BlockStorageFile):
             _filesystem=sshclient.open_sftp(),
             **kwds)
         self._sshclient = sshclient
+        self._f.set_pipelined()
 
     #
     # Define BlockStorageInterface Methods

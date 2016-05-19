@@ -831,6 +831,8 @@ class _dummy_sftp_file(object):
         return data
     def __getattr__(self, key):
         return getattr(self._f, key)
+    def set_pipelined(self):
+        pass
 
 class dummy_sftp(object):
     remove = os.remove
