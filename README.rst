@@ -29,6 +29,11 @@ This software is copyright (c) by Gabriel A. Hackebeil (gabe.hackebeil@gmail.com
 This software is released under the MIT software license.
 This license, including disclaimer, is available in the 'LICENSE' file.
 
+This work was funded by the Privacy Enhancing Technologies
+project under the guidance of Professor `Attila Yavuz
+<https://web.engr.oregonstate.edu/~yavuza>`_ at Oregon State
+University.
+
 Why Python?
 -----------
 
