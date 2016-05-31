@@ -116,6 +116,8 @@ Encrypted block storage
 
   - local storage using a file, a memory-mapped file, or RAM
 
+    + Dropbox
+
   - cloud storage using SFTP (requires SSH access to a server)
 
     + Amazon EC2
