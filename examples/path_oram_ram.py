@@ -1,7 +1,6 @@
 #
 # This example measures the performance of Path ORAM
-# when storage is accessed through a local memory-mapped
-# file (mmap).
+# when storage is accessed through RAM.
 #
 
 import os
