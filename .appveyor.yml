@@ -1,4 +1,5 @@
 environment:
+
   matrix:
     - PYTHON: "C:\\Python27"
     - PYTHON: "C:\\Python34"
@@ -7,13 +8,17 @@ environment:
     - PYTHON: "C:\\Python27-x64"
     - PYTHON: "C:\\Python35-x64"
     - PYTHON: "C:\\Python36-x64"
+
 install:
   - "SET PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%"
   - "%PYTHON%\\python.exe -m pip install -v -U pip setuptools"
   - "%PYTHON%\\python.exe -m pip install -v -e ."
   - "%PYTHON%\\python.exe -m pip install -U unittest2 nose2 cov-core codecov coverage"
+
 build: none
+
 test_script:
   - "%PYTHON%\\python.exe -m nose2 -v --log-capture --with-coverage --coverage src --coverage examples -s src"
+
 on_success:
   - "%PYTHON%\\Scripts\\codecov.exe"
