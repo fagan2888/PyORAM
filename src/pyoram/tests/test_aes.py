@@ -5,8 +5,8 @@ from pyoram.crypto.aes import AES
 class TestAES(unittest2.TestCase):
 
     def test_KeyGen(self):
-        self.assertEqual(len(AES.key_sizes), 3)
-        self.assertEqual(len(set(AES.key_sizes)), 3)
+        self.assertTrue(len(AES.key_sizes) in (3,4))
+        self.assertTrue(len(set(AES.key_sizes)) in (3,4))
         for keysize in AES.key_sizes:
             key_list = []
             key_set = set()
@@ -23,18 +23,23 @@ class TestAES(unittest2.TestCase):
         self._test_Enc_Dec(
             AES.CTREnc,
             AES.CTRDec,
-            lambda i, size: bytes(bytearray([i]) * size))
+            lambda i, size: bytes(bytearray([i]) * size),
+            [16,24,32])
 
     def test_GCM(self):
         self._test_Enc_Dec(
             AES.GCMEnc,
             AES.GCMDec,
-            lambda i, size: bytes(bytearray([i]) * size))
+            lambda i, size: bytes(bytearray([i]) * size),
+            [16,24,32])
 
     def _test_Enc_Dec(self,
                       enc_func,
                       dec_func,
-                      get_plaintext):
+                      get_plaintext,
+                      keysizes):
+        keysizes = list(keysizes)
+        self.assertTrue(len(keysizes) > 0)
         blocksize_factor = [0.5, 1, 1.5, 2, 2.5]
         plaintext_blocks = []
         for i, f in enumerate(blocksize_factor):
@@ -47,7 +52,7 @@ class TestAES(unittest2.TestCase):
         assert len(AES.key_sizes) > 0
         ciphertext_blocks = {}
         keys = {}
-        for keysize in AES.key_sizes:
+        for keysize in keysizes:
             key = AES.KeyGen(keysize)
             keys[keysize] = key
             ciphertext_blocks[keysize] = []
@@ -56,9 +61,9 @@ class TestAES(unittest2.TestCase):
                     enc_func(key, block))
 
         self.assertEqual(len(ciphertext_blocks),
-                         len(AES.key_sizes))
+                         len(keysizes))
         self.assertEqual(len(keys),
-                         len(AES.key_sizes))
+                         len(keysizes))
 
         plaintext_decrypted_blocks = {}
         for keysize in keys:
@@ -69,10 +74,10 @@ class TestAES(unittest2.TestCase):
                     dec_func(key, block))
 
         self.assertEqual(len(plaintext_decrypted_blocks),
-                         len(AES.key_sizes))
+                         len(keysizes))
 
         for i in range(len(blocksize_factor)):
-            for keysize in AES.key_sizes:
+            for keysize in keysizes:
                 self.assertEqual(
                     plaintext_blocks[i],
                     plaintext_decrypted_blocks[keysize][i])

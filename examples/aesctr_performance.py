@@ -8,7 +8,7 @@ def runtest(label, enc_func, dec_func):
     print("$"*20)
     print("{0:^20}".format(label))
     print("$"*20)
-    for keysize in AES.key_sizes:
+    for keysize in AES.key_sizes[:3]:
         print("")
         print("@@@@@@@@@@@@@@@@@@@@")
         print(" Key Size: %s bytes" % (keysize))

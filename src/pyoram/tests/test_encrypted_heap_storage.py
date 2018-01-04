@@ -41,7 +41,7 @@ class TestEncryptedHeapStorage(unittest2.TestCase):
             cls._testfname,
             block_size=cls._block_size,
             heap_height=cls._heap_height,
-            key_size=AES.key_sizes[-1],
+            key_size=AES.key_sizes[0],
             heap_base=cls._heap_base,
             blocks_per_bucket=cls._blocks_per_bucket,
             storage_type=cls._type_name,
@@ -77,7 +77,7 @@ class TestEncryptedHeapStorage(unittest2.TestCase):
                              "exists.empty"),
                 block_size=10,
                 heap_height=1,
-                key_size=AES.key_sizes[-1],
+                key_size=AES.key_sizes[0],
                 blocks_per_bucket=1,
                 storage_type=self._type_name)
         self.assertEqual(os.path.exists(self._dummy_name), False)
@@ -88,7 +88,7 @@ class TestEncryptedHeapStorage(unittest2.TestCase):
                              "exists.empty"),
                 block_size=10,
                 heap_height=1,
-                key_size=AES.key_sizes[-1],
+                key_size=AES.key_sizes[0],
                 blocks_per_bucket=1,
                 storage_type=self._type_name,
                 ignore_existing=False)
@@ -99,7 +99,7 @@ class TestEncryptedHeapStorage(unittest2.TestCase):
                 self._dummy_name,
                 block_size=0,
                 heap_height=1,
-                key_size=AES.key_sizes[-1],
+                key_size=AES.key_sizes[0],
                 blocks_per_bucket=1,
                 storage_type=self._type_name)
         self.assertEqual(os.path.exists(self._dummy_name), False)
@@ -118,7 +118,7 @@ class TestEncryptedHeapStorage(unittest2.TestCase):
                 self._dummy_name,
                 block_size=1,
                 heap_height=1,
-                key_size=AES.key_sizes[-1],
+                key_size=AES.key_sizes[0],
                 blocks_per_bucket=0,
                 storage_type=self._type_name)
         self.assertEqual(os.path.exists(self._dummy_name), False)
@@ -128,7 +128,7 @@ class TestEncryptedHeapStorage(unittest2.TestCase):
                 self._dummy_name,
                 block_size=1,
                 heap_height=1,
-                key_size=AES.key_sizes[-1],
+                key_size=AES.key_sizes[0],
                 blocks_per_bucket=1,
                 heap_base=1,
                 storage_type=self._type_name)
@@ -139,7 +139,7 @@ class TestEncryptedHeapStorage(unittest2.TestCase):
                 self._dummy_name,
                 block_size=1,
                 heap_height=1,
-                key_size=AES.key_sizes[-1],
+                key_size=AES.key_sizes[0],
                 blocks_per_bucket=1,
                 storage_type=self._type_name,
                 header_data=2)
@@ -150,7 +150,7 @@ class TestEncryptedHeapStorage(unittest2.TestCase):
                 self._dummy_name,
                 block_size=1,
                 heap_height=1,
-                key_size=AES.key_sizes[-1],
+                key_size=AES.key_sizes[0],
                 blocks_per_bucket=1,
                 block_count=1,
                 storage_type=self._type_name)
@@ -169,7 +169,7 @@ class TestEncryptedHeapStorage(unittest2.TestCase):
             fname,
             bsize,
             heap_height,
-            key_size=AES.key_sizes[-1],
+            key_size=AES.key_sizes[0],
             blocks_per_bucket=blocks_per_bucket)
         fsetup.close()
         self.assertEqual(type(fsetup.raw_storage),
@@ -227,7 +227,7 @@ class TestEncryptedHeapStorage(unittest2.TestCase):
             fname,
             bsize,
             heap_height,
-            key_size=AES.key_sizes[-1],
+            key_size=AES.key_sizes[0],
             blocks_per_bucket=blocks_per_bucket,
             header_data=header_data)
         fsetup.close()
@@ -418,7 +418,7 @@ class TestEncryptedHeapStorage(unittest2.TestCase):
             fname,
             block_size=bsize,
             heap_height=heap_height,
-            key_size=AES.key_sizes[-1],
+            key_size=AES.key_sizes[0],
             blocks_per_bucket=blocks_per_bucket,
             header_data=header_data)
         fsetup.close()

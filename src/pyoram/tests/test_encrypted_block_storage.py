@@ -154,8 +154,8 @@ class _TestEncryptedBlockStorage(object):
                 self._dummy_name,
                 block_size=1,
                 block_count=1,
-                key=AES.KeyGen(AES.key_sizes[-1]),
-                key_size=AES.key_sizes[-1],
+                key=AES.KeyGen(AES.key_sizes[0]),
+                key_size=AES.key_sizes[0],
                 aes_mode=self._aes_mode,
                 storage_type=self._type_name)
         self.assertEqual(os.path.exists(self._dummy_name), False)
@@ -164,7 +164,7 @@ class _TestEncryptedBlockStorage(object):
                 self._dummy_name,
                 block_size=1,
                 block_count=1,
-                key=os.urandom(AES.key_sizes[-1]+100),
+                key=os.urandom(AES.key_sizes[0]+100),
                 aes_mode=self._aes_mode,
                 storage_type=self._type_name)
 
@@ -804,11 +804,13 @@ class TestEncryptedBlockStorageMMapFileGCMKey(_TestEncryptedBlockStorage,
                                               unittest2.TestCase):
     _type_name = 'mmap'
     _aes_mode = 'gcm'
+    _test_key = AES.KeyGen(32)
 
 class TestEncryptedBlockStorageMMapFileGCM32(_TestEncryptedBlockStorage,
                                              unittest2.TestCase):
     _type_name = 'mmap'
     _aes_mode = 'gcm'
+    _test_key_size = 32
 
 if __name__ == "__main__":
     unittest2.main()                                    # pragma: no cover

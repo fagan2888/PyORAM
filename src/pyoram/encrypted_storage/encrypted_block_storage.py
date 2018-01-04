@@ -153,7 +153,7 @@ class EncryptedBlockStorage(EncryptedBlockStorageInterface):
                 "be specified at a time")
         if key is None:
             if key_size is None:
-                key_size = AES.key_sizes[-1]
+                key_size = 32
             if key_size not in AES.key_sizes:
                 raise ValueError(
                     "Invalid key size: %s" % (key_size))
