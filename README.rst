@@ -19,7 +19,7 @@ serves to enable rapid prototyping and testing of new ORAM
 algorithms and ORAM-based applications tailored for the
 cloud-storage setting. PyORAM is written to support as many
 Python versions as possible, including Python 2.7+, Python
-3.3+, and PyPy 2.6+.
+3.4+, and PyPy 2.6+.
 
 This software is copyright (c) by Gabriel A. Hackebeil (gabe.hackebeil@gmail.com).
 
