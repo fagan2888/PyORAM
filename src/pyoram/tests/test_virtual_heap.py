@@ -24,7 +24,7 @@ baselinedir = os.path.join(thisdir, "baselines")
 try:
     has_dot = not subprocess.call(['dot','-?'],
                                   stdout=subprocess.PIPE)
-except:
+except:                                                # pragma: no cover
     has_dot = False
 
 _test_bases = list(xrange(2, 15)) + [max_k_labeled+1]

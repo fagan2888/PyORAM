@@ -465,6 +465,7 @@ class _TestPathORAMBase(object):
                               key=self._key,
                               storage_type=self._type_name,
                               **self._kwds) as f:
+                    self.assertIs(f.heap_storage, fb)
                     pass                               # pragma: no cover
         with PathORAM(self._testfname,
                       self._stash,
