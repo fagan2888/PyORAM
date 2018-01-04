@@ -20,7 +20,7 @@ class Test(unittest2.TestCase):
                 if sys.version_info.minor == 7:
                     print(sys.version_info)
             elif sys.version_info.major == 3:
-                elif sys.version_info.minor == 4:
+                if sys.version_info.minor == 4:
                     print(sys.version_info)
                 elif sys.version_info.minor == 5:
                     print(sys.version_info)
