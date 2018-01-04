@@ -4,6 +4,11 @@ Changelog
 0.3.0 - `master`_
 ~~~~~~~~~~~~~~~~~
 
+0.2.1 - 2018-01-04
+~~~~~~~~~~~~~~~~~~
+
+* fixes to support latest version of cryptography
+
 0.2.0 - 2016-10-18
 ~~~~~~~~~~~~~~~~~~
 
