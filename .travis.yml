@@ -9,6 +9,7 @@ matrix:
   - python: 3.5
   - python: 3.6
   - python: pypy
+  - python: pypy3
 cache: false
 before_install:
   - sudo apt-get update -q
