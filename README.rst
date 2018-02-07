@@ -63,7 +63,7 @@ Next, enter the directory where PyORAM has been cloned and run setup::
 If you are a developer, you should instead install using::
 
   $ pip install -e .
-  $ pip install nose2 unittest2
+  $ pip install nose2 unittest
 
 Installation Tips
 -----------------

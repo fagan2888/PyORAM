@@ -68,5 +68,5 @@ setup(
     # use MANIFEST.in
     include_package_data=True,
     test_suite='nose2.collector.collector',
-    tests_require=['unittest2','nose2']
+    tests_require=['unittest','nose2']
 )

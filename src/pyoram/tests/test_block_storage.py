@@ -1,6 +1,6 @@
 import os
 import shutil
-import unittest2
+import unittest
 import tempfile
 import struct
 
@@ -32,7 +32,7 @@ try:
 except:                                                # pragma: no cover
     has_boto3 = False                                  # pragma: no cover
 
-class TestBlockStorageTypeFactory(unittest2.TestCase):
+class TestBlockStorageTypeFactory(unittest.TestCase):
 
     def test_file(self):
         self.assertIs(BlockStorageTypeFactory('file'),
@@ -672,22 +672,22 @@ class _TestBlockStorage(object):
             self.assertEqual(forig.bytes_received, 0)
 
 class TestBlockStorageFile(_TestBlockStorage,
-                           unittest2.TestCase):
+                           unittest.TestCase):
     _type = BlockStorageFile
     _type_kwds = {}
 
 class TestBlockStorageFileNoThreadPool(_TestBlockStorage,
-                                       unittest2.TestCase):
+                                       unittest.TestCase):
     _type = BlockStorageFile
     _type_kwds = {'threadpool_size': 0}
 
 class TestBlockStorageFileThreadPool(_TestBlockStorage,
-                                     unittest2.TestCase):
+                                     unittest.TestCase):
     _type = BlockStorageFile
     _type_kwds = {'threadpool_size': 1}
 
 class TestBlockStorageMMap(_TestBlockStorage,
-                           unittest2.TestCase):
+                           unittest.TestCase):
     _type = BlockStorageMMap
     _type_kwds = {}
 
@@ -812,7 +812,7 @@ class _TestBlockStorageRAM(_TestBlockStorage):
         self.assertNotEqual(self._original_f.data, in2.data)
 
 class TestBlockStorageRAM(_TestBlockStorageRAM,
-                          unittest2.TestCase):
+                          unittest.TestCase):
     _type = BlockStorageRAM
     _type_kwds = {}
 
@@ -850,7 +850,7 @@ class dummy_sshclient(object):
         return dummy_sftp
 
 class TestBlockStorageSFTP(_TestBlockStorage,
-                           unittest2.TestCase):
+                           unittest.TestCase):
     _type = BlockStorageSFTP
     _type_kwds = {'sshclient': dummy_sshclient}
 
@@ -957,28 +957,28 @@ class _TestBlockStorageS3Mock(_TestBlockStorage):
         self._remove_storage(self._dummy_name)
 
 class TestBlockStorageS3Mock(_TestBlockStorageS3Mock,
-                             unittest2.TestCase):
+                             unittest.TestCase):
     _type_kwds = {'s3_wrapper': MockBoto3S3Wrapper,
                   'bucket_name': '.'}
 
 class TestBlockStorageS3MockNoThreadPool(_TestBlockStorageS3Mock,
-                             unittest2.TestCase):
+                             unittest.TestCase):
     _type_kwds = {'s3_wrapper': MockBoto3S3Wrapper,
                   'bucket_name': '.',
                   'threadpool_size': 0}
 
 class TestBlockStorageS3MockThreadPool(_TestBlockStorageS3Mock,
-                                       unittest2.TestCase):
+                                       unittest.TestCase):
     _type_kwds = {'s3_wrapper': MockBoto3S3Wrapper,
                   'bucket_name': '.',
                   'threadpool_size': 4}
 
-@unittest2.skipIf((os.environ.get('PYORAM_AWS_TEST_BUCKET') is None) or \
+@unittest.skipIf((os.environ.get('PYORAM_AWS_TEST_BUCKET') is None) or \
                  (not has_boto3),
                  "No PYORAM_AWS_TEST_BUCKET defined in environment or "
                  "boto3 is not available")
 class TestBlockStorageS3(_TestBlockStorage,
-                         unittest2.TestCase):
+                         unittest.TestCase):
     _type = BlockStorageS3
     _type_kwds = {'bucket_name': os.environ.get('PYORAM_AWS_TEST_BUCKET')}
 
@@ -1020,4 +1020,4 @@ class TestBlockStorageS3(_TestBlockStorage,
         return name
 
 if __name__ == "__main__":
-    unittest2.main()                                    # pragma: no cover
+    unittest.main()                                    # pragma: no cover

@@ -1,5 +1,5 @@
 import os
-import unittest2
+import unittest
 import tempfile
 import random
 
@@ -569,7 +569,7 @@ class _TestTopCachedEncryptedHeapStorage(object):
 
 class TestTopCachedEncryptedHeapStorageCacheMMapDefault(
         _TestTopCachedEncryptedHeapStorage,
-        unittest2.TestCase):
+        unittest.TestCase):
     _init_kwds = {}
     _storage_type = 'mmap'
     _heap_base = 2
@@ -577,7 +577,7 @@ class TestTopCachedEncryptedHeapStorageCacheMMapDefault(
 
 class TestTopCachedEncryptedHeapStorageMMapCache1(
         _TestTopCachedEncryptedHeapStorage,
-        unittest2.TestCase):
+        unittest.TestCase):
     _init_kwds = {'cached_levels': 1}
     _storage_type = 'mmap'
     _heap_base = 2
@@ -585,7 +585,7 @@ class TestTopCachedEncryptedHeapStorageMMapCache1(
 
 class TestTopCachedEncryptedHeapStorageMMapCache2(
         _TestTopCachedEncryptedHeapStorage,
-        unittest2.TestCase):
+        unittest.TestCase):
     _init_kwds = {'cached_levels': 2}
     _storage_type = 'mmap'
     _heap_base = 2
@@ -593,7 +593,7 @@ class TestTopCachedEncryptedHeapStorageMMapCache2(
 
 class TestTopCachedEncryptedHeapStorageMMapCache3(
         _TestTopCachedEncryptedHeapStorage,
-        unittest2.TestCase):
+        unittest.TestCase):
     _init_kwds = {'cached_levels': 3}
     _storage_type = 'mmap'
     _heap_base = 2
@@ -601,7 +601,7 @@ class TestTopCachedEncryptedHeapStorageMMapCache3(
 
 class TestTopCachedEncryptedHeapStorageMMapCache4(
         _TestTopCachedEncryptedHeapStorage,
-        unittest2.TestCase):
+        unittest.TestCase):
     _init_kwds = {'cached_levels': 4}
     _storage_type = 'mmap'
     _heap_base = 2
@@ -609,7 +609,7 @@ class TestTopCachedEncryptedHeapStorageMMapCache4(
 
 class TestTopCachedEncryptedHeapStorageMMapCache5(
         _TestTopCachedEncryptedHeapStorage,
-        unittest2.TestCase):
+        unittest.TestCase):
     _init_kwds = {'cached_levels': 5}
     _storage_type = 'mmap'
     _heap_base = 2
@@ -617,7 +617,7 @@ class TestTopCachedEncryptedHeapStorageMMapCache5(
 
 class TestTopCachedEncryptedHeapStorageCacheFileDefault(
         _TestTopCachedEncryptedHeapStorage,
-        unittest2.TestCase):
+        unittest.TestCase):
     _init_kwds = {}
     _storage_type = 'file'
     _heap_base = 2
@@ -625,7 +625,7 @@ class TestTopCachedEncryptedHeapStorageCacheFileDefault(
 
 class TestTopCachedEncryptedHeapStorageFileCache1(
         _TestTopCachedEncryptedHeapStorage,
-        unittest2.TestCase):
+        unittest.TestCase):
     _init_kwds = {'cached_levels': 1}
     _storage_type = 'file'
     _heap_base = 2
@@ -633,7 +633,7 @@ class TestTopCachedEncryptedHeapStorageFileCache1(
 
 class TestTopCachedEncryptedHeapStorageFileCache2(
         _TestTopCachedEncryptedHeapStorage,
-        unittest2.TestCase):
+        unittest.TestCase):
     _init_kwds = {'cached_levels': 2}
     _storage_type = 'file'
     _heap_base = 2
@@ -641,7 +641,7 @@ class TestTopCachedEncryptedHeapStorageFileCache2(
 
 class TestTopCachedEncryptedHeapStorageFileCache3(
         _TestTopCachedEncryptedHeapStorage,
-        unittest2.TestCase):
+        unittest.TestCase):
     _init_kwds = {'cached_levels': 3}
     _storage_type = 'file'
     _heap_base = 2
@@ -649,7 +649,7 @@ class TestTopCachedEncryptedHeapStorageFileCache3(
 
 class TestTopCachedEncryptedHeapStorageFileCache4(
         _TestTopCachedEncryptedHeapStorage,
-        unittest2.TestCase):
+        unittest.TestCase):
     _init_kwds = {'cached_levels': 4}
     _storage_type = 'file'
     _heap_base = 2
@@ -657,7 +657,7 @@ class TestTopCachedEncryptedHeapStorageFileCache4(
 
 class TestTopCachedEncryptedHeapStorageFileCache5(
         _TestTopCachedEncryptedHeapStorage,
-        unittest2.TestCase):
+        unittest.TestCase):
     _init_kwds = {'cached_levels': 5}
     _storage_type = 'file'
     _heap_base = 2
@@ -665,7 +665,7 @@ class TestTopCachedEncryptedHeapStorageFileCache5(
 
 class TestTopCachedEncryptedHeapStorageFileCacheBigConcurrency0(
         _TestTopCachedEncryptedHeapStorage,
-        unittest2.TestCase):
+        unittest.TestCase):
     _init_kwds = {'cached_levels': 20,
                   'concurrency_level': 0}
     _storage_type = 'file'
@@ -674,7 +674,7 @@ class TestTopCachedEncryptedHeapStorageFileCacheBigConcurrency0(
 
 class TestTopCachedEncryptedHeapStorageFileCache6Concurrency1(
         _TestTopCachedEncryptedHeapStorage,
-        unittest2.TestCase):
+        unittest.TestCase):
     _init_kwds = {'cached_levels': 6,
                   'concurrency_level': 1}
     _storage_type = 'file'
@@ -683,7 +683,7 @@ class TestTopCachedEncryptedHeapStorageFileCache6Concurrency1(
 
 class TestTopCachedEncryptedHeapStorageFileCache3ConcurrencyBig(
         _TestTopCachedEncryptedHeapStorage,
-        unittest2.TestCase):
+        unittest.TestCase):
     _init_kwds = {'cached_levels': 3,
                   'concurrency_level': 20}
     _storage_type = 'file'
@@ -692,7 +692,7 @@ class TestTopCachedEncryptedHeapStorageFileCache3ConcurrencyBig(
 
 class TestTopCachedEncryptedHeapStorageFileCache3Concurrency1Base3(
         _TestTopCachedEncryptedHeapStorage,
-        unittest2.TestCase):
+        unittest.TestCase):
     _init_kwds = {'cached_levels': 3,
                   'concurrency_level': 3}
     _storage_type = 'file'
@@ -701,11 +701,11 @@ class TestTopCachedEncryptedHeapStorageFileCache3Concurrency1Base3(
 
 class TestTopCachedEncryptedHeapStorageFileCacheAll(
         _TestTopCachedEncryptedHeapStorage,
-        unittest2.TestCase):
+        unittest.TestCase):
     _init_kwds = {'cached_levels': -1}
     _storage_type = 'file'
     _heap_base = 2
     _heap_height = 3
 
 if __name__ == "__main__":
-    unittest2.main()                                    # pragma: no cover
+    unittest.main()                                    # pragma: no cover

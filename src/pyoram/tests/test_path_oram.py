@@ -1,5 +1,5 @@
 import os
-import unittest2
+import unittest
 import tempfile
 
 from pyoram.oblivious_storage.tree.path_oram import \
@@ -767,7 +767,7 @@ class _TestPathORAMBase(object):
             pass
 
 class TestPathORAMB2Z1(_TestPathORAMBase,
-                       unittest2.TestCase):
+                       unittest.TestCase):
     _type_name = 'file'
     _aes_mode = 'ctr'
     _bucket_capacity = 1
@@ -775,7 +775,7 @@ class TestPathORAMB2Z1(_TestPathORAMBase,
     _kwds = {'cached_levels': 0}
 
 class TestPathORAMB2Z2(_TestPathORAMBase,
-                       unittest2.TestCase):
+                       unittest.TestCase):
     _type_name = 'mmap'
     _aes_mode = 'gcm'
     _bucket_capacity = 2
@@ -783,7 +783,7 @@ class TestPathORAMB2Z2(_TestPathORAMBase,
     _kwds = {'cached_levels': 0}
 
 class TestPathORAMB2Z3(_TestPathORAMBase,
-                       unittest2.TestCase):
+                       unittest.TestCase):
     _type_name = 'mmap'
     _aes_mode = 'ctr'
     _bucket_capacity = 3
@@ -791,7 +791,7 @@ class TestPathORAMB2Z3(_TestPathORAMBase,
     _kwds = {'cached_levels': 1}
 
 class TestPathORAMB2Z4(_TestPathORAMBase,
-                       unittest2.TestCase):
+                       unittest.TestCase):
     _type_name = 'file'
     _aes_mode = 'gcm'
     _bucket_capacity = 4
@@ -799,7 +799,7 @@ class TestPathORAMB2Z4(_TestPathORAMBase,
     _kwds = {'cached_levels': 1}
 
 class TestPathORAMB2Z5(_TestPathORAMBase,
-                       unittest2.TestCase):
+                       unittest.TestCase):
     _type_name = 'file'
     _aes_mode = 'ctr'
     _bucket_capacity = 5
@@ -808,7 +808,7 @@ class TestPathORAMB2Z5(_TestPathORAMBase,
              'concurrency_level': 0}
 
 class TestPathORAMB3Z1(_TestPathORAMBase,
-                       unittest2.TestCase):
+                       unittest.TestCase):
     _type_name = 'file'
     _aes_mode = 'ctr'
     _bucket_capacity = 1
@@ -817,7 +817,7 @@ class TestPathORAMB3Z1(_TestPathORAMBase,
              'concurrency_level': 1}
 
 class TestPathORAMB3Z2(_TestPathORAMBase,
-                       unittest2.TestCase):
+                       unittest.TestCase):
     _type_name = 'mmap'
     _aes_mode = 'gcm'
     _bucket_capacity = 2
@@ -825,7 +825,7 @@ class TestPathORAMB3Z2(_TestPathORAMBase,
     _kwds = {}
 
 class TestPathORAMB3Z3(_TestPathORAMBase,
-                       unittest2.TestCase):
+                       unittest.TestCase):
     _type_name = 'mmap'
     _aes_mode = 'ctr'
     _bucket_capacity = 3
@@ -833,7 +833,7 @@ class TestPathORAMB3Z3(_TestPathORAMBase,
     _kwds = {}
 
 class TestPathORAMB3Z4(_TestPathORAMBase,
-                       unittest2.TestCase):
+                       unittest.TestCase):
     _type_name = 'file'
     _aes_mode = 'gcm'
     _bucket_capacity = 4
@@ -841,7 +841,7 @@ class TestPathORAMB3Z4(_TestPathORAMBase,
     _kwds = {}
 
 class TestPathORAMB3Z5(_TestPathORAMBase,
-                       unittest2.TestCase):
+                       unittest.TestCase):
     _type_name = 'file'
     _aes_mode = 'ctr'
     _bucket_capacity = 5
@@ -849,4 +849,4 @@ class TestPathORAMB3Z5(_TestPathORAMBase,
     _kwds = {}
 
 if __name__ == "__main__":
-    unittest2.main()                                    # pragma: no cover
+    unittest.main()                                    # pragma: no cover
