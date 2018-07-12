@@ -2,12 +2,11 @@
 language: python
 matrix:
   include:
-#  - python: 2.7
-#    env: JYTHON=org.python:jython-installer:2.7.1
   - python: 2.7
   - python: 3.4
   - python: 3.5
   - python: 3.6
+  - python: 3.7
   - python: pypy
   - python: pypy3
 cache: false
@@ -15,9 +14,6 @@ before_install:
   - sudo apt-get update -q
   - sudo apt-get install graphviz -y
   - python -m pip install -v -U pip setuptools virtualenv wheel
-  - if [ -n "$JYTHON" ]; then bash ./.travis_before_install_jython.sh; source $HOME/myvirtualenv/bin/activate ;fi
-  - if [ -n "$JYTHON" ]; then pip install jip; fi
-  - if [ -n "$JYTHON" ]; then export CLASSPATH=$VIRTUAL_ENV/javalib/*; fi
 install:
   - python -m pip install -v -e .
   - python -m pip install -U unittest2 nose2 cov-core codecov coverage
